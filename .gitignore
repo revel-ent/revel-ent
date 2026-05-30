@@ -21,6 +21,7 @@ venv/
 out/
 dist/
 build/
+*.tsbuildinfo
 
 # OS/editor noise
 .DS_Store
