@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Keep sensitive app internals out of crawl scope.
+Disallow: /portal-app/
+Disallow: /.vercel/
+Disallow: /.github/
+
+Sitemap: https://www.revel-ent.com/sitemap.xml

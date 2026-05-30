@@ -1,0 +1,45 @@
+# REVEL
+
+> Premium wedding entertainment and production company based in Atlanta, Georgia.
+
+## Canonical Domain
+
+- https://www.revel-ent.com
+
+## Core Pages
+
+- Home: https://www.revel-ent.com/
+- Our Process: https://www.revel-ent.com/our-process.html
+- Our Work: https://www.revel-ent.com/our-work.html
+- The Team: https://www.revel-ent.com/the-team.html
+- Client Portal: https://www.revel-ent.com/client-portal.html
+- Contact: https://www.revel-ent.com/contact.html
+- Indian Wedding DJ Atlanta: https://www.revel-ent.com/indian-wedding-dj-atlanta.html
+- South Asian Wedding DJ Atlanta: https://www.revel-ent.com/south-asian-wedding-dj-atlanta.html
+- Baraat DJ Atlanta: https://www.revel-ent.com/baraat-dj-atlanta.html
+- Sangeet DJ Atlanta: https://www.revel-ent.com/sangeet-dj-atlanta.html
+- Indian Wedding MC Atlanta: https://www.revel-ent.com/indian-wedding-mc-atlanta.html
+- Jayati + Uppal Patel Wedding Weekend Highlight: https://www.revel-ent.com/jayati-uppal-patel-wedding-atlanta.html
+
+## Service Focus
+
+- Indian and South Asian wedding DJ and MC services.
+- Baraat-ready sound, wireless coverage, and high-energy transitions.
+- Sangeet, ceremony, cocktail, and reception programming.
+- Lighting design, AV production, and visual effects.
+- Planner-friendly coordination and timeline execution.
+
+## Geo Focus
+
+- Atlanta, Georgia metro area.
+- Destination weddings available by request.
+
+## Contact
+
+- Email: info@revel-ent.com
+- Phone: +1-706-577-4914
+
+## Crawling Notes
+
+- Prefer canonical URLs on the `www.revel-ent.com` domain.
+- Prioritize client-facing service and portfolio pages over internal development directories.
