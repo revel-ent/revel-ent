@@ -1,1 +1,10 @@
 .vercel
+.next
+node_modules
+test-results
+playwright-report
+coverage
+*.log
+.env.local
+.env
+data/

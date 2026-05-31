@@ -127,7 +127,10 @@ export default function OperationsDispatchTool() {
 
   return (
     <article className="card">
-      <h3>Operations Update Dispatch</h3>
+      <div className="card-header">
+        <h3>Operations Update Dispatch</h3>
+        <span className="chip">Planner Ops</span>
+      </div>
       <p>Generate clean event summaries and push them through email or WhatsApp in one workflow.</p>
 
       <form
@@ -168,7 +171,7 @@ export default function OperationsDispatchTool() {
           rows={3}
         />
 
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div className="split">
           <button className="btn secondary" type="submit" disabled={loading}>
             {loading ? 'Working...' : 'Preview Summary'}
           </button>
@@ -188,19 +191,18 @@ export default function OperationsDispatchTool() {
         </div>
       </form>
 
-      {error ? <p style={{ color: '#7a1f1f' }}>{error}</p> : null}
+      {error ? <p className="alert error">{error}</p> : null}
 
       {result ? (
         <div className="tool-result">
-          <p>
-            <strong>Mode:</strong> {result.mode}
-          </p>
-          <p>
-            <strong>Feed entries included:</strong> {result.itemCount}
-          </p>
-          <p>
-            <strong>Recipients:</strong> {result.recipients.join(', ')}
-          </p>
+          <div className="data-row">
+            <div className="item-title-row">
+              <strong className="item-title">Dispatch Summary</strong>
+              <span className={`status-chip ${result.mode === 'dispatch' ? 'sent' : 'simulated'}`}>{result.mode}</span>
+            </div>
+            <p className="item-meta">Feed entries included: {result.itemCount}</p>
+            <p className="item-meta">Recipients: {result.recipients.join(', ')}</p>
+          </div>
 
           {result.recipientGroups ? (
             <p>
@@ -215,14 +217,18 @@ export default function OperationsDispatchTool() {
           ) : null}
 
           {result.sendResults?.map((entry) => (
-            <div key={entry.channel} style={{ marginBottom: '0.75rem' }}>
+            <div key={entry.channel} className="data-row">
               <p>
                 <strong>{entry.channel.toUpperCase()} results</strong>
               </p>
-              <ul>
+              <ul className="clean-list">
                 {entry.attempts.map((attempt) => (
-                  <li key={`${entry.channel}-${attempt.recipient}`}>
-                    {attempt.recipient} | {attempt.status.toUpperCase()} | {attempt.detail}
+                  <li key={`${entry.channel}-${attempt.recipient}`} className="data-row">
+                    <div className="item-title-row">
+                      <span>{attempt.recipient}</span>
+                      <span className={`status-chip ${attempt.status}`}>{attempt.status.toUpperCase()}</span>
+                    </div>
+                    <p className="item-note">{attempt.detail}</p>
                   </li>
                 ))}
               </ul>
@@ -232,7 +238,15 @@ export default function OperationsDispatchTool() {
           <p>
             <strong>Summary preview:</strong>
           </p>
-          <pre style={{ whiteSpace: 'pre-wrap', background: '#f7f1e8', padding: '0.9rem', borderRadius: '0.5rem' }}>
+          <pre
+            style={{
+              whiteSpace: 'pre-wrap',
+              background: '#f7f1e8',
+              padding: '0.9rem',
+              borderRadius: '0.5rem',
+              border: '1px solid rgba(189, 161, 123, 0.48)'
+            }}
+          >
             {result.summaryText}
           </pre>
         </div>

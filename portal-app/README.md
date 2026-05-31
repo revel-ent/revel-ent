@@ -114,6 +114,13 @@ If Supabase env vars are missing, approval runs in simulation mode and returns a
 - Add database-backed event membership checks.
 - Add audit logging and consent/privacy controls.
 
+## Auth Identity Bridge (Current vs Target)
+
+- `resolveSessionUserUuid` is a demo bridge, not final identity architecture.
+- Current behavior: if session `userId` is not already a UUID, we derive a deterministic UUID-shaped hash from `userId + email` for temporary membership writes.
+- Target behavior: use first-class identity from Supabase Auth, Clerk, Auth0, or magic-link auth where `auth.uid()` maps directly to `memberships.user_id`.
+- Migration expectation: backfill legacy hashed IDs to provider-issued UUIDs and keep event memberships canonical on `memberships(user_id, event_id, role)`.
+
 ## Supabase Setup (Foundational)
 
 1. Create a Supabase project.
@@ -128,6 +135,23 @@ Expected behavior:
 
 - With env configured: onboarding approval inserts into `events` and `timelines`.
 - Without env configured: onboarding approval remains functional in simulation mode.
+
+## Supabase Storage Posture (atlas-intake)
+
+- Current decision: atlas-intake uploads/downloads are server-only via `SUPABASE_SERVICE_ROLE_KEY` in API routes.
+- There is intentionally no client-side Storage access policy for atlas-intake at this stage.
+- Signed URLs are ephemeral and must never be stored as durable public URLs.
+  - Current intake endpoint URL TTL: 5 minutes.
+  - Persist only `storage_bucket` + `storage_path` and mint a fresh signed URL when needed.
+- If client-side access is introduced later, add `storage.objects` RLS policies scoped to:
+  - `bucket_id = 'atlas-intake'`
+  - path convention `events/<event_id>/...`
+  - membership checks that bind `auth.uid()` to the same `event_id` in `memberships`
+
+## Next 16 Middleware Migration Task
+
+- Track migration from `middleware.ts` convention to Next 16 `proxy.ts` in [docs/tasks/next16-middleware-to-proxy.md](docs/tasks/next16-middleware-to-proxy.md).
+- Do not change route-guard behavior until tests cover parity for auth redirects and role-based access outcomes.
 
 ## Scale Readiness Priorities (Next)
 

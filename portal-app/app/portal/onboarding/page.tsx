@@ -1,9 +1,7 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-import { ATLAS_VENUE_SEEDS } from '@/lib/atlas-venues';
 
 type CapacityStatus = 'safe' | 'tight' | 'unsafe';
 
@@ -22,6 +20,32 @@ interface CapacityCheckResponse {
   };
 }
 
+interface OnboardingVenue {
+  id: string;
+  name: string;
+  city: string;
+  marketedCapacity: number;
+  comfortableRangeMin: number;
+  comfortableRangeMax: number;
+  notes: string[];
+  constraintsSummary: string;
+  sourceConfidence: 'vendor_verified' | 'partially_verified' | 'unverified';
+}
+
+interface OnboardingVenueListResponse {
+  venues: OnboardingVenue[];
+  source: 'database' | 'fallback';
+}
+
+const ONBOARDING_ROLE_OPTIONS = [
+  { value: 'couple', label: 'Client (Couple)' },
+  { value: 'planner', label: 'Planner' },
+  { value: 'decorator', label: 'Decorator' },
+  { value: 'vendor', label: 'Vendor' },
+  { value: 'guest', label: 'Guest' },
+  { value: 'delegate_coordinator', label: 'Family Coordinator' }
+] as const;
+
 function getStatusTone(status: CapacityStatus) {
   if (status === 'safe') {
     return { label: 'Comfortable Fit', color: '#275d3d', bg: '#e5f3e8' };
@@ -36,16 +60,74 @@ function getStatusTone(status: CapacityStatus) {
 
 export default function ConciergeOnboardingPage() {
   const router = useRouter();
-  const [venueId, setVenueId] = useState(ATLAS_VENUE_SEEDS[0]?.id ?? '');
+  const [workflowRole, setWorkflowRole] = useState<string>(() => {
+    if (typeof window === 'undefined') {
+      return 'couple';
+    }
+
+    const stored = window.localStorage.getItem('revel.portal.persona');
+
+    if (stored && ONBOARDING_ROLE_OPTIONS.some((option) => option.value === stored)) {
+      return stored;
+    }
+
+    return 'couple';
+  });
+  const [venueId, setVenueId] = useState('');
+  const [venues, setVenues] = useState<OnboardingVenue[]>([]);
+  const [venueSource, setVenueSource] = useState<'database' | 'fallback'>('fallback');
+  const [venuesLoading, setVenuesLoading] = useState(true);
   const [guestCount, setGuestCount] = useState('300');
   const [weddingDate, setWeddingDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CapacityCheckResponse | null>(null);
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadVenues() {
+      setVenuesLoading(true);
+
+      try {
+        const response = await fetch('/api/onboarding/venues', { cache: 'no-store' });
+
+        if (!response.ok) {
+          throw new Error('Unable to load venues');
+        }
+
+        const payload = (await response.json()) as OnboardingVenueListResponse;
+
+        if (!active) {
+          return;
+        }
+
+        setVenues(payload.venues);
+        setVenueSource(payload.source);
+        setVenueId((current) => current || payload.venues[0]?.id || '');
+      } catch {
+        if (active) {
+          setVenues([]);
+          setVenueId('');
+          setError('We could not load Atlas venues right now. Please refresh and try again.');
+        }
+      } finally {
+        if (active) {
+          setVenuesLoading(false);
+        }
+      }
+    }
+
+    void loadVenues();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const selectedVenue = useMemo(
-    () => ATLAS_VENUE_SEEDS.find((venue) => venue.id === venueId) ?? null,
-    [venueId]
+    () => venues.find((venue) => venue.id === venueId) ?? null,
+    [venueId, venues]
   );
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -79,23 +161,56 @@ export default function ConciergeOnboardingPage() {
   const tone = result ? getStatusTone(result.status) : null;
 
   return (
-    <section>
-      <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <span className="badge" style={{ marginBottom: '0.8rem', display: 'inline-block' }}>
-          Concierge Onboarding · Screen 1 of 4
-        </span>
-        <h1 style={{ fontFamily: 'Oswald, sans-serif', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-          Secure Venue Baseline
-        </h1>
-        <p style={{ color: '#4e4339', lineHeight: 1.7, marginBottom: '1.25rem' }}>
-          Select your venue and estimated guest count. We will validate capacity assumptions against Atlas constraints
-          and prepare your starting timeline.
-        </p>
+    <section className="page-wrap">
+      <div style={{ maxWidth: 860, margin: '0 auto', display: 'grid', gap: '0.95rem' }}>
+        <header className="portal-page-header">
+          <span className="badge">Concierge Onboarding · Screen 1 of 4</span>
+          <h1 className="page-title">Secure Venue Baseline</h1>
+          <p className="page-subtitle">
+            Select your venue and estimated guest count. We will validate capacity assumptions against Atlas constraints
+            and prepare your starting timeline.
+          </p>
+        </header>
 
-        <form className="card" onSubmit={onSubmit} style={{ display: 'grid', gap: '0.85rem' }}>
+        <section className="card stack">
+          <div className="card-header">
+            <h3>Who Are You In This Wedding?</h3>
+            <span className="chip">Orientation</span>
+          </div>
+          <p className="card-muted">
+            We tailor guidance, next-best actions, and workspace language to your role so planning is faster and
+            clearer.
+          </p>
+          <label htmlFor="workflowRole">I am onboarding as</label>
+          <select
+            id="workflowRole"
+            value={workflowRole}
+            onChange={(event) => {
+              const nextRole = event.target.value;
+              setWorkflowRole(nextRole);
+              window.localStorage.setItem('revel.portal.persona', nextRole);
+            }}
+          >
+            {ONBOARDING_ROLE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </section>
+
+        <form className="card tool-form" onSubmit={onSubmit}>
           <label htmlFor="venue">Venue</label>
-          <select id="venue" value={venueId} onChange={(event) => setVenueId(event.target.value)} required>
-            {ATLAS_VENUE_SEEDS.map((venue) => (
+          <select
+            id="venue"
+            value={venueId}
+            onChange={(event) => setVenueId(event.target.value)}
+            required
+            disabled={venuesLoading || venues.length === 0}
+          >
+            {venuesLoading ? <option value="">Loading Atlas venues...</option> : null}
+            {!venuesLoading && venues.length === 0 ? <option value="">No venues available</option> : null}
+            {venues.map((venue) => (
               <option key={venue.id} value={venue.id}>
                 {venue.name} · {venue.city}
               </option>
@@ -121,42 +236,36 @@ export default function ConciergeOnboardingPage() {
             onChange={(event) => setWeddingDate(event.target.value)}
           />
 
-          <button className="btn primary" type="submit" disabled={loading}>
+          <button className="btn primary" type="submit" disabled={loading || venuesLoading || !venueId}>
             {loading ? 'Validating...' : 'Verify and Continue'}
           </button>
         </form>
 
         {selectedVenue ? (
-          <div className="card" style={{ marginTop: '0.9rem' }}>
-            <h3 style={{ marginTop: 0 }}>Atlas Snapshot</h3>
-            <p style={{ color: '#4e4339' }}>{selectedVenue.constraintsSummary}</p>
-            <p style={{ marginBottom: 0, color: '#4e4339' }}>
+          <div className="card">
+            <div className="card-header">
+              <h3>Atlas Snapshot</h3>
+              <span className="chip">Trust Layer</span>
+            </div>
+            <p>{selectedVenue.constraintsSummary}</p>
+            <p className="card-muted">
               Comfortable range: {selectedVenue.comfortableRangeMin} - {selectedVenue.comfortableRangeMax} guests
             </p>
+            <p className="item-note">Data source: {venueSource === 'database' ? 'Atlas Supabase sync' : 'Fallback seed'}</p>
           </div>
         ) : null}
 
         {error ? (
-          <div className="card" style={{ marginTop: '0.9rem', borderColor: '#c18476' }}>
+          <div className="alert error">
             <strong>{error}</strong>
           </div>
         ) : null}
 
         {result && tone ? (
-          <div className="card" style={{ marginTop: '0.9rem' }}>
-            <div
-              className="badge"
-              style={{
-                background: tone.bg,
-                borderColor: 'transparent',
-                color: tone.color,
-                marginBottom: '0.75rem'
-              }}
-            >
-              {tone.label}
-            </div>
-            <p style={{ marginTop: 0, color: '#2f2720' }}>{result.message}</p>
-            <ul style={{ marginTop: '0.4rem', color: '#4e4339', lineHeight: 1.6 }}>
+          <div className="card stack">
+            <div className={`status-chip ${result.status}`}>{tone.label}</div>
+            <p className="card-muted">{result.message}</p>
+            <ul>
               {result.venue.notes.map((note) => (
                 <li key={note}>{note}</li>
               ))}
@@ -164,7 +273,6 @@ export default function ConciergeOnboardingPage() {
             <button
               className="btn primary"
               type="button"
-              style={{ marginTop: '0.55rem' }}
               onClick={() => {
                 const query = new URLSearchParams({ venueId, guestCount });
 

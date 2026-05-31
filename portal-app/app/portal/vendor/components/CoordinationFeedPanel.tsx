@@ -39,21 +39,33 @@ export default function CoordinationFeedPanel() {
 
   return (
     <article className="card">
-      <h3>Coordination Feed</h3>
+      <div className="card-header">
+        <h3>Coordination Feed</h3>
+        <span className="chip">Assigned Updates</span>
+      </div>
       <p>Real-time timeline and operational updates for your assigned event.</p>
 
-      {loading ? <p>Loading feed...</p> : null}
-      {error ? <p style={{ color: '#7a1f1f' }}>{error}</p> : null}
+      {loading ? (
+        <div className="stack" style={{ marginTop: '0.9rem' }}>
+          <div className="skeleton skeleton-line wide" />
+          <div className="skeleton skeleton-line mid" />
+          <div className="skeleton skeleton-line wide" />
+        </div>
+      ) : null}
+      {error ? <p className="alert error">{error}</p> : null}
 
       {!loading && !error ? (
         <div className="tool-result">
           {items.length === 0 ? <p>No updates yet.</p> : null}
-          <ul>
+          <ul className="feed-list">
             {items.map((item) => (
-              <li key={item.id}>
-                <strong>{item.status.toUpperCase()}</strong> | {item.owner} | {new Date(item.timestamp).toLocaleString()}
-                <br />
-                {item.update}
+              <li key={item.id} className="feed-item">
+                <div className="item-title-row">
+                  <span className="item-title">{item.owner}</span>
+                  <span className={`status-chip ${item.status}`}>{item.status.toUpperCase()}</span>
+                </div>
+                <p className="item-meta">{new Date(item.timestamp).toLocaleString()}</p>
+                <p className="item-note">{item.update}</p>
               </li>
             ))}
           </ul>

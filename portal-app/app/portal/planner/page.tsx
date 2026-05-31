@@ -1,19 +1,27 @@
+import AtlasVenueIntelligencePanel from '@/app/portal/planner/components/AtlasVenueIntelligencePanel';
 import VenueAnalyzerTool from '@/app/portal/planner/components/VenueAnalyzerTool';
 import OperationsDispatchTool from '@/app/portal/planner/components/OperationsDispatchTool';
+import EventTimelineCard from '@/app/portal/components/EventTimelineCard';
+import LiveModeCard from '@/app/portal/components/LiveModeCard';
 
-export default function PlannerPortalPage() {
+export default async function PlannerPortalPage() {
   return (
-    <section>
-      <h1 style={{ fontFamily: 'Oswald, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-        Planner Workspace
-      </h1>
-      <p style={{ color: '#4e4339' }}>
-        Planner-facing timeline coordination, risk management, and venue requirements.
-      </p>
+    <section className="page-wrap">
+      <header className="portal-page-header">
+        <span className="eyebrow">Planner Workspace</span>
+        <h1 className="page-title">Run the Weekend Like Clockwork</h1>
+        <p className="page-subtitle">
+          Planner-facing timeline coordination, risk management, and venue requirements.
+        </p>
+      </header>
 
-      <div className="grid">
+      <AtlasVenueIntelligencePanel />
+
+      <div className="portal-card-grid">
         <VenueAnalyzerTool />
         <OperationsDispatchTool />
+        <EventTimelineCard />
+        <LiveModeCard />
       </div>
     </section>
   );

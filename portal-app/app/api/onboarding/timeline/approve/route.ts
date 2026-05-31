@@ -2,8 +2,12 @@ import { randomUUID } from 'crypto';
 
 import { NextResponse } from 'next/server';
 
+import { canApproveOnboardingTimeline } from '@/lib/auth';
 import { generateTimelineFromVenue } from '@/lib/onboarding-timeline';
+import { getSession } from '@/lib/session';
+import { getSessionCookieName, getSessionCookieOptions, signSessionToken } from '@/lib/session-token';
 import { getSupabaseAdminClient, isSupabaseConfigured } from '@/lib/supabase-server';
+import { resolveSessionUserUuid } from '@/lib/user-identity';
 
 interface ApproveBody {
   venueId?: unknown;
@@ -15,6 +19,16 @@ interface ApproveBody {
 }
 
 export async function POST(request: Request) {
+  const session = await getSession();
+
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (!canApproveOnboardingTimeline(session.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   let body: ApproveBody;
 
   try {
@@ -78,22 +92,40 @@ export async function POST(request: Request) {
   const guestCount = Math.max(0, Math.floor(guestCountRaw));
 
   if (!supabase) {
-    return NextResponse.json(
+    const simulatedEventId = `sim-${randomUUID()}`;
+    const sessionToken = await signSessionToken({
+      userId: session.userId,
+      email: session.email,
+      displayName: session.displayName,
+      role: session.role,
+      eventId: simulatedEventId
+    });
+
+    const response = NextResponse.json(
       {
         mode: 'simulated',
-        eventId: `sim-${randomUUID()}`,
+        eventId: simulatedEventId,
         timelineCount: generation.items.length,
         venue: generation.venue.name,
+        sessionEventId: simulatedEventId,
         message: 'Supabase credentials missing. Timeline approved in simulation mode only.'
       },
       { status: 200 }
     );
+
+    response.cookies.set(getSessionCookieName(), sessionToken, getSessionCookieOptions());
+    return response;
   }
+
+  const actorUserId = resolveSessionUserUuid({
+    userId: session.userId,
+    email: session.email
+  });
 
   const { data: venueRecord } = await supabase
     .from('venues')
     .select('venue_id')
-    .eq('atlas_slug', generation.venue.id)
+    .eq('atlas_record_id', generation.venue.id)
     .limit(1)
     .maybeSingle();
 
@@ -107,7 +139,8 @@ export async function POST(request: Request) {
       city: generation.venue.city,
       venue_id: venueRecord?.venue_id ?? null,
       status: 'draft',
-      starts_on: generation.weddingDate.slice(0, 10)
+      starts_on: generation.weddingDate.slice(0, 10),
+      created_by: actorUserId
     })
     .select('event_id')
     .single();
@@ -135,14 +168,42 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'timeline_insert_failed', details: timelineError.message }, { status: 500 });
   }
 
-  return NextResponse.json(
+  const { error: membershipError } = await supabase.from('memberships').upsert(
+    {
+      user_id: actorUserId,
+      event_id: eventInsert.event_id,
+      role: session.role,
+      active: true,
+      accepted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    { onConflict: 'user_id,event_id,role' }
+  );
+
+  if (membershipError) {
+    return NextResponse.json({ error: 'membership_link_failed', details: membershipError.message }, { status: 500 });
+  }
+
+  const sessionToken = await signSessionToken({
+    userId: session.userId,
+    email: session.email,
+    displayName: session.displayName,
+    role: session.role,
+    eventId: eventInsert.event_id
+  });
+
+  const response = NextResponse.json(
     {
       mode: isSupabaseConfigured() ? 'supabase' : 'simulated',
       eventId: eventInsert.event_id,
+      sessionEventId: eventInsert.event_id,
       timelineCount: timelineRows.length,
       venue: generation.venue.name,
       message: 'Timeline approved and saved.'
     },
     { status: 200 }
   );
+
+  response.cookies.set(getSessionCookieName(), sessionToken, getSessionCookieOptions());
+  return response;
 }

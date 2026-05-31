@@ -1,7 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { canUseIntake, canUseLiveMode, canUseVenueWorkspace } from '@/lib/auth';
 import { getSession } from '@/lib/session';
+import RoleOrientationPanel from '@/app/portal/components/RoleOrientationPanel';
+import DevRoleSwitcher from '@/app/portal/components/DevRoleSwitcher';
+import { findEventById, listDemoEvents } from '@/lib/mock-data';
+import { isDevRoleSwitchEnabled } from '@/lib/runtime-flags';
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -10,53 +15,59 @@ export default async function PortalLayout({ children }: { children: React.React
     redirect('/login');
   }
 
+  const eventRecord = session.eventId ? findEventById(session.eventId) : undefined;
+  const eventLabel = eventRecord?.title || 'No active event';
+  const demoEvents = listDemoEvents();
+
   return (
     <div className="portal-shell">
       <header className="portal-nav">
         <div className="portal-nav-inner">
-          <div>
-            <strong>REVEL Portal</strong>
-            <span style={{ marginLeft: '0.6rem' }} className="badge">
-              user: {session.displayName}
-            </span>
-            <span style={{ marginLeft: '0.6rem' }} className="badge">
-              role: {session.role}
-            </span>
-            <span style={{ marginLeft: '0.45rem' }} className="badge">
-              event: {session.eventId || 'n/a'}
-            </span>
+          <div className="portal-brand">
+            <strong className="portal-brand-title">ATLAS PORTAL by REVEL</strong>
+            <div className="portal-meta">
+              <span className="badge">User: {session.displayName}</span>
+              <span className="badge">Role: {session.role}</span>
+              <span className="badge">Event: {eventLabel}</span>
+            </div>
           </div>
           <nav className="portal-nav-links">
-            <Link className="btn" href="/portal">
+            {isDevRoleSwitchEnabled() ? (
+              <DevRoleSwitcher currentRole={session.role} currentEventId={session.eventId} events={demoEvents} />
+            ) : null}
+            <Link className="portal-nav-link" href="/portal">
               Dashboard
             </Link>
-            <Link className="btn" href="/portal/onboarding">
+            <Link className="portal-nav-link" href="/portal/onboarding">
               Onboarding
             </Link>
-            <Link className="btn" href="/portal/live">
-              Live Mode
-            </Link>
-            <Link className="btn" href="/portal/couple">
-              Couple
-            </Link>
-            <Link className="btn" href="/portal/planner">
-              Planner
-            </Link>
-            <Link className="btn" href="/portal/vendor">
-              Vendor
-            </Link>
-            <Link className="btn" href="/portal/guest">
-              Guest
-            </Link>
+            {canUseIntake(session.role) ? (
+              <Link className="portal-nav-link" href="/portal/intake">
+                Intake
+              </Link>
+            ) : null}
+            {canUseLiveMode(session.role) ? (
+              <Link className="portal-nav-link" href="/portal/live">
+                Live Mode
+              </Link>
+            ) : null}
+            {canUseVenueWorkspace(session.role) ? (
+              <Link className="portal-nav-link" href="/portal/venue">
+                Venue
+              </Link>
+            ) : null}
             <form action="/api/auth/logout" method="POST">
-              <button className="btn" type="submit">
+              <button className="portal-nav-link" type="submit">
                 Logout
               </button>
             </form>
           </nav>
         </div>
       </header>
-      <main className="container">{children}</main>
+      <main className="container">
+        <RoleOrientationPanel sessionRole={session.role} displayName={session.displayName} />
+        {children}
+      </main>
     </div>
   );
 }

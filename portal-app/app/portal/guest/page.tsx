@@ -1,17 +1,22 @@
 import GuestConciergeTool from '@/app/portal/guest/components/GuestConciergeTool';
+import GuestExperienceHub from '@/app/portal/guest/components/GuestExperienceHub';
+import EventTimelineCard from '@/app/portal/components/EventTimelineCard';
+import LiveModeCard from '@/app/portal/components/LiveModeCard';
 
 export default function GuestPortalPage() {
   return (
-    <section>
-      <h1 style={{ fontFamily: 'Oswald, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-        Guest Concierge
-      </h1>
-      <p style={{ color: '#4e4339' }}>
-        Read-only event guidance: schedule, attire notes, arrival tips, and FAQ.
-      </p>
+    <section className="page-wrap">
+      <header className="portal-page-header">
+        <span className="eyebrow">Guest Concierge</span>
+        <h1 className="page-title">Stay Informed, Arrive Prepared</h1>
+        <p className="page-subtitle">Read-only event guidance: schedule, attire notes, arrival tips, and FAQ.</p>
+      </header>
 
-      <div className="grid">
+      <div className="portal-card-grid">
+        <GuestExperienceHub />
         <GuestConciergeTool />
+        <EventTimelineCard />
+        <LiveModeCard />
       </div>
     </section>
   );

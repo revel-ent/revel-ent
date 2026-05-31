@@ -57,7 +57,10 @@ export default function VenueAnalyzerTool() {
 
   return (
     <article className="card">
-      <h3>Venue Production Analyzer</h3>
+      <div className="card-header">
+        <h3>Venue Production Analyzer</h3>
+        <span className="chip">Venue Fit</span>
+      </div>
       <p>Model constraints and required production elements before execution week.</p>
 
       <form
@@ -85,29 +88,36 @@ export default function VenueAnalyzerTool() {
         </button>
       </form>
 
-      {error ? <p style={{ color: '#7a1f1f' }}>{error}</p> : null}
+      {error ? <p className="alert error">{error}</p> : null}
 
       {result ? (
         <div className="tool-result">
-          <p><strong>Event:</strong> {result.event}</p>
-          <p><strong>Venue:</strong> {result.venue} ({result.roomType})</p>
+          <div className="data-row">
+            <strong className="item-title">{result.event}</strong>
+            <p className="item-meta">
+              {result.venue} ({result.roomType})
+            </p>
+            <span className="status-chip safe">
+              Confidence {Math.round(result.trustMetadata.confidenceScore * 100)}%
+            </span>
+          </div>
           <p><strong>Required Elements:</strong></p>
-          <ul>
+          <ul className="clean-list">
             {result.required.map((item) => (
-              <li key={item}>{item}</li>
+              <li key={item} className="data-row">{item}</li>
             ))}
           </ul>
           <p><strong>Risk Flags:</strong></p>
-          <ul>
+          <ul className="clean-list">
             {result.riskFlags.map((flag) => (
-              <li key={flag}>{flag}</li>
+              <li key={flag} className="data-row">{flag}</li>
             ))}
           </ul>
-          <p>
-            <strong>Readiness Confidence:</strong> {Math.round(result.trustMetadata.confidenceScore * 100)}%
-            {' '}({result.trustMetadata.reviewedBy}, {new Date(result.trustMetadata.reviewedOn).toLocaleDateString()})
+          <p className="item-note">
+            Reviewed by {result.trustMetadata.reviewedBy} on{' '}
+            {new Date(result.trustMetadata.reviewedOn).toLocaleDateString()}.
           </p>
-          <p>
+          <p className="item-note">
             This score shows how complete and reliable the current venue details are for planning decisions.
           </p>
         </div>

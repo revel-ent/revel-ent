@@ -16,6 +16,16 @@ interface GenerateResponse {
     name: string;
     city: string;
   };
+  venueIntelligence: {
+    sourceConfidence: 'vendor_verified' | 'partially_verified' | 'unverified';
+    topConstraints: Array<{
+      key: string;
+      label: string;
+      value: string;
+      notes: string | null;
+    }>;
+    sourceLinks: Array<{ label: string; url: string }>;
+  };
   weddingDate: string;
   items: TimelineItem[];
   warnings: string[];
@@ -45,6 +55,10 @@ function phaseLabel(code: string): string {
   };
 
   return map[code] ?? code;
+}
+
+function confidenceLabel(value: GenerateResponse['venueIntelligence']['sourceConfidence']): string {
+  return value.replace('_', ' ');
 }
 
 export default function OnboardingTimelinePage() {
@@ -162,44 +176,80 @@ export default function OnboardingTimelinePage() {
   }
 
   return (
-    <section>
-      <div style={{ maxWidth: 860, margin: '0 auto' }}>
-        <span className="badge" style={{ marginBottom: '0.8rem', display: 'inline-block' }}>
-          Concierge Onboarding · Screen 2 of 4
-        </span>
-        <h1 style={{ fontFamily: 'Oswald, sans-serif', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-          Your Baseline Weekend Timeline
-        </h1>
-        <p style={{ color: '#4e4339', lineHeight: 1.7 }}>
-          We prepared a starter timeline using your selected venue constraints. Review and approve to enter the portal.
-        </p>
+    <section className="page-wrap">
+      <div style={{ maxWidth: 920, margin: '0 auto', display: 'grid', gap: '0.9rem' }}>
+        <header className="portal-page-header">
+          <span className="badge">Concierge Onboarding · Screen 2 of 4</span>
+          <h1 className="page-title">Your Baseline Weekend Timeline</h1>
+          <p className="page-subtitle">
+            We prepared a starter timeline using your selected venue constraints. Review and approve to enter the portal.
+          </p>
+        </header>
 
         {loading ? (
-          <article className="card" style={{ marginTop: '1rem' }}>
-            <p style={{ margin: 0 }}>Preparing your itinerary...</p>
+          <article className="card">
+            <div className="skeleton skeleton-line wide" />
+            <div className="skeleton skeleton-line mid" />
+            <div className="skeleton skeleton-line short" />
           </article>
         ) : null}
 
         {error ? (
-          <article className="card" style={{ marginTop: '1rem', borderColor: '#c18476' }}>
+          <article className="alert error">
             <strong>{error}</strong>
           </article>
         ) : null}
 
         {result ? (
           <>
-            <article className="card" style={{ marginTop: '1rem' }}>
-              <h3 style={{ marginTop: 0 }}>{result.venue.name}</h3>
-              <p style={{ color: '#4e4339', marginBottom: '0.4rem' }}>{result.venue.city}</p>
-              <p style={{ color: '#4e4339', margin: 0 }}>
+            <article className="card">
+              <div className="card-header">
+                <h3>{result.venue.name}</h3>
+                <span className="chip">Venue Baseline</span>
+              </div>
+              <p>{result.venue.city}</p>
+              <p className="card-muted">
                 Template source: {result.templateSource === 'database' ? 'Supabase templates' : 'Fallback baseline'}
               </p>
+              <p className="card-muted">
+                Confidence: <strong>{confidenceLabel(result.venueIntelligence.sourceConfidence)}</strong>
+              </p>
+
+              {result.venueIntelligence.topConstraints.length > 0 ? (
+                <div className="stack" style={{ marginTop: '0.6rem' }}>
+                  <strong className="item-title">Top venue constraints</strong>
+                  <ul className="clean-list">
+                    {result.venueIntelligence.topConstraints.map((constraint) => (
+                      <li key={constraint.key} className="data-row">
+                        <strong className="item-title">{constraint.label}</strong>
+                        <p className="item-meta">{constraint.value}</p>
+                        {constraint.notes ? <p className="item-note">{constraint.notes}</p> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {result.venueIntelligence.sourceLinks.length > 0 ? (
+                <div className="stack" style={{ marginTop: '0.6rem' }}>
+                  <strong className="item-title">Source links</strong>
+                  <ul className="clean-list">
+                    {result.venueIntelligence.sourceLinks.map((link) => (
+                      <li key={link.url} className="data-row">
+                        <a href={link.url} target="_blank" rel="noreferrer" className="item-note">
+                          {link.label || link.url}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </article>
 
             {result.warnings.length > 0 ? (
-              <article className="card" style={{ marginTop: '0.9rem', borderColor: '#d3b277' }}>
-                <h3 style={{ marginTop: 0 }}>Important Planning Notes</h3>
-                <ul style={{ color: '#4e4339', lineHeight: 1.6 }}>
+              <article className="card">
+                <h3>Important Planning Notes</h3>
+                <ul>
                   {result.warnings.map((warning) => (
                     <li key={warning}>{warning}</li>
                   ))}
@@ -207,18 +257,21 @@ export default function OnboardingTimelinePage() {
               </article>
             ) : null}
 
-            <div style={{ display: 'grid', gap: '0.75rem', marginTop: '0.9rem' }}>
+            <div className="stack">
               {grouped.map((phaseGroup) => (
                 <article key={phaseGroup.phase} className="card">
-                  <h3 style={{ marginTop: 0 }}>{phaseLabel(phaseGroup.phase)}</h3>
+                  <div className="card-header">
+                    <h3>{phaseLabel(phaseGroup.phase)}</h3>
+                    <span className="chip">Phase</span>
+                  </div>
                   {phaseGroup.items.map((item) => (
-                    <div key={`${item.phaseCode}-${item.title}-${item.scheduledStartIso}`} style={{ marginBottom: '0.55rem' }}>
-                      <strong>{item.title}</strong>
-                      <p style={{ margin: '0.25rem 0', color: '#4e4339' }}>
+                    <div key={`${item.phaseCode}-${item.title}-${item.scheduledStartIso}`} className="data-row">
+                      <strong className="item-title">{item.title}</strong>
+                      <p className="item-meta">
                         {formatTime(item.scheduledStartIso)} - {formatTime(item.scheduledEndIso)}
                       </p>
                       {item.escalationHint ? (
-                        <p style={{ margin: 0, color: '#4e4339' }}>{item.escalationHint}</p>
+                        <p className="item-note">{item.escalationHint}</p>
                       ) : null}
                     </div>
                   ))}
@@ -227,13 +280,13 @@ export default function OnboardingTimelinePage() {
             </div>
 
             {approvalMessage ? (
-              <article className="card" style={{ marginTop: '0.9rem', borderColor: '#8ab48a' }}>
+              <article className="alert success">
                 <strong>{approvalMessage}</strong>
               </article>
             ) : null}
 
-            <div style={{ marginTop: '1rem', display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-              <button className="btn" type="button" onClick={() => router.push('/portal/onboarding')}>
+            <div className="split">
+              <button className="btn secondary" type="button" onClick={() => router.push('/portal/onboarding')}>
                 Back to Venue Step
               </button>
               <button className="btn primary" type="button" onClick={onApprove} disabled={approving}>

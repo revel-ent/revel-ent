@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 
-import { runCapacityCheck } from '@/lib/atlas-venues';
+import { runCapacityCheckLive } from '@/lib/atlas-venues';
+import { canUseOnboardingApi } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 
 interface VenueCheckBody {
   venueId?: unknown;
@@ -8,6 +10,16 @@ interface VenueCheckBody {
 }
 
 export async function POST(request: Request) {
+  const session = await getSession();
+
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (!canUseOnboardingApi(session.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   let body: VenueCheckBody;
 
   try {
@@ -28,7 +40,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'invalid_input' }, { status: 400 });
   }
 
-  const result = runCapacityCheck({ venueId, guestCount });
+  const result = await runCapacityCheckLive({ venueId, guestCount });
 
   if (!result) {
     return NextResponse.json({ error: 'venue_not_found' }, { status: 404 });

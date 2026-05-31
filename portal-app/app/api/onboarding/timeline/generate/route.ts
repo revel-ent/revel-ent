@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 
+import { canUseOnboardingApi } from '@/lib/auth';
 import { generateTimelineFromVenue } from '@/lib/onboarding-timeline';
+import { getSession } from '@/lib/session';
 import { getSupabaseAdminClient, isSupabaseConfigured } from '@/lib/supabase-server';
 
 interface GenerateBody {
@@ -9,6 +11,16 @@ interface GenerateBody {
 }
 
 export async function POST(request: Request) {
+  const session = await getSession();
+
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (!canUseOnboardingApi(session.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   let body: GenerateBody;
 
   try {

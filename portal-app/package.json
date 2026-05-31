@@ -6,7 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "test": "npm run test:api",
+    "test:api": "vitest run",
+    "test:api:watch": "vitest",
+    "test:e2e": "playwright test",
+    "task:next16-proxy-migration": "echo See docs/tasks/next16-middleware-to-proxy.md",
+    "atlas:import:snapshot": "tsx scripts/import-atlas-venues.ts --write-json",
+    "atlas:import:sql": "tsx scripts/import-atlas-venues.ts --write-sql",
+    "atlas:import:apply": "tsx scripts/import-atlas-venues.ts --apply"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
@@ -16,11 +24,16 @@
     "react-dom": "19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^22.10.1",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "@vitest/coverage-v8": "^4.1.7",
     "eslint": "^9.17.0",
     "eslint-config-next": "^16.2.6",
-    "typescript": "^5.7.2"
+    "playwright": "^1.60.0",
+    "tsx": "^4.22.3",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.7"
   }
 }

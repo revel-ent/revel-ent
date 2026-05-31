@@ -16,6 +16,16 @@ export interface VenueAnalyzerInput {
   roomType: string;
 }
 
+export interface IntakeExtraction {
+  sourceType: string;
+  extractedDates: string[];
+  extractedAmounts: string[];
+  extractedPercentages: string[];
+  keywordSignals: string[];
+  summary: string;
+  confidence: number;
+}
+
 export function buildFusionFlowPlan(input: FusionFlowInput) {
   const event = findEventById(input.eventId);
   const crowdScale = input.guestCount >= 300 ? 'high-density crowd' : 'mid-density crowd';
@@ -82,5 +92,71 @@ export function buildVenueAnalyzerReport(input: VenueAnalyzerInput) {
       reviewedOn: '2026-05-22',
       confidenceScore: 0.8
     }
+  };
+}
+
+export function extractAtlasSignalsFromDocument(params: {
+  sourceType: string;
+  content: string;
+}): IntakeExtraction {
+  const raw = params.content || '';
+  const content = raw.slice(0, 120_000);
+
+  const amountMatches = content.match(/\$\s?\d[\d,]*(?:\.\d{2})?/g) || [];
+  const percentageMatches = content.match(/\b\d{1,3}%\b/g) || [];
+
+  const monthDateMatches =
+    content.match(
+      /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2}(?:,\s*\d{4})?/gi
+    ) || [];
+
+  const isoDateMatches = content.match(/\b\d{4}-\d{2}-\d{2}\b/g) || [];
+
+  const signalKeywords = [
+    'wire',
+    'deposit',
+    'balance due',
+    'guest count',
+    'timeline',
+    'dietary',
+    'attire',
+    'baraat',
+    'sangeet',
+    'ceremony',
+    'upgrade',
+    'payment terms',
+    'vendor'
+  ];
+
+  const lowered = content.toLowerCase();
+  const keywordSignals = signalKeywords.filter((keyword) => lowered.includes(keyword));
+
+  const extractedDates = Array.from(new Set([...monthDateMatches, ...isoDateMatches])).slice(0, 16);
+  const extractedAmounts = Array.from(new Set(amountMatches)).slice(0, 16);
+  const extractedPercentages = Array.from(new Set(percentageMatches)).slice(0, 10);
+
+  const confidenceBase = 0.45;
+  const confidence = Math.min(
+    0.93,
+    confidenceBase +
+      Math.min(0.2, extractedDates.length * 0.03) +
+      Math.min(0.2, extractedAmounts.length * 0.04) +
+      Math.min(0.08, extractedPercentages.length * 0.02) +
+      Math.min(0.1, keywordSignals.length * 0.01)
+  );
+
+  const summary =
+    extractedAmounts.length || extractedDates.length
+      ? `Extracted ${extractedDates.length} date signals, ${extractedAmounts.length} amount signals, and ${keywordSignals.length} workflow keywords from ${params.sourceType}.`
+      : `No strong structured signals detected from ${params.sourceType}. Keep file for retrieval and manual review.`;
+
+  return {
+    sourceType: params.sourceType,
+    extractedDates,
+    extractedAmounts,
+    extractedPercentages,
+    keywordSignals,
+    summary,
+    confidence: Number(confidence.toFixed(2))
   };
 }

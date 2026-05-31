@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 
 import { findMembershipByEmailAndEventCode } from '@/lib/mock-data';
+import { isDemoAuthEnabled } from '@/lib/runtime-flags';
 import {
   getSessionCookieName,
-  getSessionMaxAgeSeconds,
+  getSessionCookieOptions,
   signSessionToken
 } from '@/lib/session-token';
 
 export async function POST(request: Request) {
+  if (!isDemoAuthEnabled()) {
+    return new NextResponse('Not Found', { status: 404 });
+  }
+
   const formData = await request.formData();
   const email = String(formData.get('email') || '').trim().toLowerCase();
   const eventCode = String(formData.get('eventCode') || '').trim();
@@ -50,12 +55,7 @@ export async function POST(request: Request) {
 
   const response = NextResponse.redirect(new URL(nextPath, request.url));
 
-  response.cookies.set(getSessionCookieName(), sessionToken, {
-    httpOnly: true,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: getSessionMaxAgeSeconds()
-  });
+  response.cookies.set(getSessionCookieName(), sessionToken, getSessionCookieOptions());
 
   return response;
 }

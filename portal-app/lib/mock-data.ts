@@ -19,7 +19,7 @@ export interface MemberRecord {
 
 const EVENTS: EventRecord[] = [
   {
-    id: 'evt-revel-2026-11-15',
+    id: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11',
     code: 'REVEL-NOV-2026',
     title: 'Jayati & Akshay Wedding Weekend',
     city: 'Atlanta, GA',
@@ -27,12 +27,20 @@ const EVENTS: EventRecord[] = [
     guestCountEstimate: 340
   },
   {
-    id: 'evt-revel-2026-12-05',
+    id: '38e4b6c1-5935-4d20-9e17-2c89f2f9b922',
     code: 'REVEL-DEC-2026',
     title: 'Sonia & Rohan Celebration',
     city: 'Atlanta, GA',
     venueName: 'The St. Regis Atlanta',
     guestCountEstimate: 280
+  },
+  {
+    id: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
+    code: 'REVEL-NOV27-2026',
+    title: 'Akshay & Rani Patel Wedding Weekend',
+    city: 'Atlanta, GA',
+    venueName: 'InterContinental Buckhead',
+    guestCountEstimate: 220
   }
 ];
 
@@ -42,42 +50,63 @@ const MEMBERS: MemberRecord[] = [
     email: 'jigar@revel-ent.com',
     displayName: 'Jigar',
     role: 'admin',
-    eventId: 'evt-revel-2026-11-15'
+    eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11'
   },
   {
     userId: 'usr-couple-jayati',
     email: 'jayati@example.com',
     displayName: 'Jayati',
     role: 'couple',
-    eventId: 'evt-revel-2026-11-15'
+    eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11'
   },
   {
     userId: 'usr-planner-maulin',
     email: 'maulin@revel-ent.com',
     displayName: 'MC Maulin',
     role: 'planner',
-    eventId: 'evt-revel-2026-11-15'
+    eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11'
   },
   {
     userId: 'usr-vendor-heckno',
     email: 'heckno@revel-ent.com',
     displayName: 'DJ Heckno',
     role: 'vendor',
-    eventId: 'evt-revel-2026-11-15'
+    eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11'
   },
   {
     userId: 'usr-guest-family',
     email: 'guestfamily@example.com',
     displayName: 'Family Guest',
     role: 'guest',
-    eventId: 'evt-revel-2026-11-15'
+    eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11'
   },
   {
     userId: 'usr-delegate-priya',
     email: 'priya@example.com',
     displayName: 'Priya (Family Coordinator)',
     role: 'delegate_coordinator',
-    eventId: 'evt-revel-2026-11-15'
+    eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11'
+  },
+  {
+    userId: 'usr-venue-anita',
+    email: 'anita.venue@example.com',
+    displayName: 'Anita (Venue Coordinator)',
+    role: 'venue_coordinator',
+    eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11'
+  },
+  {
+    userId: 'usr-couple-akshay-patel',
+    email: 'akshay.patel@example.com',
+    displayName: 'Akshay Patel',
+    role: 'couple',
+    eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0'
+  },
+  {
+    userId: 'usr-couple-rani-patel',
+    email: 'rani.patel@example.com',
+    displayName: 'Rani Patel',
+    role: 'couple',
+    eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0'
   }
 ];
 
@@ -109,4 +138,12 @@ export function findMembershipByEmailAndEventCode(email: string, eventCode: stri
         member.eventId === event.id
     ) || null
   );
+}
+
+export function findMembershipByRoleAndEvent(role: Role, eventId: string | null): MemberRecord | null {
+  if (eventId) {
+    return MEMBERS.find((member) => member.role === role && member.eventId === eventId) || null;
+  }
+
+  return MEMBERS.find((member) => member.role === role) || null;
 }

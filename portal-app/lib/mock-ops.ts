@@ -11,7 +11,7 @@ export interface CoordinationItem {
 const COORDINATION_FEED: CoordinationItem[] = [
   {
     id: 'chg-001',
-    eventId: 'evt-revel-2026-11-15',
+    eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11',
     owner: 'MC Maulin',
     role: 'planner',
     status: 'pending',
@@ -20,7 +20,7 @@ const COORDINATION_FEED: CoordinationItem[] = [
   },
   {
     id: 'chg-002',
-    eventId: 'evt-revel-2026-11-15',
+    eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11',
     owner: 'REVEL Ops',
     role: 'ops',
     status: 'acknowledged',
@@ -29,7 +29,7 @@ const COORDINATION_FEED: CoordinationItem[] = [
   },
   {
     id: 'chg-003',
-    eventId: 'evt-revel-2026-11-15',
+    eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11',
     owner: 'DJ Heckno',
     role: 'vendor',
     status: 'executed',

@@ -55,7 +55,10 @@ export default function FusionFlowTool() {
 
   return (
     <article className="card">
-      <h3>Fusion Flow Experience Architect</h3>
+      <div className="card-header">
+        <h3>Fusion Flow Experience Architect</h3>
+        <span className="chip">AI Concierge</span>
+      </div>
       <p>Generate a custom event arc with cultural transitions and lighting cues.</p>
 
       <form
@@ -83,27 +86,32 @@ export default function FusionFlowTool() {
         </button>
       </form>
 
-      {error ? <p style={{ color: '#7a1f1f' }}>{error}</p> : null}
+      {error ? <p className="alert error">{error}</p> : null}
 
       {result ? (
         <div className="tool-result">
-          <p><strong>Event:</strong> {result.event}</p>
-          <p><strong>Confidence:</strong> {Math.round(result.confidence * 100)}%</p>
+          <div className="data-row">
+            <strong className="item-title">Event</strong>
+            <p className="item-meta">{result.event}</p>
+            <span className="status-chip safe">Confidence {Math.round(result.confidence * 100)}%</span>
+          </div>
           <p><strong>Assumptions:</strong></p>
-          <ul>
+          <ul className="clean-list">
             {result.assumptions.map((assumption) => (
-              <li key={assumption}>{assumption}</li>
+              <li key={assumption} className="data-row">{assumption}</li>
             ))}
           </ul>
           <p><strong>Timeline Moments:</strong></p>
-          <ul>
+          <ul className="clean-list">
             {result.timelineMoments.map((moment) => (
-              <li key={moment.phase}>
-                <strong>{moment.phase}:</strong> {moment.musicDirection} | {moment.lightingState}
+              <li key={moment.phase} className="data-row">
+                <strong className="item-title">{moment.phase}:</strong> {moment.musicDirection} | {moment.lightingState}
               </li>
             ))}
           </ul>
-          <p><strong>Next Action:</strong> {result.nextBestAction}</p>
+          <div className="alert">
+            <strong>Next Action:</strong> {result.nextBestAction}
+          </div>
         </div>
       ) : null}
     </article>

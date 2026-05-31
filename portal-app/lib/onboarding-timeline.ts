@@ -1,4 +1,4 @@
-import { findAtlasVenueById, type AtlasVenueSeed } from '@/lib/atlas-venues';
+import { getAtlasVenueDetail, type AtlasVenueConstraint, type AtlasVenueSeed } from '@/lib/atlas-venues';
 
 export interface TimelineTemplateRow {
   phase_code: string;
@@ -24,6 +24,16 @@ export interface GeneratedTimelineItem {
 
 export interface TimelineGenerationResult {
   venue: AtlasVenueSeed;
+  venueIntelligence: {
+    sourceConfidence: AtlasVenueSeed['sourceConfidence'];
+    topConstraints: Array<{
+      key: string;
+      label: string;
+      value: string;
+      notes: string | null;
+    }>;
+    sourceLinks: Array<{ label: string; url: string }>;
+  };
   weddingDate: string;
   items: GeneratedTimelineItem[];
   warnings: string[];
@@ -74,11 +84,48 @@ function deriveEscalationHint(phaseCode: string, venue: AtlasVenueSeed): string 
   return null;
 }
 
+function formatConstraintValue(constraint: AtlasVenueConstraint): string {
+  if (constraint.valueText) {
+    return constraint.valueText;
+  }
+
+  if (typeof constraint.valueNumber === 'number') {
+    return `${constraint.valueNumber}${constraint.unit ? ` ${constraint.unit}` : ''}`;
+  }
+
+  if (typeof constraint.valueBoolean === 'boolean') {
+    return constraint.valueBoolean ? 'Allowed' : 'Not allowed';
+  }
+
+  return 'Review venue operations notes';
+}
+
+function topRiskConstraints(constraints: AtlasVenueConstraint[]): Array<{
+  key: string;
+  label: string;
+  value: string;
+  notes: string | null;
+}> {
+  const priority = ['baraat_policy', 'curfew_time', 'max_decibels', 'loading_dock', 'push_distance'];
+  const prioritized = constraints
+    .filter((constraint) => priority.includes(constraint.key))
+    .sort((a, b) => priority.indexOf(a.key) - priority.indexOf(b.key));
+
+  const selected = (prioritized.length > 0 ? prioritized : constraints).slice(0, 3);
+
+  return selected.map((constraint) => ({
+    key: constraint.key,
+    label: constraint.key.replace(/_/g, ' '),
+    value: formatConstraintValue(constraint),
+    notes: constraint.notes
+  }));
+}
+
 export function buildGeneratedTimeline(params: {
   venue: AtlasVenueSeed;
   weddingDate?: string;
   templates: TimelineTemplateRow[];
-}): TimelineGenerationResult {
+}): Omit<TimelineGenerationResult, 'venueIntelligence'> {
   const { venue, weddingDate, templates } = params;
   const anchorDate = parseWeddingDate(weddingDate);
   const warnings: string[] = [];
@@ -143,7 +190,7 @@ export async function generateTimelineFromVenue(params: {
   weddingDate?: string;
   fetchTemplates: () => Promise<TimelineTemplateRow[] | null>;
 }): Promise<TimelineGenerationResult | null> {
-  const venue = findAtlasVenueById(params.venueId);
+  const venue = await getAtlasVenueDetail(params.venueId);
 
   if (!venue) {
     return null;
@@ -156,8 +203,15 @@ export async function generateTimelineFromVenue(params: {
     templates: loaded.templates
   });
 
+  const sourceLinks = Array.isArray(venue.sourceLinks) ? venue.sourceLinks.slice(0, 3) : [];
+
   return {
     ...generated,
+    venueIntelligence: {
+      sourceConfidence: venue.sourceConfidence,
+      topConstraints: topRiskConstraints(venue.constraints ?? []),
+      sourceLinks
+    },
     templateSource: loaded.source
   };
 }

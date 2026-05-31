@@ -42,7 +42,10 @@ export default function GuestConciergeTool() {
 
   return (
     <article className="card">
-      <h3>Guest AI Concierge</h3>
+      <div className="card-header">
+        <h3>Guest AI Concierge</h3>
+        <span className="chip">Read-Only Guidance</span>
+      </div>
       <p>Ask event questions about logistics, timing, and cultural guidance.</p>
 
       <form className="tool-form" onSubmit={onSubmit}>
@@ -61,12 +64,17 @@ export default function GuestConciergeTool() {
         </button>
       </form>
 
-      {error ? <p style={{ color: '#7a1f1f' }}>{error}</p> : null}
+      {error ? <p className="alert error">{error}</p> : null}
 
       {result ? (
         <div className="tool-result">
-          <p><strong>Question:</strong> {result.question}</p>
-          <p><strong>Answer:</strong> {result.answer}</p>
+          <div className="data-row">
+            <strong className="item-title">Question</strong>
+            <p className="item-meta">{result.question}</p>
+          </div>
+          <div className="alert">
+            <strong>Answer:</strong> {result.answer}
+          </div>
         </div>
       ) : null}
     </article>

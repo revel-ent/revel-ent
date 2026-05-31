@@ -31,6 +31,22 @@ export function getSessionMaxAgeSeconds(): number {
   return SESSION_DURATION_SECONDS;
 }
 
+export function getSessionCookieOptions(): {
+  httpOnly: true;
+  sameSite: 'lax';
+  path: '/';
+  maxAge: number;
+  secure: boolean;
+} {
+  return {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: getSessionMaxAgeSeconds(),
+    secure: process.env.NODE_ENV === 'production'
+  };
+}
+
 export async function signSessionToken(payload: SessionPayload): Promise<string> {
   return new SignJWT({
     userId: payload.userId,
