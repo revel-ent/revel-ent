@@ -139,7 +139,7 @@ export default function LiveModeCard() {
             <p className="item-meta">
               {result.current
                 ? `${result.current.title} (${fmt(result.current.startsAtIso)} - ${fmt(result.current.endsAtIso)})`
-                : 'No active step right now.'}
+                : 'No active step is currently in progress. We will surface the next critical action as soon as it starts.'}
             </p>
           </div>
 
@@ -148,7 +148,7 @@ export default function LiveModeCard() {
             <p className="item-meta">
               {result.next
                 ? `${result.next.title} at ${fmt(result.next.startsAtIso)}`
-                : 'No upcoming step currently scheduled.'}
+                : 'No upcoming step is scheduled yet. Your timeline feed will update automatically as operations are confirmed.'}
             </p>
           </div>
 

@@ -2,9 +2,9 @@ export default function PortalLoading() {
   return (
     <section className="page-wrap">
       <header className="portal-page-header">
-        <span className="eyebrow">Loading Workspace</span>
-        <h1 className="page-title">Preparing Your Portal View</h1>
-        <p className="page-subtitle">Fetching role permissions, timeline context, and live event signals.</p>
+        <span className="eyebrow">Preparing Your Experience</span>
+        <h1 className="page-title">Retrieving Your Event Logistics</h1>
+        <p className="page-subtitle">Securing your role access, timeline context, and live coordination signals.</p>
       </header>
 
       <div className="portal-card-grid">

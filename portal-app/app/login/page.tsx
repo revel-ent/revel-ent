@@ -25,28 +25,28 @@ export default async function LoginPage({
       <section className="login-showcase">
         <div className="login-showcase-head">
           <span className="eyebrow">ATLAS PORTAL by REVEL</span>
-          <h1>Seamless Luxury Wedding Operations</h1>
+          <h1>Welcome to Your REVEL Event Portal</h1>
           <p>
-            One workspace for couples, planners, decorators, vendors, and family coordinators. Atlas keeps timelines,
-            venue constraints, and live execution aligned so decisions happen faster and costly surprises are avoided.
+            Enter your private operations workspace for timeline control, venue intelligence, and concierge-level
+            coordination across your full wedding circle.
           </p>
         </div>
 
         <div className="login-value-grid">
           <article className="login-value-card">
             <span className="kpi-label">Efficiency</span>
-            <strong className="kpi-value">30% less coordination back-and-forth</strong>
-            <p>Role-based guidance and one source of truth for timeline status.</p>
+            <strong className="kpi-value">Fewer handoff delays</strong>
+            <p>One source of truth for couple, planner, vendor, and family workflows.</p>
           </article>
           <article className="login-value-card">
             <span className="kpi-label">Trust Layer</span>
-            <strong className="kpi-value">Venue-aware recommendations</strong>
-            <p>Atlas verifies operational assumptions before they become expensive mistakes.</p>
+            <strong className="kpi-value">Venue-aware planning confidence</strong>
+            <p>Atlas checks operational assumptions before they become expensive surprises.</p>
           </article>
           <article className="login-value-card">
             <span className="kpi-label">Day-Of Clarity</span>
-            <strong className="kpi-value">Live mode for high-pressure moments</strong>
-            <p>Now/next actions, delay handling, and escalation paths in one screen.</p>
+            <strong className="kpi-value">Decisive event-day execution</strong>
+            <p>Now/next actions, delay handling, and escalation paths in one command view.</p>
           </article>
         </div>
 
@@ -62,10 +62,30 @@ export default async function LoginPage({
       <section className="login-access-panel">
         <article className="card login-form-card">
           <div className="card-header">
-            <h3>Secure Sign In</h3>
+            <h3>Secure Event Access</h3>
             <span className="chip">Event Scoped</span>
           </div>
-          <p className="card-muted">Enter your email and event access code to continue.</p>
+          <p className="card-muted">Use your event credentials to continue into your assigned workspace.</p>
+
+          <div className="alert" role="status">
+            <strong>Choose your destination:</strong> Couple approvals, Vendor coordination, Guest concierge, or
+            Planner operations.
+          </div>
+
+          <div className="split" style={{ marginTop: '0.4rem' }}>
+            <a className="btn secondary" href="/login?next=%2Fportal%2Fcouple">
+              Couple Login
+            </a>
+            <a className="btn secondary" href="/login?next=%2Fportal%2Fvendor">
+              Vendor Login
+            </a>
+            <a className="btn secondary" href="/login?next=%2Fportal%2Fguest">
+              Guest Login
+            </a>
+            <a className="btn secondary" href="/login?next=%2Fportal%2Fplanner">
+              Planner Login
+            </a>
+          </div>
 
           {errorMessage ? (
             <div className="alert error">
@@ -93,7 +113,7 @@ export default async function LoginPage({
             </form>
           ) : (
             <div className="alert error" role="status">
-              <strong>Demo access is disabled outside local development.</strong>
+              <strong>Portal sign-in is temporarily unavailable in this environment.</strong>
             </div>
           )}
         </article>
@@ -101,8 +121,8 @@ export default async function LoginPage({
         {demoAuthEnabled ? (
           <section className="card demo-credentials">
             <div className="card-header">
-              <h3>Demo Credentials</h3>
-              <span className="chip">Sandbox</span>
+              <h3>Local Access Profiles</h3>
+              <span className="chip">Development</span>
             </div>
             <p>
               <strong>Admin:</strong> jigar@revel-ent.com + REVEL-NOV-2026

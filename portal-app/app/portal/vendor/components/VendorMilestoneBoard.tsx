@@ -36,7 +36,9 @@ export default async function VendorMilestoneBoard() {
       </p>
 
       <ul className="feed-list">
-        {milestones.length === 0 ? <li className="feed-item">No milestones assigned yet.</li> : null}
+        {milestones.length === 0 ? (
+          <li className="feed-item">Milestones will appear here once your assignments are released by the planning team.</li>
+        ) : null}
         {milestones.map((item) => (
           <li className="feed-item" key={item.id}>
             <div className="item-title-row">

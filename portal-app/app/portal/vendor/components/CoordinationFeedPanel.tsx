@@ -56,7 +56,7 @@ export default function CoordinationFeedPanel() {
 
       {!loading && !error ? (
         <div className="tool-result">
-          {items.length === 0 ? <p>No updates yet.</p> : null}
+          {items.length === 0 ? <p>No coordination updates are pending right now. New operational notes will appear here in real time.</p> : null}
           <ul className="feed-list">
             {items.map((item) => (
               <li key={item.id} className="feed-item">

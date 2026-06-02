@@ -23,5 +23,5 @@ export function isDemoAuthEnabled(): boolean {
 }
 
 export function isDevRoleSwitchEnabled(): boolean {
-  return isLocalDevelopmentEnvironment();
+  return isLocalDevelopmentEnvironment() && isFlagEnabled(process.env.PORTAL_ENABLE_DEV_ROLE_SWITCH);
 }

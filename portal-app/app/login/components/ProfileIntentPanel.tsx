@@ -18,10 +18,10 @@ export default function ProfileIntentPanel() {
   return (
     <section className="card intent-panel">
       <div className="card-header">
-        <h3>Orientation Setup</h3>
-        <span className="chip">Efficiency First</span>
+        <h3>Entry Preference</h3>
+        <span className="chip">Personalized Guidance</span>
       </div>
-      <p>Select your primary workflow. This personalizes guidance after login.</p>
+      <p>Set your primary role so the portal opens with guidance matched to your responsibilities.</p>
 
       <label htmlFor="intentSelect">I am planning as</label>
       <select
