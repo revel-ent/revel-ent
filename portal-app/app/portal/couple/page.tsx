@@ -5,6 +5,7 @@ import { getClientPlanForEvent, formatDate, getDaysUntil } from '@/lib/mock-clie
 import ClientPaymentPanel from '@/app/portal/couple/components/ClientPaymentPanel';
 import ClientTodoPanel from '@/app/portal/couple/components/ClientTodoPanel';
 import ClientUpgradesPanel from '@/app/portal/couple/components/ClientUpgradesPanel';
+import AtlasRecommendationCard from '@/app/portal/couple/components/AtlasRecommendationCard';
 import EventTimelineCard from '@/app/portal/components/EventTimelineCard';
 
 export default async function CouplePortalPage() {
@@ -69,6 +70,7 @@ export default async function CouplePortalPage() {
       {plan && (
         <>
           <div className="couple-dashboard-grid">
+            <AtlasRecommendationCard />
             <ClientPaymentPanel plan={plan} />
             <ClientTodoPanel plan={plan} />
             <ClientUpgradesPanel plan={plan} />

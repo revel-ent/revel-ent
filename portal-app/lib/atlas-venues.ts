@@ -1,4 +1,5 @@
 import { getSupabaseAdminClient } from '@/lib/supabase-server';
+import type { AtlasSeverity, AtlasStatus, AtlasTriggerKey, VenueConstraintProfile } from '@/lib/atlas-types';
 
 export interface AtlasVenueSeed {
   id: string;
@@ -24,6 +25,7 @@ export interface AtlasVenueConstraint {
 }
 
 export interface AtlasVenueDetail extends AtlasVenueSeed {
+  venueUuid?: string;
   roomName?: string;
   state?: string | null;
   address?: string;
@@ -32,7 +34,30 @@ export interface AtlasVenueDetail extends AtlasVenueSeed {
   heightFt?: number;
   diagramAssets?: Array<{ id: string; url: string; type?: string; notes?: string }>;
   sourceLinks?: Array<{ label: string; url: string }>;
+  constraintProfile?: VenueConstraintProfile | null;
   constraints: AtlasVenueConstraint[];
+}
+
+export interface OutdoorPowerCurfewInput {
+  venueId: string;
+  eventId: string | null;
+  ceremonyOutdoors?: boolean;
+  baraatOutdoors?: boolean;
+}
+
+export interface OutdoorPowerCurfewRecommendation {
+  triggerKey: AtlasTriggerKey;
+  groupedRecommendationKey: string;
+  status: AtlasStatus;
+  severity: AtlasSeverity;
+  confidence: number;
+  fired: boolean;
+  title: string;
+  message: string;
+  cta: string;
+  evidence: Record<string, unknown>;
+  missingFields: string[];
+  fingerprint: string | null;
 }
 
 export interface CapacityCheckInput {
@@ -46,10 +71,264 @@ export interface CapacityCheckResult {
   message: string;
 }
 
+function normalizeConstraintProfile(value: unknown): VenueConstraintProfile | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const profile = value as Partial<VenueConstraintProfile>;
+
+  if (profile.schemaVersion !== 'venue_constraints_v1') {
+    return null;
+  }
+
+  return profile as VenueConstraintProfile;
+}
+
+function parseCurfewHour(curfewText: string | null | undefined): number | null {
+  if (!curfewText) {
+    return null;
+  }
+
+  const hour = Number.parseInt(curfewText, 10);
+  return Number.isFinite(hour) ? hour : null;
+}
+
+function clampConfidence(value: number): number {
+  return Math.max(0, Math.min(1, Number(value.toFixed(2))));
+}
+
+function normalizePositiveNumber(value: unknown): number {
+  const numeric = typeof value === 'number' ? value : Number(value);
+
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return 0;
+  }
+
+  return numeric;
+}
+
+function estimateComfortableRange(marketedCapacity: number): { min: number; max: number } {
+  if (marketedCapacity <= 0) {
+    return { min: 0, max: 0 };
+  }
+
+  const max = Math.max(1, Math.round(marketedCapacity * 0.78));
+  const min = Math.max(1, Math.round(max * 0.72));
+
+  return { min, max };
+}
+
+function resolveComfortableRange(params: {
+  marketedCapacity: number;
+  comfortableRangeMin: unknown;
+  comfortableRangeMax: unknown;
+}): { min: number; max: number } {
+  const comfortableMin = normalizePositiveNumber(params.comfortableRangeMin);
+  const comfortableMax = normalizePositiveNumber(params.comfortableRangeMax);
+
+  if (comfortableMin > 0 && comfortableMax > 0) {
+    return { min: comfortableMin, max: comfortableMax };
+  }
+
+  return estimateComfortableRange(params.marketedCapacity);
+}
+
+function buildOutdoorPowerCurfewFingerprint(params: {
+  eventId: string | null;
+  venueStableId: string;
+  outdoors: boolean;
+  limitedPower: boolean;
+  strictCurfew: boolean;
+  amplifiedDenied: boolean;
+  curfewHour: number | null;
+}): string | null {
+  if (!params.eventId) {
+    return null;
+  }
+
+  return [
+    params.eventId,
+    params.venueStableId,
+    'outdoor_power_or_curfew',
+    Number(params.outdoors),
+    Number(params.limitedPower),
+    Number(params.strictCurfew),
+    Number(params.amplifiedDenied),
+    params.curfewHour ?? 'na'
+  ].join(':');
+}
+
+function evaluateOutdoorPowerCurfew(params: {
+  detail: AtlasVenueDetail;
+  eventId: string | null;
+  ceremonyOutdoors?: boolean;
+  baraatOutdoors?: boolean;
+}): OutdoorPowerCurfewRecommendation {
+  const profile = params.detail.constraintProfile;
+  const outdoors = Boolean(params.ceremonyOutdoors || params.baraatOutdoors);
+  const profileLimitedPower = profile?.operational.power.limited;
+  const limitedPower = profileLimitedPower === true;
+  const curfewType = profile?.operational.sound.curfew.type ?? null;
+  const strictCurfew = curfewType === 'strict';
+  const amplifiedDenied = profile?.operational.sound.outdoorAmplifiedMusicAllowed === false;
+  const parsedCurfewHour = parseCurfewHour(profile?.operational.sound.curfew.localTime ?? null);
+  const fallbackCurfewHour = typeof params.detail.noiseCurfewHour === 'number' ? params.detail.noiseCurfewHour : null;
+  const curfewHour = parsedCurfewHour ?? fallbackCurfewHour;
+
+  const missingFields: string[] = [];
+
+  if (params.ceremonyOutdoors === undefined && params.baraatOutdoors === undefined) {
+    missingFields.push('event.outdoorContext');
+  }
+
+  if (profileLimitedPower === null || profileLimitedPower === undefined) {
+    missingFields.push('operational.power.limited');
+  }
+
+  if (!curfewType || curfewType === 'unknown') {
+    missingFields.push('operational.sound.curfew.type');
+  }
+
+  if (profile?.operational.sound.outdoorAmplifiedMusicAllowed === null || profile?.operational.sound.outdoorAmplifiedMusicAllowed === undefined) {
+    missingFields.push('operational.sound.outdoorAmplifiedMusicAllowed');
+  }
+
+  const hasRiskSignal = limitedPower || strictCurfew || amplifiedDenied;
+  const fired = outdoors && hasRiskSignal;
+
+  let status: AtlasStatus = 'suppressed';
+  let severity: AtlasSeverity = 'info';
+  let confidenceBase = 0.5;
+  let title = 'Outdoor power and curfew check looks stable';
+  let message = 'No immediate outdoor production blockers detected from current venue intelligence.';
+  let cta = 'Continue Planning';
+
+  if (missingFields.length > 0 && outdoors && !hasRiskSignal) {
+    status = 'needs_review';
+    severity = 'warning';
+    confidenceBase = 0.45;
+    title = 'Confirm outdoor power and curfew details with venue';
+    message = 'Outdoor moments are planned, but Atlas is missing one or more critical venue fields. Confirm power lanes and curfew before lock.';
+    cta = 'Confirm with Venue';
+  }
+
+  if (fired) {
+    status = 'active';
+    severity = strictCurfew && limitedPower ? 'critical' : 'warning';
+    confidenceBase = 0.7;
+
+    if (strictCurfew) {
+      confidenceBase += 0.15;
+    }
+
+    if (limitedPower) {
+      confidenceBase += 0.1;
+    }
+
+    if (amplifiedDenied) {
+      confidenceBase += 0.05;
+    }
+
+    if (missingFields.length > 0) {
+      confidenceBase -= 0.15;
+    }
+
+    title = 'Outdoor Power or Curfew Risk';
+    message = curfewHour
+      ? `Outdoor plan intersects venue constraints. Curfew control starts around ${curfewHour}:00, and power constraints may affect baraat coverage.`
+      : 'Outdoor plan intersects venue power and/or sound constraints that can impact baraat and ceremony execution.';
+    cta = 'Explore Baraat Upgrades';
+  }
+
+  const confidence = clampConfidence(confidenceBase);
+  const fingerprint = buildOutdoorPowerCurfewFingerprint({
+    eventId: params.eventId,
+    venueStableId: params.detail.venueUuid ?? params.detail.id,
+    outdoors,
+    limitedPower,
+    strictCurfew,
+    amplifiedDenied,
+    curfewHour
+  });
+
+  return {
+    triggerKey: 'outdoor_power_or_curfew',
+    groupedRecommendationKey: 'baraat_mobile_production_fx',
+    status,
+    severity,
+    confidence,
+    fired,
+    title,
+    message,
+    cta,
+    evidence: {
+      ceremonyOutdoors: params.ceremonyOutdoors ?? null,
+      baraatOutdoors: params.baraatOutdoors ?? null,
+      outdoors,
+      limitedPower,
+      strictCurfew,
+      amplifiedDenied,
+      curfewHour
+    },
+    missingFields,
+    fingerprint
+  };
+}
+
+async function persistOutdoorPowerCurfewEvaluation(params: {
+  recommendation: OutdoorPowerCurfewRecommendation;
+  detail: AtlasVenueDetail;
+  eventId: string | null;
+}): Promise<'persisted' | 'skipped'> {
+  if (!params.eventId || !params.detail.venueUuid || !params.recommendation.fingerprint) {
+    return 'skipped';
+  }
+
+  const supabase = getSupabaseAdminClient();
+
+  if (!supabase) {
+    return 'skipped';
+  }
+
+  const { error } = await supabase.from('atlas_evaluations').upsert(
+    {
+      event_id: params.eventId,
+      venue_id: params.detail.venueUuid,
+      trigger_key: params.recommendation.triggerKey,
+      grouped_recommendation_key: params.recommendation.groupedRecommendationKey,
+      fingerprint: params.recommendation.fingerprint,
+      severity: params.recommendation.severity,
+      confidence: params.recommendation.confidence,
+      status: params.recommendation.status,
+      evidence: params.recommendation.evidence,
+      recommendation_payload: {
+        title: params.recommendation.title,
+        message: params.recommendation.message,
+        cta: params.recommendation.cta
+      },
+      missing_fields: params.recommendation.missingFields,
+      evaluated_by_source: 'api'
+    },
+    { onConflict: 'fingerprint' }
+  );
+
+  if (error) {
+    return 'skipped';
+  }
+
+  return 'persisted';
+}
+
 function evaluateCapacity(venue: AtlasVenueSeed, guestCount: number): CapacityCheckResult {
   const guests = Math.max(0, Math.floor(guestCount));
+  const comfortableRange = resolveComfortableRange({
+    marketedCapacity: venue.marketedCapacity,
+    comfortableRangeMin: venue.comfortableRangeMin,
+    comfortableRangeMax: venue.comfortableRangeMax
+  });
 
-  if (guests <= venue.comfortableRangeMax) {
+  if (guests <= comfortableRange.max) {
     return {
       venue,
       status: 'safe',
@@ -57,7 +336,7 @@ function evaluateCapacity(venue: AtlasVenueSeed, guestCount: number): CapacityCh
     };
   }
 
-  if (guests <= Math.floor(venue.comfortableRangeMax * 1.1)) {
+  if (guests <= Math.floor(comfortableRange.max * 1.1)) {
     return {
       venue,
       status: 'tight',
@@ -183,9 +462,17 @@ export async function listAtlasVenues(): Promise<{ venues: AtlasVenueSeed[]; sou
       id: row.atlas_record_id as string,
       name: [row.name, row.room_name].filter(Boolean).join(' - '),
       city: [row.city, row.state].filter(Boolean).join(', '),
-      marketedCapacity: Number(row.marketed_capacity ?? 0),
-      comfortableRangeMin: Number(row.comfortable_range_min ?? 0),
-      comfortableRangeMax: Number(row.comfortable_range_max ?? 0),
+      marketedCapacity: normalizePositiveNumber(row.marketed_capacity),
+      comfortableRangeMin: resolveComfortableRange({
+        marketedCapacity: normalizePositiveNumber(row.marketed_capacity),
+        comfortableRangeMin: row.comfortable_range_min,
+        comfortableRangeMax: row.comfortable_range_max
+      }).min,
+      comfortableRangeMax: resolveComfortableRange({
+        marketedCapacity: normalizePositiveNumber(row.marketed_capacity),
+        comfortableRangeMin: row.comfortable_range_min,
+        comfortableRangeMax: row.comfortable_range_max
+      }).max,
       notes: [],
       constraintsSummary: 'Imported Atlas venue intelligence available.',
       sourceConfidence: toSourceConfidence(row.verification_status as string | null)
@@ -204,7 +491,7 @@ export async function getAtlasVenueDetail(venueId: string): Promise<AtlasVenueDe
   const { data: venueRow, error: venueError } = await supabase
     .from('venues')
     .select(
-      'venue_id, atlas_record_id, name, room_name, city, state, address, length_ft, width_ft, height_ft, marketed_capacity, comfortable_range_min, comfortable_range_max, verification_status, diagram_assets, source_links'
+      'venue_id, atlas_record_id, name, room_name, city, state, address, length_ft, width_ft, height_ft, marketed_capacity, comfortable_range_min, comfortable_range_max, verification_status, diagram_assets, source_links, constraint_profile'
     )
     .eq('atlas_record_id', venueId)
     .maybeSingle();
@@ -234,14 +521,23 @@ export async function getAtlasVenueDetail(venueId: string): Promise<AtlasVenueDe
 
   return {
     id: venueRow.atlas_record_id as string,
+    venueUuid: venueRow.venue_id as string,
     name: venueRow.name as string,
     roomName: (venueRow.room_name as string | null) ?? undefined,
     city: [venueRow.city, venueRow.state].filter(Boolean).join(', '),
     state: (venueRow.state as string | null) ?? null,
     address: (venueRow.address as string | null) ?? undefined,
-    marketedCapacity: Number(venueRow.marketed_capacity ?? 0),
-    comfortableRangeMin: Number(venueRow.comfortable_range_min ?? 0),
-    comfortableRangeMax: Number(venueRow.comfortable_range_max ?? 0),
+    marketedCapacity: normalizePositiveNumber(venueRow.marketed_capacity),
+    comfortableRangeMin: resolveComfortableRange({
+      marketedCapacity: normalizePositiveNumber(venueRow.marketed_capacity),
+      comfortableRangeMin: venueRow.comfortable_range_min,
+      comfortableRangeMax: venueRow.comfortable_range_max
+    }).min,
+    comfortableRangeMax: resolveComfortableRange({
+      marketedCapacity: normalizePositiveNumber(venueRow.marketed_capacity),
+      comfortableRangeMin: venueRow.comfortable_range_min,
+      comfortableRangeMax: venueRow.comfortable_range_max
+    }).max,
     notes: summary.notes,
     constraintsSummary: summary.summary,
     noiseCurfewHour: summary.noiseCurfewHour,
@@ -255,6 +551,7 @@ export async function getAtlasVenueDetail(venueId: string): Promise<AtlasVenueDe
     sourceLinks: Array.isArray(venueRow.source_links)
       ? (venueRow.source_links as Array<{ label: string; url: string }>)
       : [],
+    constraintProfile: normalizeConstraintProfile(venueRow.constraint_profile),
     constraints
   };
 }
@@ -291,4 +588,33 @@ export async function runCapacityCheckLive(input: CapacityCheckInput): Promise<C
   }
 
   return evaluateCapacity(venue, input.guestCount);
+}
+
+export async function runOutdoorPowerCurfewLive(
+  input: OutdoorPowerCurfewInput
+): Promise<{ venue: AtlasVenueSeed; recommendation: OutdoorPowerCurfewRecommendation; persistenceMode: 'persisted' | 'skipped' } | null> {
+  const detail = await getAtlasVenueDetail(input.venueId);
+
+  if (!detail) {
+    return null;
+  }
+
+  const recommendation = evaluateOutdoorPowerCurfew({
+    detail,
+    eventId: input.eventId,
+    ceremonyOutdoors: input.ceremonyOutdoors,
+    baraatOutdoors: input.baraatOutdoors
+  });
+
+  const persistenceMode = await persistOutdoorPowerCurfewEvaluation({
+    recommendation,
+    detail,
+    eventId: input.eventId
+  });
+
+  return {
+    venue: detail,
+    recommendation,
+    persistenceMode
+  };
 }

@@ -1,12 +1,22 @@
 import { NextResponse } from 'next/server';
 
-import { runCapacityCheckLive } from '@/lib/atlas-venues';
+import { runCapacityCheckLive, runOutdoorPowerCurfewLive } from '@/lib/atlas-venues';
 import { canUseOnboardingApi } from '@/lib/auth';
 import { getSession } from '@/lib/session';
 
 interface VenueCheckBody {
   venueId?: unknown;
   guestCount?: unknown;
+  ceremonyOutdoors?: unknown;
+  baraatOutdoors?: unknown;
+}
+
+function toOptionalBoolean(value: unknown): boolean | undefined {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  return undefined;
 }
 
 export async function POST(request: Request) {
@@ -29,6 +39,8 @@ export async function POST(request: Request) {
   }
 
   const venueId = typeof body.venueId === 'string' ? body.venueId.trim() : '';
+  const ceremonyOutdoors = toOptionalBoolean(body.ceremonyOutdoors);
+  const baraatOutdoors = toOptionalBoolean(body.baraatOutdoors);
   const guestCount =
     typeof body.guestCount === 'number'
       ? body.guestCount
@@ -46,5 +58,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'venue_not_found' }, { status: 404 });
   }
 
-  return NextResponse.json(result, { status: 200 });
+  const outdoorRecommendation = await runOutdoorPowerCurfewLive({
+    venueId,
+    eventId: session.eventId,
+    ceremonyOutdoors,
+    baraatOutdoors
+  });
+
+  return NextResponse.json(
+    {
+      ...result,
+      atlasOutdoorPowerCurfew: outdoorRecommendation?.recommendation ?? null,
+      atlasEvaluationPersistenceMode: outdoorRecommendation?.persistenceMode ?? 'skipped'
+    },
+    { status: 200 }
+  );
 }

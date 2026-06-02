@@ -18,6 +18,21 @@ interface CapacityCheckResponse {
     constraintsSummary: string;
     sourceConfidence: 'vendor_verified' | 'partially_verified' | 'unverified';
   };
+  atlasOutdoorPowerCurfew?: {
+    triggerKey: string;
+    groupedRecommendationKey: string;
+    status: 'active' | 'needs_review' | 'suppressed';
+    severity: 'info' | 'warning' | 'critical';
+    confidence: number;
+    fired: boolean;
+    title: string;
+    message: string;
+    cta: string;
+    evidence: Record<string, unknown>;
+    missingFields: string[];
+    fingerprint: string | null;
+  } | null;
+  atlasEvaluationPersistenceMode?: 'persisted' | 'skipped';
 }
 
 interface OnboardingVenue {
@@ -253,6 +268,27 @@ export default function ConciergeOnboardingPage() {
             </p>
             <p className="item-note">Data source: {venueSource === 'database' ? 'Atlas Supabase sync' : 'Fallback seed'}</p>
           </div>
+        ) : null}
+
+        {result?.atlasOutdoorPowerCurfew ? (
+          <article className="card">
+            <div className="card-header">
+              <h3>{result.atlasOutdoorPowerCurfew.title}</h3>
+              <span className={`status-chip ${result.atlasOutdoorPowerCurfew.severity}`}>{result.atlasOutdoorPowerCurfew.severity}</span>
+            </div>
+            <p>{result.atlasOutdoorPowerCurfew.message}</p>
+            <p className="card-muted">
+              Recommendation: <strong>{result.atlasOutdoorPowerCurfew.cta}</strong>
+            </p>
+            <p className="item-note">
+              Confidence: {Math.round(result.atlasOutdoorPowerCurfew.confidence * 100)}% · Persistence: {result.atlasEvaluationPersistenceMode}
+            </p>
+            {result.atlasOutdoorPowerCurfew.missingFields.length > 0 ? (
+              <p className="item-note">
+                Needs confirmation: {result.atlasOutdoorPowerCurfew.missingFields.join(', ')}
+              </p>
+            ) : null}
+          </article>
         ) : null}
 
         {error ? (
