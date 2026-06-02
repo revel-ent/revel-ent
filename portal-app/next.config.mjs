@@ -11,15 +11,6 @@ const nextConfig = {
   outputFileTracingExcludes: {
     '/*': ['./data/atlas-intake/**/*']
   },
-  async redirects() {
-    return [
-      {
-        source: '/Atlas',
-        destination: '/atlas',
-        permanent: true
-      }
-    ];
-  },
   turbopack: {
     root: appRoot
   }
