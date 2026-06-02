@@ -7,9 +7,12 @@ const workspaceRoot = path.resolve(appRoot, '..');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  outputFileTracingRoot: workspaceRoot,
+  outputFileTracingRoot: appRoot,
+  outputFileTracingExcludes: {
+    '/*': ['./data/atlas-intake/**/*']
+  },
   turbopack: {
-    root: workspaceRoot
+    root: appRoot
   }
 };
 

@@ -1,3 +1,13 @@
 .venv/
 *.txt
 docs/
+portal-app/.next/
+portal-app/node_modules/
+portal-app/test-results/
+portal-app/playwright-report/
+portal-app/coverage/
+portal-app/data/
+portal-app/.vercel/
+portal-app/.env.local
+portal-app/.env
+portal-app/*.log
