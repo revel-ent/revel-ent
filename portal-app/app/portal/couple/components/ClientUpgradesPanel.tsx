@@ -25,7 +25,7 @@ export default function ClientUpgradesPanel({ plan }: Props) {
   const categories = Array.from(new Set(plan.upgrades.map((u) => u.category)));
 
   return (
-    <div className="client-panel">
+    <div className="client-panel" id="premium-upgrades">
       <div className="client-panel__header">
         <div>
           <h2 className="client-panel__title">Optional Upgrades</h2>

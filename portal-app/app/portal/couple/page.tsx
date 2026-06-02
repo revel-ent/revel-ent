@@ -67,12 +67,56 @@ export default async function CouplePortalPage() {
       )}
 
       {plan && (
-        <div className="couple-dashboard-grid">
-          <ClientPaymentPanel plan={plan} />
-          <ClientTodoPanel plan={plan} />
-          <ClientUpgradesPanel plan={plan} />
-          <EventTimelineCard />
-        </div>
+        <>
+          <div className="couple-dashboard-grid">
+            <ClientPaymentPanel plan={plan} />
+            <ClientTodoPanel plan={plan} />
+            <ClientUpgradesPanel plan={plan} />
+            <EventTimelineCard />
+          </div>
+
+          <section className="couple-premium-grid" aria-label="Premium production highlights">
+            <article className="couple-premium-card">
+              <div className="couple-premium-card__header">
+                <span className="couple-premium-card__eyebrow">Procession Signature</span>
+                <h2 className="couple-premium-card__title">Baraat Mobile Production &amp; FX</h2>
+              </div>
+              <p className="couple-premium-card__body">
+                Ensure high-impact energy for the procession with completely wireless, festival-grade audio and visual
+                effects.
+              </p>
+              <ul className="couple-premium-card__list">
+                <li>High-Fidelity Distributed Audio (Zero-Drop Wireless)</li>
+                <li>Dedicated MC &amp; Dhol Integration</li>
+                <li>Precision Procession Cueing</li>
+                <li>Cold Spark Fountains &amp; Atmospheric FX</li>
+              </ul>
+              <a className="couple-premium-card__cta" href="#premium-upgrades">
+                Explore Baraat Upgrades
+              </a>
+            </article>
+
+            <article className="couple-premium-card">
+              <div className="couple-premium-card__header">
+                <span className="couple-premium-card__eyebrow">Ballroom Transformation</span>
+                <h2 className="couple-premium-card__title">Intelligent Reception Architecture</h2>
+              </div>
+              <p className="couple-premium-card__body">
+                Transform your ballroom with custom light mapping and club-tier sound reinforcement spanning grand
+                entrance through after-party.
+              </p>
+              <ul className="couple-premium-card__list">
+                <li>Line-Array Audio &amp; Subwoofer Extension</li>
+                <li>Geometric LED Wall Integration</li>
+                <li>Pixel-Mapped Architectural Uplighting</li>
+                <li>Moving-Head Spotlights (Entrance &amp; First Dance Tracking)</li>
+              </ul>
+              <a className="couple-premium-card__cta" href="#premium-upgrades">
+                View Atmosphere Packages
+              </a>
+            </article>
+          </section>
+        </>
       )}
     </section>
   );
