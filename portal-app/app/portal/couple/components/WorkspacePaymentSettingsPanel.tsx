@@ -42,6 +42,7 @@ export default function WorkspacePaymentSettingsPanel() {
   const [settings, setSettings] = useState<PaymentSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -147,6 +148,43 @@ export default function WorkspacePaymentSettingsPanel() {
       setError(saveError instanceof Error ? saveError.message : 'payment_settings_save_failed');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function startStripeCheckout() {
+    if (!settings) {
+      return;
+    }
+
+    setCheckingOut(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const response = await fetch('/api/events/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspacePlan: undefined
+        })
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? 'stripe_checkout_start_failed');
+      }
+
+      const checkoutUrl = typeof payload?.checkoutUrl === 'string' ? payload.checkoutUrl : null;
+
+      if (!checkoutUrl) {
+        throw new Error('stripe_checkout_url_missing');
+      }
+
+      window.location.assign(checkoutUrl);
+    } catch (checkoutError) {
+      setError(checkoutError instanceof Error ? checkoutError.message : 'stripe_checkout_start_failed');
+      setCheckingOut(false);
     }
   }
 
@@ -291,9 +329,19 @@ export default function WorkspacePaymentSettingsPanel() {
 
           <div className="payment-settings-footer">
             <span className="payment-settings-policy">Checks are permanently disabled by policy.</span>
-            <button className="btn" type="button" onClick={() => void saveSettings()} disabled={disabled}>
+            <div className="split">
+              <button
+                className="btn primary"
+                type="button"
+                onClick={() => void startStripeCheckout()}
+                disabled={disabled || checkingOut || (!settings.allowCard && !settings.allowAch)}
+              >
+                {checkingOut ? 'Redirecting...' : 'Start Stripe Checkout'}
+              </button>
+              <button className="btn" type="button" onClick={() => void saveSettings()} disabled={disabled || checkingOut}>
               {saving ? 'Saving...' : 'Save Payment Settings'}
-            </button>
+              </button>
+            </div>
           </div>
         </>
       ) : null}
