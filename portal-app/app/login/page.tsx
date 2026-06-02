@@ -1,4 +1,3 @@
-import ProfileIntentPanel from '@/app/login/components/ProfileIntentPanel';
 import { isDemoAuthEnabled } from '@/lib/runtime-flags';
 
 const ERROR_MAP: Record<string, string> = {
@@ -6,6 +5,21 @@ const ERROR_MAP: Record<string, string> = {
   membership_not_found: 'No event membership was found for those credentials.',
   configuration_error:
     'Portal login is temporarily unavailable due to server configuration. Please contact support.'
+};
+
+const WORKSPACE_OPTIONS = [
+  { href: '/login?next=%2Fportal%2Fcouple', label: 'Couple', path: '/portal/couple' },
+  { href: '/login?next=%2Fportal%2Fplanner', label: 'Planner', path: '/portal/planner' },
+  { href: '/login?next=%2Fportal%2Fvendor', label: 'Vendor', path: '/portal/vendor' },
+  { href: '/login?next=%2Fportal%2Fguest', label: 'Guest', path: '/portal/guest' }
+];
+
+const DESTINATION_LABELS: Record<string, string> = {
+  '/portal': 'Portal dashboard',
+  '/portal/couple': 'Couple workspace',
+  '/portal/planner': 'Planner workspace',
+  '/portal/vendor': 'Vendor workspace',
+  '/portal/guest': 'Guest concierge'
 };
 
 export default async function LoginPage({
@@ -19,42 +33,40 @@ export default async function LoginPage({
   const requestedNext = resolvedSearchParams?.next || '/portal';
   const nextPath = requestedNext.startsWith('/portal') ? requestedNext : '/portal';
   const demoAuthEnabled = isDemoAuthEnabled();
+  const destinationLabel = DESTINATION_LABELS[nextPath] || 'Portal dashboard';
 
   return (
     <main className="container login-landing">
       <section className="login-showcase">
         <div className="login-showcase-head">
           <span className="eyebrow">ATLAS PORTAL by REVEL</span>
-          <h1>Welcome to Your REVEL Event Portal</h1>
+          <h1>One Calm Place for the Wedding Weekend</h1>
           <p>
-            Enter your private operations workspace for timeline control, venue intelligence, and concierge-level
-            coordination across your full wedding circle.
+            Sign in for approvals, payment visibility, timeline changes, and day-of coordination across your full
+            event circle.
           </p>
         </div>
 
-        <div className="login-value-grid">
-          <article className="login-value-card">
-            <span className="kpi-label">Efficiency</span>
-            <strong className="kpi-value">Fewer handoff delays</strong>
-            <p>One source of truth for couple, planner, vendor, and family workflows.</p>
-          </article>
-          <article className="login-value-card">
-            <span className="kpi-label">Trust Layer</span>
-            <strong className="kpi-value">Venue-aware planning confidence</strong>
-            <p>Atlas checks operational assumptions before they become expensive surprises.</p>
-          </article>
-          <article className="login-value-card">
-            <span className="kpi-label">Day-Of Clarity</span>
-            <strong className="kpi-value">Decisive event-day execution</strong>
-            <p>Now/next actions, delay handling, and escalation paths in one command view.</p>
-          </article>
+        <div className="login-priority-list" aria-label="Portal priorities">
+          <div>
+            <span className="kpi-label">Couples</span>
+            <strong>Approve what matters next.</strong>
+          </div>
+          <div>
+            <span className="kpi-label">Planners</span>
+            <strong>See risks before they hit the timeline.</strong>
+          </div>
+          <div>
+            <span className="kpi-label">Families + Guests</span>
+            <strong>Get clear answers without group-chat noise.</strong>
+          </div>
         </div>
 
         <section className="login-audience-card">
           <h3>Built for South Asian Wedding Complexity</h3>
           <p>
-            Multi-day celebrations need more than checklists. ATLAS supports parallel ceremonies, vendor handoffs,
-            and family-led execution with premium, concierge-level clarity.
+            Multi-day schedules, baraat logistics, vendor load-ins, family coordinators, and guest movement all stay
+            visible without making every person learn every workflow.
           </p>
         </section>
       </section>
@@ -62,30 +74,10 @@ export default async function LoginPage({
       <section className="login-access-panel">
         <article className="card login-form-card">
           <div className="card-header">
-            <h3>Secure Event Access</h3>
-            <span className="chip">Event Scoped</span>
+            <h3>Sign In to Your Event</h3>
+            <span className="chip">Private</span>
           </div>
-          <p className="card-muted">Use your event credentials to continue into your assigned workspace.</p>
-
-          <div className="alert" role="status">
-            <strong>Choose your destination:</strong> Couple approvals, Vendor coordination, Guest concierge, or
-            Planner operations.
-          </div>
-
-          <div className="split" style={{ marginTop: '0.4rem' }}>
-            <a className="btn secondary" href="/login?next=%2Fportal%2Fcouple">
-              Couple Login
-            </a>
-            <a className="btn secondary" href="/login?next=%2Fportal%2Fvendor">
-              Vendor Login
-            </a>
-            <a className="btn secondary" href="/login?next=%2Fportal%2Fguest">
-              Guest Login
-            </a>
-            <a className="btn secondary" href="/login?next=%2Fportal%2Fplanner">
-              Planner Login
-            </a>
-          </div>
+          <p className="card-muted">Use your email and event code. We will open the right workspace after sign-in.</p>
 
           {errorMessage ? (
             <div className="alert error">
@@ -110,45 +102,63 @@ export default async function LoginPage({
               <button className="btn primary" type="submit">
                 Continue to Portal
               </button>
+
+              <p className="login-destination-note">Next stop: {destinationLabel}</p>
             </form>
           ) : (
             <div className="alert error" role="status">
               <strong>Portal sign-in is temporarily unavailable in this environment.</strong>
             </div>
           )}
+
+          <div className="login-workspace-picker">
+            <span className="kpi-label">Open a specific workspace</span>
+            <div className="login-role-shortcuts" aria-label="Workspace shortcuts">
+              {WORKSPACE_OPTIONS.map((option) => (
+                <a
+                  key={option.path}
+                  className="login-role-link"
+                  href={option.href}
+                  aria-current={nextPath === option.path ? 'page' : undefined}
+                >
+                  {option.label}
+                </a>
+              ))}
+            </div>
+          </div>
         </article>
 
         {demoAuthEnabled ? (
-          <section className="card demo-credentials">
-            <div className="card-header">
-              <h3>Local Access Profiles</h3>
+          <details className="card demo-credentials login-dev-details">
+            <summary>
+              <span>Local access profiles</span>
               <span className="chip">Development</span>
+            </summary>
+            <div className="demo-credential-list">
+              <p>
+                <strong>Admin:</strong> jigar@revel-ent.com + REVEL-NOV-2026
+              </p>
+              <p>
+                <strong>Planner:</strong> maulin@revel-ent.com + REVEL-NOV-2026
+              </p>
+              <p>
+                <strong>Couple:</strong> jayati@example.com + REVEL-NOV-2026
+              </p>
+              <p>
+                <strong>Vendor:</strong> heckno@revel-ent.com + REVEL-NOV-2026
+              </p>
+              <p>
+                <strong>Guest:</strong> guestfamily@example.com + REVEL-NOV-2026
+              </p>
+              <p>
+                <strong>Family Coordinator:</strong> priya@example.com + REVEL-NOV-2026
+              </p>
+              <p>
+                <strong>Venue Coordinator:</strong> anita.venue@example.com + REVEL-NOV-2026
+              </p>
             </div>
-            <p>
-              <strong>Admin:</strong> jigar@revel-ent.com + REVEL-NOV-2026
-            </p>
-            <p>
-              <strong>Planner:</strong> maulin@revel-ent.com + REVEL-NOV-2026
-            </p>
-            <p>
-              <strong>Couple:</strong> jayati@example.com + REVEL-NOV-2026
-            </p>
-            <p>
-              <strong>Vendor:</strong> heckno@revel-ent.com + REVEL-NOV-2026
-            </p>
-            <p>
-              <strong>Guest:</strong> guestfamily@example.com + REVEL-NOV-2026
-            </p>
-            <p>
-              <strong>Family Coordinator:</strong> priya@example.com + REVEL-NOV-2026
-            </p>
-            <p>
-              <strong>Venue Coordinator:</strong> anita.venue@example.com + REVEL-NOV-2026
-            </p>
-          </section>
+          </details>
         ) : null}
-
-        <ProfileIntentPanel />
       </section>
     </main>
   );
