@@ -3,6 +3,7 @@ import VenueAnalyzerTool from '@/app/portal/planner/components/VenueAnalyzerTool
 import OperationsDispatchTool from '@/app/portal/planner/components/OperationsDispatchTool';
 import EventTimelineCard from '@/app/portal/components/EventTimelineCard';
 import LiveModeCard from '@/app/portal/components/LiveModeCard';
+import WorkspacePaymentSettingsPanel from '@/app/portal/couple/components/WorkspacePaymentSettingsPanel';
 
 export default async function PlannerPortalPage() {
   return (
@@ -16,6 +17,7 @@ export default async function PlannerPortalPage() {
       </header>
 
       <AtlasVenueIntelligencePanel />
+      <WorkspacePaymentSettingsPanel />
 
       <div className="portal-card-grid">
         <VenueAnalyzerTool />

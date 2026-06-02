@@ -130,6 +130,10 @@ export function canUseVenueWorkspace(role: Role): boolean {
   return ROLE_PERMISSION_MATRIX[role].canUseVenueWorkspace;
 }
 
+export function canManageEventCommercialSettings(role: Role): boolean {
+  return role === 'admin' || role === 'planner' || role === 'couple';
+}
+
 export function canAccessRoute(role: Role, pathname: string): boolean {
   const match = Object.keys(ROUTE_ACCESS)
     .sort((a, b) => b.length - a.length)

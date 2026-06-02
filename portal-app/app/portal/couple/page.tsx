@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session';
 import { findEventById } from '@/lib/mock-data';
 import { getClientPlanForEvent, formatDate, getDaysUntil } from '@/lib/mock-client-milestones';
 import ClientPaymentPanel from '@/app/portal/couple/components/ClientPaymentPanel';
+import WorkspacePaymentSettingsPanel from '@/app/portal/couple/components/WorkspacePaymentSettingsPanel';
 import ClientTodoPanel from '@/app/portal/couple/components/ClientTodoPanel';
 import ClientUpgradesPanel from '@/app/portal/couple/components/ClientUpgradesPanel';
 import AtlasRecommendationCard from '@/app/portal/couple/components/AtlasRecommendationCard';
@@ -72,6 +73,7 @@ export default async function CouplePortalPage() {
           <div className="couple-dashboard-grid">
             <AtlasRecommendationCard />
             <ClientPaymentPanel plan={plan} />
+            <WorkspacePaymentSettingsPanel />
             <ClientTodoPanel plan={plan} />
             <ClientUpgradesPanel plan={plan} />
             <EventTimelineCard />

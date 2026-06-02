@@ -85,7 +85,7 @@ const PRIYA_ARJUN_PLAN: ClientEventPlan = {
       dueDate: '2026-09-28',
       status: 'pending',
       clientCompletable: true,
-      note: 'Due 60 days before your event. Wire or check accepted.'
+      note: 'Due 60 days before your event. ACH or card payment is recommended.'
     },
     {
       id: 'pay-final',

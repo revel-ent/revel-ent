@@ -25,6 +25,28 @@ export type AtlasSourceSurface = 'couple_dashboard' | 'planner_dashboard' | 'ven
 
 export type AtlasConstraintDomain = 'power' | 'sound' | 'capacity' | 'timeline' | 'rigging' | 'ceiling' | 'outdoor';
 
+export type AtlasEventMode = 'revel_managed' | 'independent';
+
+export type AtlasWorkspacePlan = 'essential' | 'pro' | 'premium';
+
+export type AtlasBillingState = 'included' | 'trialing' | 'active' | 'past_due' | 'canceled';
+
+export type AtlasWorkspaceOwnerRole = 'admin' | 'planner' | 'couple';
+
+export type AtlasEntitlementChangeKind =
+  | 'mode_set'
+  | 'plan_set'
+  | 'billing_state_set'
+  | 'owner_set'
+  | 'entitlement_template_applied'
+  | 'manual_override';
+
+export type AtlasEntitlementSourceSurface = 'admin_console' | 'planner_dashboard' | 'couple_dashboard' | 'system_automation';
+
+export type AtlasPaymentRail = 'card' | 'apple_google_pay' | 'ach' | 'zelle' | 'venmo' | 'cash_app';
+
+export type AtlasPaymentProcessingMode = 'stripe' | 'external_manual';
+
 export interface VenueConstraintProfile {
   schemaVersion: 'venue_constraints_v1';
   operational: {
@@ -124,4 +146,56 @@ export interface AtlasOverride {
   expiresAt: string | null;
   sourceSurface: AtlasSourceSurface;
   createdAt: string;
+}
+
+export interface AtlasWorkspaceCommercialState {
+  eventId: string;
+  mode: AtlasEventMode;
+  workspacePlan: AtlasWorkspacePlan | null;
+  billingState: AtlasBillingState;
+  workspaceOwnerUserId: string | null;
+  workspaceOwnerRole: AtlasWorkspaceOwnerRole | null;
+  entitlementSnapshot: Record<string, unknown>;
+}
+
+export interface AtlasEntitlementTemplate {
+  templateId: string;
+  mode: AtlasEventMode;
+  workspacePlan: AtlasWorkspacePlan | null;
+  templateKey: string;
+  entitlementPayload: Record<string, unknown>;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AtlasEntitlementAuditEntry {
+  auditId: string;
+  eventId: string;
+  actorUserId: string;
+  actorRole: 'admin' | 'couple' | 'planner' | 'vendor' | 'guest' | 'delegate_coordinator' | 'venue_coordinator';
+  changeKind: AtlasEntitlementChangeKind;
+  reasonCode: string | null;
+  note: string | null;
+  previousState: Record<string, unknown>;
+  nextState: Record<string, unknown>;
+  sourceSurface: AtlasEntitlementSourceSurface;
+  createdAt: string;
+}
+
+export interface AtlasWorkspacePaymentSettings {
+  eventId: string;
+  allowCard: boolean;
+  allowAppleGooglePay: boolean;
+  allowAch: boolean;
+  allowZelle: boolean;
+  allowVenmo: boolean;
+  allowCashApp: boolean;
+  acceptChecks: false;
+  stripeAccountId: string | null;
+  zelleHandle: string | null;
+  venmoHandle: string | null;
+  cashAppHandle: string | null;
+  manualPaymentInstructions: string | null;
+  updatedAt: string | null;
 }
