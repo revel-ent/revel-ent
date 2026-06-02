@@ -504,6 +504,18 @@ label,
   align-items: center;
 }
 
+.portal-nav-controls {
+  display: flex;
+  align-items: center;
+}
+
+.portal-route-links {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .dev-role-switcher {
   display: flex;
   align-items: center;
@@ -1334,6 +1346,40 @@ textarea:focus {
 
   .portal-nav-links {
     width: 100%;
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .portal-nav-controls {
+    width: 100%;
+  }
+
+  .portal-route-links {
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 0.2rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .portal-route-links::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .portal-route-links::-webkit-scrollbar-thumb {
+    background: rgba(236, 162, 155, 0.4);
+    border-radius: 999px;
+  }
+
+  .portal-route-links .portal-nav-link {
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+
+  .portal-route-links form {
+    flex: 0 0 auto;
   }
 
   .dev-role-switcher {
@@ -1362,6 +1408,23 @@ textarea:focus {
   }
 
   .btn {
+    width: 100%;
+    min-height: 2.7rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .portal-page-header {
+    gap: 0.65rem;
+  }
+
+  .kpi-value {
+    font-size: 0.95rem;
+  }
+
+  .tool-form .btn {
     width: 100%;
   }
 

@@ -183,7 +183,18 @@ export default function RoleOrientationPanel({
   displayName: string;
 }) {
   const basePersona = normalizeToPersona(sessionRole);
-  const [persona, setPersona] = useState<PersonaId>(basePersona);
+  const [persona, setPersona] = useState<PersonaId>(() => {
+    if (typeof window === 'undefined') {
+      return basePersona;
+    }
+
+    const storedPersona = window.localStorage.getItem('revel.portal.persona');
+    if (!storedPersona) {
+      return basePersona;
+    }
+
+    return GUIDES.some((item) => item.id === storedPersona) ? (storedPersona as PersonaId) : basePersona;
+  });
 
   const guide = useMemo(() => {
     return GUIDES.find((item) => item.id === persona) ?? GUIDES.find((item) => item.id === basePersona) ?? GUIDES[0];
