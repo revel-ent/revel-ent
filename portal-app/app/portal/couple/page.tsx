@@ -69,7 +69,7 @@ export default async function CouplePortalPage() {
 
       {!plan && (
         <div className="portal-notice">
-          <strong>Your event plan is being prepared.</strong> Your REVEL team will have your full dashboard ready within 24 hours of contract signing.
+          <strong>Your event plan is being prepared.</strong> Your planning team will have your full dashboard ready within 24 hours of contract signing.
         </div>
       )}
 

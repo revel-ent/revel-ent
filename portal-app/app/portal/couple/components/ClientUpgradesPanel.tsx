@@ -86,7 +86,7 @@ export default function ClientUpgradesPanel({ plan }: Props) {
             className="btn primary"
             onClick={() => {
               // In production: POST to /api/upgrade-requests
-              alert(`Upgrade interest submitted for ${requested.size} item(s). Your REVEL team will follow up within 1 business day.`);
+              alert(`Upgrade interest submitted for ${requested.size} item(s). Your planning team will follow up within 1 business day.`);
               setRequested(new Set());
             }}
           >

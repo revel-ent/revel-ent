@@ -108,7 +108,7 @@ function buildMusicQuestionnaireReminder(params: {
   const portalLink = `${getBaseUrl()}${normalizePortalPath('/portal/couple')}`;
 
   return {
-    subject: `REVEL Action Required: Music Questionnaire | ${params.eventTitle ?? params.eventId}`,
+    subject: `Atlas Action Required: Music Questionnaire | ${params.eventTitle ?? params.eventId}`,
     message: [
       `Great news: the 30% booking deposit has been received for ${params.eventTitle ?? 'your event'}.`,
       '',
