@@ -1,23 +1,31 @@
-import { isDemoAuthEnabled, isLocalDevelopmentEnvironment } from '@/lib/runtime-flags';
+import { isLocalDevelopmentEnvironment } from '@/lib/runtime-flags';
+import { isSupabaseConfigured } from '@/lib/supabase-server';
 
 const ERROR_MAP: Record<string, string> = {
   missing_fields: 'Please enter both email and your invite code.',
   invalid_credentials: 'No account was found for that email and invite code.',
-  configuration_error:
-    'Portal login is temporarily unavailable due to server configuration. Please contact support.'
+  invalid_invite_token: 'This invite token is not valid. Confirm the latest invite link or token and try again.',
+  invite_email_mismatch: 'This invite token does not match the email entered.',
+  invite_revoked: 'This invite has been revoked. Ask your planner or admin to resend a new invite.',
+  invite_expired: 'This invite has expired. Ask your planner or admin to resend a fresh invite.',
+  invite_already_accepted: 'This invite was already accepted. Sign in with your active access email.',
+  invite_lifecycle_requires_supabase: 'Invite acceptance is not configured in this environment yet.',
+  configuration_error: 'Portal login is temporarily unavailable due to server configuration. Please contact support.'
 };
 
 export default async function LoginPage({
   searchParams
 }: {
-  searchParams?: Promise<{ error?: string; next?: string }>;
+  searchParams?: Promise<{ error?: string; next?: string; token?: string; email?: string }>;
 }) {
   const resolvedSearchParams = await searchParams;
   const errorCode = resolvedSearchParams?.error || '';
   const errorMessage = ERROR_MAP[errorCode] || '';
   const requestedNext = resolvedSearchParams?.next || '/portal';
   const nextPath = requestedNext.startsWith('/portal') ? requestedNext : '/portal';
-  const demoAuthEnabled = isDemoAuthEnabled();
+  const tokenFromUrl = resolvedSearchParams?.token || '';
+  const emailFromUrl = resolvedSearchParams?.email || '';
+  const supabaseConfigured = isSupabaseConfigured();
   const localDev = isLocalDevelopmentEnvironment();
 
   return (
@@ -73,27 +81,27 @@ export default async function LoginPage({
             </div>
           ) : null}
 
-          {demoAuthEnabled ? (
-            <form className="form-grid" action="/api/auth/mock-login" method="POST">
+          {supabaseConfigured ? (
+            <form className="form-grid" action="/api/auth/accept-invite" method="POST">
               <input type="hidden" name="next" value={nextPath} />
 
               <div>
                 <label htmlFor="email">Email</label>
-                <input id="email" name="email" type="email" placeholder="maulin@revel-ent.com" required />
+                <input id="email" name="email" type="email" placeholder="akshay.rani1128@gmail.com" defaultValue={emailFromUrl} required />
               </div>
 
               <div>
-                <label htmlFor="inviteCode">Invite Code</label>
-                <input id="inviteCode" name="inviteCode" type="text" placeholder="ATLAS-PLN-MAULIN-2026" required />
+                <label htmlFor="inviteToken">Invite Token</label>
+                <input id="inviteToken" name="inviteToken" type="text" placeholder="Paste invite token" defaultValue={tokenFromUrl} required />
               </div>
 
               <button className="btn primary" type="submit">
-                Continue to Portal
+                Accept Invite and Continue
               </button>
             </form>
           ) : (
             <div className="alert error" role="status">
-              <strong>Portal sign-in is temporarily unavailable in this environment.</strong>
+              <strong>Invite acceptance is not configured in this environment. Configure Supabase to continue.</strong>
             </div>
           )}
 
@@ -102,7 +110,7 @@ export default async function LoginPage({
           </p>
         </article>
 
-        {demoAuthEnabled && localDev ? (
+        {localDev ? (
           <details className="card login-dev-details">
             <summary>
               <span>Local Access Profiles</span>
@@ -110,25 +118,28 @@ export default async function LoginPage({
             </summary>
             <div className="demo-credential-list">
               <p>
-                <strong>Admin:</strong> jigar@revel-ent.com + ATLAS-ADM-JIGAR-2026
+                <strong>Admin:</strong> jigar@revel-ent.com
               </p>
               <p>
-                <strong>Planner:</strong> maulin@revel-ent.com + ATLAS-PLN-MAULIN-2026
+                <strong>Planner:</strong> maulin@revel-ent.com
               </p>
               <p>
-                <strong>Couple:</strong> jayati@example.com + ATLAS-CPL-JAYATI-2026
+                <strong>Couple:</strong> jayati@example.com
               </p>
               <p>
-                <strong>Vendor:</strong> heckno@revel-ent.com + ATLAS-VND-HECKNO-2026
+                <strong>Vendor:</strong> heckno@revel-ent.com
               </p>
               <p>
-                <strong>Guest:</strong> guestfamily@example.com + ATLAS-GST-FAMILY-2026
+                <strong>Guest:</strong> guestfamily@example.com
               </p>
               <p>
-                <strong>Family Coordinator:</strong> priya@example.com + ATLAS-DEL-PRIYA-2026
+                <strong>Family Coordinator:</strong> priya@example.com
               </p>
               <p>
-                <strong>Venue Coordinator:</strong> anita.venue@example.com + ATLAS-VEN-ANITA-2026
+                <strong>Venue Coordinator:</strong> anita.venue@example.com
+              </p>
+              <p>
+                Use invite token from invite creation/resend response or invite link query param.
               </p>
             </div>
           </details>

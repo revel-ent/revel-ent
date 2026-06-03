@@ -7,7 +7,7 @@ const oswald = Oswald({ subsets: ['latin'], variable: '--font-oswald' });
 const newsreader = Newsreader({ subsets: ['latin'], variable: '--font-newsreader' });
 
 export const metadata: Metadata = {
-  title: 'ATLAS PORTAL | REVEL',
+  title: 'ATLAS',
   description: 'Authenticated role-based wedding operations portal.'
 };
 

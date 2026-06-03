@@ -103,6 +103,7 @@ select distinct
   m.invited_at
 from memberships m
 join events e on e.event_id = m.event_id
+join auth.users u on u.id = m.user_id
 where m.user_id is not null
 on conflict (organization_id, user_id) do nothing;
 

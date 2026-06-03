@@ -1,15 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  type ClientEventPlan,
-  type PlanningTodo,
-  type MilestoneStatus,
   formatDate
 } from '@/lib/mock-client-milestones';
+import { type ChecklistProjection } from '@/lib/couple-domains';
 
 interface Props {
-  plan: ClientEventPlan;
+  initialData: ChecklistProjection;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -32,26 +30,47 @@ function badgeClass(status: MilestoneStatus, badgeLabel?: string): string {
   return 'todo-badge todo-badge--upcoming';
 }
 
-export default function ClientTodoPanel({ plan }: Props) {
-  const [todos, setTodos] = useState<PlanningTodo[]>(() => plan.planningTodos);
+export default function ClientTodoPanel({ initialData }: Props) {
+  const [todos, setTodos] = useState(initialData.checklist);
+  const [summary, setSummary] = useState(initialData.summary);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const completedCount = todos.filter((t) => t.status === 'completed').length;
-  const totalCount = todos.length;
+  const completedCount = summary.completedChecklistCount;
+  const totalCount = summary.totalChecklistCount;
   const progressPct = Math.round((completedCount / totalCount) * 100);
 
-  function toggleComplete(id: string) {
-    setTodos((prev) =>
-      prev.map((t) => {
-        if (t.id !== id || !t.clientCompletable) return t;
-        const isDone = t.status === 'completed';
-        return {
-          ...t,
-          status: (isDone ? 'pending' : 'completed') as MilestoneStatus,
-          completedAt: isDone ? undefined : new Date().toISOString().slice(0, 10)
-        };
-      })
-    );
+  useEffect(() => {
+    async function refresh() {
+      const response = await fetch('/api/events/checklist', { cache: 'no-store' });
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = (await response.json()) as ChecklistProjection;
+      setTodos(payload.checklist);
+      setSummary(payload.summary);
+    }
+
+    const handleRefresh = () => {
+      void refresh();
+    };
+
+    window.addEventListener('atlas:couple-domains-refresh', handleRefresh);
+    return () => window.removeEventListener('atlas:couple-domains-refresh', handleRefresh);
+  }, []);
+
+  async function toggleComplete(id: string, workflowKey: string | null) {
+    if (workflowKey === 'music') {
+      window.dispatchEvent(new Event('atlas:open-music-experience'));
+      return;
+    }
+
+    const response = await fetch(`/api/events/checklist/${id}`, { method: 'PATCH' });
+    if (!response.ok) {
+      return;
+    }
+
+    window.dispatchEvent(new Event('atlas:couple-domains-refresh'));
   }
 
   return (
@@ -95,12 +114,12 @@ export default function ClientTodoPanel({ plan }: Props) {
                     className={`milestone-item__circle${todo.clientCompletable ? ' milestone-item__circle--clickable' : ''}`}
                     role={todo.clientCompletable ? 'button' : undefined}
                     tabIndex={todo.clientCompletable ? 0 : undefined}
-                    aria-label={todo.clientCompletable ? `Mark "${todo.title}" complete` : undefined}
-                    onClick={() => todo.clientCompletable && toggleComplete(todo.id)}
+                    aria-label={todo.clientCompletable ? `Update "${todo.title}"` : undefined}
+                    onClick={() => todo.clientCompletable && void toggleComplete(todo.id, todo.workflowKey)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        if (todo.clientCompletable) toggleComplete(todo.id);
+                        if (todo.clientCompletable) void toggleComplete(todo.id, todo.workflowKey);
                       }
                     }}
                   />
@@ -137,20 +156,23 @@ export default function ClientTodoPanel({ plan }: Props) {
                 )}
 
                 {isExpanded && (
-                  <p className="milestone-note milestone-note--expanded">{todo.detail}</p>
+                  <>
+                    <p className="milestone-note milestone-note--expanded">{todo.detail}</p>
+                    {todo.unlockReason ? <p className="milestone-note">{todo.unlockReason}</p> : null}
+                  </>
                 )}
               </div>
 
               {todo.clientCompletable && !isDone && (
                 <div className="milestone-item__action">
-                  <button className="btn btn--sm btn--outline" onClick={() => toggleComplete(todo.id)}>
-                    Mark Done
+                  <button className="btn btn--sm btn--outline" onClick={() => void toggleComplete(todo.id, todo.workflowKey)}>
+                    {todo.actionLabel ?? 'Mark Done'}
                   </button>
                 </div>
               )}
               {todo.clientCompletable && isDone && (
                 <div className="milestone-item__action">
-                  <button className="btn btn--sm btn--ghost" onClick={() => toggleComplete(todo.id)}>
+                  <button className="btn btn--sm btn--ghost" onClick={() => void toggleComplete(todo.id, todo.workflowKey)}>
                     Undo
                   </button>
                 </div>

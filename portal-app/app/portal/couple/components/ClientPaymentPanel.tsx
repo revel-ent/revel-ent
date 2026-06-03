@@ -75,12 +75,12 @@ export default function ClientPaymentPanel({ totalContractValue, initialData }: 
     <div className="client-panel">
       <div className="client-panel__header">
         <div>
-          <h2 className="client-panel__title">Payment Schedule</h2>
+          <h2 className="client-panel__title">Payment Milestones</h2>
           <p className="client-panel__sub">
             Contract total: <strong>{formatCurrency(totalContractValue)}</strong>
           </p>
           <p className="item-note">
-            Atlas tracks milestones whether you pay inside Atlas or directly with your planner or coordinator. Direct payment methods stay outside this product.
+            We track each milestone here whether you pay through Revel or directly with your planner or coordinator.
           </p>
         </div>
         <div className="payment-progress-block">

@@ -154,13 +154,13 @@ export function getChecklistState(eventId: string): ChecklistProjection {
         ...todo,
         title: 'Complete Music Questionnaire',
         detail: completed
-          ? 'Your music questionnaire is complete and has been delivered to DJ/MC and Planner workspaces.'
-          : 'Complete your music questionnaire once the booking deposit is confirmed. Atlas will project it directly to DJ/MC and Planner workspaces.',
+          ? 'Your music questionnaire is complete and has been shared with your DJ and planner.'
+          : 'Complete your music questionnaire once your booking deposit is confirmed so your DJ and planner can begin shaping your set.',
         status: completed ? 'completed' : depositConfirmed ? 'pending' : 'pending',
         completedAt: completed ? musicState.submittedAt?.slice(0, 10) : undefined,
         badgeLabel: completed ? 'Done' : depositConfirmed ? 'Action Required' : 'Deposit Required',
         locked: !depositConfirmed,
-        unlockReason: depositConfirmed ? null : 'Unlocks automatically after the 30% booking deposit is confirmed.',
+        unlockReason: depositConfirmed ? null : 'Available after deposit confirmation.',
         actionLabel: completed ? 'View Music Profile' : depositConfirmed ? 'Complete Music Questionnaire' : null,
         workflowKey: 'music',
         readOnly: false
@@ -220,7 +220,7 @@ export function generateMusicProfile(input: MusicQuestionnaireInput): MusicProfi
 
   return {
     title: 'Music Experience Profile',
-    summary: `Primary music blend: ${highlights.join(', ')}. Questionnaire completed and ready for planner and DJ review.`,
+    summary: `Primary music blend: ${highlights.join(', ')}. Questionnaire completed and shared with your planner and DJ team.`,
     genreSplit: `Requested genre split: ${highlights.join(', ')}.`,
     danceOffPlan: input.danceOffNotes.trim().length > 0 ? `Dance-off notes: ${input.danceOffNotes.trim()}` : 'Dance-off notes: none provided.',
     otherNotes: input.otherGenres.trim().length > 0 ? input.otherGenres.trim() : 'No other genres specified.',

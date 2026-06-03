@@ -1308,6 +1308,140 @@ textarea:focus {
   color: #f0d090;
   font-weight: 600;
 }
+.concierge-page {
+  gap: 1.1rem;
+}
+.concierge-hero {
+  margin-top: 0.25rem;
+  border: 1px solid rgba(200, 160, 98, 0.35);
+  border-radius: 1.15rem;
+  padding: 1.25rem;
+  background:
+    radial-gradient(circle at 12% 14%, rgba(200, 160, 98, 0.22), rgba(200, 160, 98, 0) 42%),
+    linear-gradient(145deg, rgba(77, 22, 32, 0.92), rgba(46, 14, 22, 0.96));
+  color: #fff1ef;
+  display: grid;
+  gap: 0.75rem;
+}
+.concierge-hero--on-track {
+  background:
+    radial-gradient(circle at 10% 16%, rgba(198, 160, 98, 0.26), rgba(198, 160, 98, 0) 44%),
+    radial-gradient(circle at 92% 8%, rgba(100, 163, 126, 0.28), rgba(100, 163, 126, 0) 40%),
+    linear-gradient(140deg, rgba(52, 28, 18, 0.93), rgba(40, 18, 15, 0.96));
+}
+.concierge-hero__kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 223, 196, 0.95);
+  font-family: var(--font-oswald), "Oswald", sans-serif;
+}
+.concierge-hero__title {
+  margin: 0;
+  font-size: clamp(1.5rem, 6vw, 2.05rem);
+  line-height: 1.08;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.concierge-hero__body {
+  margin: 0;
+  line-height: 1.62;
+  color: rgba(255, 236, 233, 0.93);
+  max-width: 56ch;
+}
+.concierge-hero__cta {
+  width: 100%;
+}
+.concierge-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+.concierge-progress-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+.concierge-progress-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid rgba(226, 181, 176, 0.45);
+  border-radius: 0.75rem;
+  padding: 0.58rem 0.62rem;
+  background: rgba(255, 243, 241, 0.72);
+}
+.concierge-progress-dot {
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(160, 73, 92, 0.16);
+  color: #852a3c;
+  font-weight: 700;
+}
+.concierge-progress-dot--done {
+  background: rgba(69, 127, 93, 0.2);
+  color: #2f6d4a;
+}
+.concierge-progress-dot--action {
+  background: rgba(200, 160, 98, 0.24);
+  color: #7a5621;
+}
+.concierge-progress-label {
+  color: #5c2a31;
+  font-weight: 600;
+}
+.concierge-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.62rem;
+}
+.concierge-quick-tile {
+  min-height: 6.2rem;
+  border: 1px solid rgba(185, 127, 120, 0.5);
+  border-radius: 0.9rem;
+  padding: 0.78rem;
+  display: grid;
+  gap: 0.42rem;
+  align-content: center;
+  background: linear-gradient(150deg, rgba(255, 246, 245, 0.95), rgba(255, 229, 227, 0.82));
+  box-shadow: 0 10px 20px rgba(83, 21, 34, 0.12);
+}
+.concierge-quick-tile strong {
+  font-family: var(--font-oswald), "Oswald", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5a1f2a;
+}
+.concierge-quick-tile span {
+  font-size: 0.76rem;
+  color: #7b454e;
+}
+.concierge-activity {
+  margin-top: 0.15rem;
+}
+.concierge-feed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.62rem;
+}
+.concierge-feed-item {
+  border: 1px solid rgba(226, 181, 176, 0.45);
+  border-radius: 0.78rem;
+  padding: 0.68rem 0.72rem;
+  background: rgba(255, 245, 244, 0.76);
+}
+.concierge-detail-stack {
+  margin-top: 0.2rem;
+}
 
 /* Dashboard layout */
 .couple-dashboard-grid {
@@ -1948,6 +2082,16 @@ textarea:focus {
 
 /* Responsive */
 @media (min-width: 900px) {
+  .concierge-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+  .concierge-hero {
+    padding: 1.6rem;
+  }
+  .concierge-hero__cta {
+    width: fit-content;
+  }
   .couple-dashboard-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -2281,6 +2425,12 @@ textarea:focus {
   .portal-meta .badge:nth-child(1),
   .portal-meta .badge:nth-child(2) {
     display: none;
+  }
+  .concierge-quick-grid {
+    grid-template-columns: 1fr;
+  }
+  .concierge-quick-tile {
+    min-height: 5.1rem;
   }
 
   .portal-meta .badge {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 
 type PersonaId =
   | 'couple'
@@ -182,6 +183,12 @@ export default function RoleOrientationPanel({
   sessionRole: string;
   displayName: string;
 }) {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith('/portal/production')) {
+    return null;
+  }
+
   const basePersona = normalizeToPersona(sessionRole);
   const guide = useMemo(() => {
     return GUIDES.find((item) => item.id === basePersona) ?? GUIDES[0];

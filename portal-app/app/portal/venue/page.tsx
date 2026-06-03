@@ -1,3 +1,5 @@
+import VenueTaskWindowPanel from '@/app/portal/venue/components/VenueTaskWindowPanel';
+
 export default function VenueWorkspacePage() {
   return (
     <section className="page-wrap">
@@ -10,6 +12,7 @@ export default function VenueWorkspacePage() {
       </header>
 
       <div className="portal-card-grid">
+        <VenueTaskWindowPanel />
         <article className="card">
           <div className="card-header">
             <h3>Compliance Checklist</h3>

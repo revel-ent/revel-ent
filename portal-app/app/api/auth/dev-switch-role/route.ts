@@ -50,7 +50,9 @@ export async function POST(request: Request) {
     email: membership.email,
     displayName: membership.displayName,
     role: membership.role,
-    eventId: membership.eventId
+    organizationId: membership.organizationId,
+    eventId: membership.eventId,
+    lastActiveEventId: membership.eventId
   });
 
   const response = NextResponse.redirect(new URL(nextPath, request.url));

@@ -10,6 +10,7 @@ export interface Session {
   role: Role;
   organizationId: string | null;
   eventId: string | null;
+  lastActiveEventId: string | null;
 }
 
 export async function getSession(): Promise<Session | null> {
@@ -32,6 +33,7 @@ export async function getSession(): Promise<Session | null> {
     displayName: payload.displayName,
     role: payload.role,
     organizationId: payload.organizationId ?? null,
-    eventId: payload.eventId
+    eventId: payload.eventId,
+    lastActiveEventId: payload.lastActiveEventId ?? payload.eventId
   };
 }

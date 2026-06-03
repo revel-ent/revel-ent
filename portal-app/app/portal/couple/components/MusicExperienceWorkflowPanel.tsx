@@ -112,21 +112,35 @@ export default function MusicExperienceWorkflowPanel({ initialMusic }: { initial
     }
   }
 
+  const statusBadgeLabel =
+    music.status === 'completed'
+      ? 'Complete'
+      : music.status === 'ready'
+        ? 'Ready for you'
+        : 'Available after deposit confirmation';
+
+  const formattedError =
+    error === 'music_locked'
+      ? 'Available after deposit confirmation.'
+      : error === 'genre_mix_total_invalid'
+        ? 'Please make sure your genre totals add up to 100%.'
+        : error;
+
   return (
     <article className="client-panel" id="music-experience-workflow">
       <div className="client-panel__header">
         <div>
           <h2 className="client-panel__title">Music Questionnaire</h2>
-          <p className="client-panel__sub">Below is a questionnaire you may fill out to help us understand your choices for music.</p>
+          <p className="client-panel__sub">Share your music preferences so we can shape a celebration that feels unmistakably yours.</p>
         </div>
         <span className={`todo-badge ${music.status === 'completed' ? 'todo-badge--done' : music.status === 'ready' ? 'todo-badge--action' : 'todo-badge--upcoming'}`}>
-          {music.status}
+          {statusBadgeLabel}
         </span>
       </div>
 
       {!music.unlockedByDeposit ? (
         <div className="portal-notice">
-          <strong>Locked until deposit confirmation.</strong> Once the 30% booking deposit is confirmed, Atlas unlocks this workflow automatically.
+          <strong>Available after deposit confirmation.</strong> As soon as your booking deposit is confirmed, this questionnaire opens automatically.
         </div>
       ) : null}
 
@@ -134,7 +148,7 @@ export default function MusicExperienceWorkflowPanel({ initialMusic }: { initial
         <>
           <div className="tool-form">
             <p className="item-note">
-              Please select the genres of music you and your guests enjoy on the dance-floor. Specify the percentage of music you would like from each genre selected.
+              Tell us the mix of sounds you and your guests love on the dance floor, then allocate the percentage you want for each style.
             </p>
 
             {MUSIC_GENRE_KEYS.map((key) => (
@@ -196,12 +210,12 @@ export default function MusicExperienceWorkflowPanel({ initialMusic }: { initial
             <div className="data-row">
               <div className="item-title-row">
                 <strong className="item-title">Questionnaire Summary</strong>
-                <span className="status-chip safe">Ready to submit</span>
+                <span className="status-chip safe">Ready when you are</span>
               </div>
               <p className="item-note">Top genre mix: {reviewSummary.topGenres.join(', ')}</p>
               <p className="item-note">Other genres: {form.otherGenres || 'None specified'}</p>
-              <p className="item-note">Dance-off: {form.danceOffNotes || 'No dance-off requested'}</p>
-              <p className="item-note">Additional notes: {form.additionalNotes || 'No additional notes'}</p>
+              <p className="item-note">Dance-off: {form.danceOffNotes || 'None requested'}</p>
+              <p className="item-note">Additional notes: {form.additionalNotes || 'No additional notes yet'}</p>
             </div>
 
             {music.profile ? (
@@ -217,11 +231,11 @@ export default function MusicExperienceWorkflowPanel({ initialMusic }: { initial
             ) : null}
           </div>
 
-          {error ? <p className="alert error">{error}</p> : null}
+          {formattedError ? <p className="alert error">{formattedError}</p> : null}
 
           <div className="split">
             <button className="btn primary" type="button" onClick={() => void submit()} disabled={submitting || total !== 100}>
-              {submitting ? 'Saving...' : music.status === 'completed' ? 'Update Music Questionnaire' : 'Submit Music Questionnaire'}
+              {submitting ? 'Saving...' : music.status === 'completed' ? 'Save Questionnaire Updates' : 'Share Music Questionnaire'}
             </button>
           </div>
         </>

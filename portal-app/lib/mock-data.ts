@@ -243,6 +243,10 @@ export function findMembershipByUserIdAndEvent(userId: string, eventId: string):
   return MEMBERS.find((member) => member.userId === userId && member.eventId === eventId) || null;
 }
 
+export function listMembershipsByUserId(userId: string): MemberRecord[] {
+  return MEMBERS.filter((member) => member.userId === userId);
+}
+
 export function listMembersByEvent(eventId: string): MemberRecord[] {
   return MEMBERS.filter((member) => member.eventId === eventId);
 }

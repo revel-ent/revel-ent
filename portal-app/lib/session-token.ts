@@ -9,6 +9,7 @@ export interface SessionPayload {
   role: Role;
   organizationId?: string | null;
   eventId: string | null;
+  lastActiveEventId?: string | null;
 }
 
 const SESSION_COOKIE_NAME = 'revel_session';
@@ -55,7 +56,8 @@ export async function signSessionToken(payload: SessionPayload): Promise<string>
     displayName: payload.displayName,
     role: payload.role,
     organizationId: payload.organizationId ?? null,
-    eventId: payload.eventId
+    eventId: payload.eventId,
+    lastActiveEventId: payload.lastActiveEventId ?? payload.eventId
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -73,6 +75,7 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
     const role = typeof payload.role === 'string' ? payload.role : null;
     const organizationIdRaw = payload.organizationId;
     const eventIdRaw = payload.eventId;
+    const lastActiveEventIdRaw = payload.lastActiveEventId;
 
     if (!userId || !email || !displayName || !role) {
       return null;
@@ -88,7 +91,8 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
       displayName,
       role: role as Role,
       organizationId: typeof organizationIdRaw === 'string' ? organizationIdRaw : null,
-      eventId: typeof eventIdRaw === 'string' ? eventIdRaw : null
+      eventId: typeof eventIdRaw === 'string' ? eventIdRaw : null,
+      lastActiveEventId: typeof lastActiveEventIdRaw === 'string' ? lastActiveEventIdRaw : null
     };
   } catch {
     return null;

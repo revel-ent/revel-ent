@@ -45,7 +45,8 @@ export async function POST(request: Request) {
       displayName: membership.displayName,
       role: membership.role,
       organizationId: membership.organizationId,
-      eventId: membership.eventId
+      eventId: membership.eventId,
+      lastActiveEventId: membership.eventId
     });
   } catch {
     const loginUrl = new URL('/login', request.url);
