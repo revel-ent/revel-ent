@@ -1,25 +1,10 @@
-import { isDemoAuthEnabled } from '@/lib/runtime-flags';
+import { isDemoAuthEnabled, isLocalDevelopmentEnvironment } from '@/lib/runtime-flags';
 
 const ERROR_MAP: Record<string, string> = {
   missing_fields: 'Please enter both email and event access code.',
   membership_not_found: 'No event membership was found for those credentials.',
   configuration_error:
     'Portal login is temporarily unavailable due to server configuration. Please contact support.'
-};
-
-const WORKSPACE_OPTIONS = [
-  { href: '/login?next=%2Fportal%2Fcouple', label: 'Couple', path: '/portal/couple' },
-  { href: '/login?next=%2Fportal%2Fplanner', label: 'Planner', path: '/portal/planner' },
-  { href: '/login?next=%2Fportal%2Fvendor', label: 'Vendor', path: '/portal/vendor' },
-  { href: '/login?next=%2Fportal%2Fguest', label: 'Guest', path: '/portal/guest' }
-];
-
-const DESTINATION_LABELS: Record<string, string> = {
-  '/portal': 'Portal dashboard',
-  '/portal/couple': 'Couple workspace',
-  '/portal/planner': 'Planner workspace',
-  '/portal/vendor': 'Vendor workspace',
-  '/portal/guest': 'Guest concierge'
 };
 
 export default async function LoginPage({
@@ -33,40 +18,43 @@ export default async function LoginPage({
   const requestedNext = resolvedSearchParams?.next || '/portal';
   const nextPath = requestedNext.startsWith('/portal') ? requestedNext : '/portal';
   const demoAuthEnabled = isDemoAuthEnabled();
-  const destinationLabel = DESTINATION_LABELS[nextPath] || 'Portal dashboard';
+  const localDev = isLocalDevelopmentEnvironment();
 
   return (
     <main className="container login-landing">
       <section className="login-showcase">
         <div className="login-showcase-head">
-          <span className="eyebrow">ATLAS PORTAL by REVEL</span>
-          <h1>One Calm Place for the Wedding Weekend</h1>
+          <span className="eyebrow">Atlas</span>
+          <h1>Welcome to Atlas</h1>
           <p>
-            Sign in for approvals, payment visibility, timeline changes, and day-of coordination across your full
-            event circle.
+            Sign in to your event workspace for timeline control, venue intelligence, and day-of coordination across
+            your full wedding circle.
           </p>
         </div>
 
-        <div className="login-priority-list" aria-label="Portal priorities">
-          <div>
-            <span className="kpi-label">Couples</span>
-            <strong>Approve what matters next.</strong>
-          </div>
-          <div>
-            <span className="kpi-label">Planners</span>
-            <strong>See risks before they hit the timeline.</strong>
-          </div>
-          <div>
-            <span className="kpi-label">Families + Guests</span>
-            <strong>Get clear answers without group-chat noise.</strong>
-          </div>
+        <div className="login-value-grid">
+          <article className="login-value-card">
+            <span className="kpi-label">Efficiency</span>
+            <strong className="kpi-value">Fewer handoff delays</strong>
+            <p>One source of truth for couple, planner, vendor, and family workflows.</p>
+          </article>
+          <article className="login-value-card">
+            <span className="kpi-label">Trust Layer</span>
+            <strong className="kpi-value">Venue-aware planning confidence</strong>
+            <p>Atlas checks operational assumptions before they become expensive surprises.</p>
+          </article>
+          <article className="login-value-card">
+            <span className="kpi-label">Day-Of Clarity</span>
+            <strong className="kpi-value">Decisive event-day execution</strong>
+            <p>Now/next actions, delay handling, and escalation paths in one command view.</p>
+          </article>
         </div>
 
         <section className="login-audience-card">
-          <h3>Built for South Asian Wedding Complexity</h3>
+          <h3>Built for Complex, Multi-Day Weddings</h3>
           <p>
-            Multi-day schedules, baraat logistics, vendor load-ins, family coordinators, and guest movement all stay
-            visible without making every person learn every workflow.
+            Atlas is built as an independent operations platform. Revel-managed events include access, and independent
+            workspaces are fully supported through event-scoped permissions and billing.
           </p>
         </section>
       </section>
@@ -74,10 +62,10 @@ export default async function LoginPage({
       <section className="login-access-panel">
         <article className="card login-form-card">
           <div className="card-header">
-            <h3>Sign In to Your Event</h3>
-            <span className="chip">Private</span>
+            <h3>Secure Event Access</h3>
+            <span className="chip">Event Scoped</span>
           </div>
-          <p className="card-muted">Use your email and event code. We will open the right workspace after sign-in.</p>
+          <p className="card-muted">Use your event credentials to continue. Your workspace is resolved after sign-in.</p>
 
           {errorMessage ? (
             <div className="alert error">
@@ -102,8 +90,6 @@ export default async function LoginPage({
               <button className="btn primary" type="submit">
                 Continue to Portal
               </button>
-
-              <p className="login-destination-note">Next stop: {destinationLabel}</p>
             </form>
           ) : (
             <div className="alert error" role="status">
@@ -111,27 +97,15 @@ export default async function LoginPage({
             </div>
           )}
 
-          <div className="login-workspace-picker">
-            <span className="kpi-label">Open a specific workspace</span>
-            <div className="login-role-shortcuts" aria-label="Workspace shortcuts">
-              {WORKSPACE_OPTIONS.map((option) => (
-                <a
-                  key={option.path}
-                  className="login-role-link"
-                  href={option.href}
-                  aria-current={nextPath === option.path ? 'page' : undefined}
-                >
-                  {option.label}
-                </a>
-              ))}
-            </div>
-          </div>
+          <p className="card-muted">
+            New to Atlas? Account creation and independent workspace onboarding are invite-based in this release.
+          </p>
         </article>
 
-        {demoAuthEnabled ? (
-          <details className="card demo-credentials login-dev-details">
+        {demoAuthEnabled && localDev ? (
+          <details className="card login-dev-details">
             <summary>
-              <span>Local access profiles</span>
+              <span>Local Access Profiles</span>
               <span className="chip">Development</span>
             </summary>
             <div className="demo-credential-list">

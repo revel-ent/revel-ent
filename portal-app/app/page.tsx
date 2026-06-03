@@ -4,17 +4,7 @@ export default function HomePage() {
   return (
     <main className="atlas-home">
       <section className="atlas-home-hero">
-        <video
-          className="atlas-home-video"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          poster="/atlas-hero-poster.svg"
-        >
-          <source src="/atlas-hero.mp4" type="video/mp4" />
-        </video>
+        <div className="atlas-home-hero-backdrop" aria-hidden="true" />
         <div className="atlas-home-overlay" />
 
         <div className="atlas-home-hero-content container">
