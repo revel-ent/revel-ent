@@ -61,7 +61,13 @@ export async function GET() {
     );
   } catch (error) {
     if (error instanceof Error && error.message === 'event_not_found') {
-      return NextResponse.json({ error: 'event_not_found' }, { status: 404 });
+      return NextResponse.json(
+        {
+          source: 'simulation',
+          settings: defaultPaymentSettings(session.eventId, 'revel_managed')
+        },
+        { status: 200 }
+      );
     }
 
     const details = error instanceof Error ? error.message : 'unknown_error';
@@ -190,7 +196,48 @@ export async function POST(request: Request) {
   }
 
   if (!eventData) {
-    return NextResponse.json({ error: 'event_not_found' }, { status: 404 });
+    const fallback = defaultPaymentSettings(session.eventId, 'revel_managed');
+    const next = {
+      ...fallback,
+      allowCard: allowCard ?? fallback.allowCard,
+      allowAppleGooglePay: allowAppleGooglePay ?? fallback.allowAppleGooglePay,
+      allowAch: allowAch ?? fallback.allowAch,
+      allowZelle: allowZelle ?? fallback.allowZelle,
+      allowVenmo: allowVenmo ?? fallback.allowVenmo,
+      allowCashApp: allowCashApp ?? fallback.allowCashApp,
+      stripeAccountId: stripeAccountId ?? fallback.stripeAccountId,
+      zelleHandle: zelleHandle ?? fallback.zelleHandle,
+      venmoHandle: venmoHandle ?? fallback.venmoHandle,
+      cashAppHandle: cashAppHandle ?? fallback.cashAppHandle,
+      manualPaymentInstructions: manualPaymentInstructions ?? fallback.manualPaymentInstructions,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (next.allowZelle && !next.zelleHandle) {
+      return NextResponse.json({ error: 'zelle_handle_required' }, { status: 400 });
+    }
+
+    if (next.allowVenmo && !next.venmoHandle) {
+      return NextResponse.json({ error: 'venmo_handle_required' }, { status: 400 });
+    }
+
+    if (next.allowCashApp && !next.cashAppHandle) {
+      return NextResponse.json({ error: 'cash_app_handle_required' }, { status: 400 });
+    }
+
+    if (!next.allowZelle) {
+      next.zelleHandle = null;
+    }
+
+    if (!next.allowVenmo) {
+      next.venmoHandle = null;
+    }
+
+    if (!next.allowCashApp) {
+      next.cashAppHandle = null;
+    }
+
+    return NextResponse.json({ source: 'simulation', settings: next }, { status: 200 });
   }
 
   mode = parseEventMode(eventData.atlas_mode) ?? 'revel_managed';

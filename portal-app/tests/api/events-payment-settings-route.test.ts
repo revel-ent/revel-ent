@@ -65,6 +65,46 @@ describe('events payment settings route', () => {
     expect(payload.settings.allowCard).toBe(true);
   });
 
+  it('GET falls back to simulation defaults when event is not yet persisted in supabase', async () => {
+    getSessionMock.mockResolvedValue({
+      userId: 'usr-couple-akshay',
+      email: 'akshay.rani1128@gmail.com',
+      displayName: 'Akshay Patel',
+      role: 'couple',
+      eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0'
+    });
+
+    getSupabaseAdminClientMock.mockReturnValue({
+      from: (table: string) => {
+        if (table === 'events') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({ data: null, error: null })
+              })
+            })
+          };
+        }
+
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: null, error: null })
+            })
+          })
+        };
+      }
+    });
+
+    const { GET } = await import('@/app/api/events/payment-settings/route');
+    const response = await GET();
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.source).toBe('simulation');
+    expect(payload.settings.eventId).toBe('b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0');
+  });
+
   it('POST rejects check payment setting updates', async () => {
     const { POST } = await import('@/app/api/events/payment-settings/route');
 
