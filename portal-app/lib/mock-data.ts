@@ -96,7 +96,7 @@ const MEMBERS: MemberRecord[] = [
   },
   {
     userId: 'usr-couple-akshay-patel',
-    email: 'akshay.patel@example.com',
+    email: 'akshay.rani1128@gmail.com',
     displayName: 'Akshay Patel',
     role: 'couple',
     eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0'
@@ -106,6 +106,20 @@ const MEMBERS: MemberRecord[] = [
     email: 'rani.patel@example.com',
     displayName: 'Rani Patel',
     role: 'couple',
+    eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0'
+  },
+  {
+    userId: 'usr-planner-amtopm',
+    email: 'events@amtopmplanners.com',
+    displayName: 'AM to PM planners',
+    role: 'planner',
+    eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0'
+  },
+  {
+    userId: 'usr-vendor-dreamcatchers',
+    email: 'dcevents.us@gmail.com',
+    displayName: 'The Dreamcatchers Events LLC',
+    role: 'vendor',
     eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0'
   }
 ];

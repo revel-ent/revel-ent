@@ -52,14 +52,14 @@ export interface ClientEventPlan {
 }
 
 // ─────────────────────────────────────────────
-// November 27-28 2026 — Priya & Arjun
+// November 27-28 2026 — Akshay & Rani Patel
 // Contract total: $18,500 (example)
 // Signed: May 28, 2026
 // 30% deposit due 7 days from signing → June 4, 2026
 // 40% mid-payment due 60 days out → Sep 28, 2026
 // 30% final due 14 days before event → Nov 13, 2026
 // ─────────────────────────────────────────────
-const PRIYA_ARJUN_PLAN: ClientEventPlan = {
+const AKSHAY_RANI_PLAN: ClientEventPlan = {
   eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
   contractSignedDate: '2026-05-28',
   primaryDates: ['2026-11-27', '2026-11-28'],
@@ -110,6 +110,17 @@ const PRIYA_ARJUN_PLAN: ClientEventPlan = {
       badgeLabel: 'Done'
     },
     {
+      id: 'todo-music-questionnaire',
+      category: 'planning',
+      title: 'Complete Music Questionnaire (First Step After Deposit)',
+      detail:
+        'Please submit your dance-floor music preferences within 7 days of your 30% deposit confirmation. Include approximate percentage split by genre: Bhangra, Bollywood (newer), Bollywood (older), old school hip-hop, current hip-hop/Top 40, pop/dance pop, house, EDM, Latin, and other. Add must-play artists/songs, do-not-play notes, and whether you want fun extras (dance-off, games, jokes, or toasts).',
+      dueDate: '2026-06-11',
+      status: 'pending',
+      clientCompletable: true,
+      badgeLabel: 'Action Required'
+    },
+    {
       id: 'todo-intake',
       category: 'planning',
       title: 'Complete Vision & Preferences Intake',
@@ -147,7 +158,7 @@ const PRIYA_ARJUN_PLAN: ClientEventPlan = {
       category: 'planning',
       title: 'Submit Music & Ceremony Cue Brief',
       detail:
-        'Share ceremony songs, processional tracks, first dance, and any dhol/band preferences so we can build your production cue sheet.',
+        'After your questionnaire is complete, share ceremony songs, processional tracks, first dance, and any dhol/band preferences so we can finalize your production cue sheet.',
       dueDate: '2026-10-01',
       status: 'pending',
       clientCompletable: false,
@@ -360,7 +371,7 @@ const JAYATI_AKSHAY_PLAN: ClientEventPlan = {
   ]
 };
 
-const PLANS: ClientEventPlan[] = [JAYATI_AKSHAY_PLAN, PRIYA_ARJUN_PLAN];
+const PLANS: ClientEventPlan[] = [JAYATI_AKSHAY_PLAN, AKSHAY_RANI_PLAN];
 
 export function getClientPlanForEvent(eventId: string): ClientEventPlan | undefined {
   return PLANS.find((plan) => plan.eventId === eventId);

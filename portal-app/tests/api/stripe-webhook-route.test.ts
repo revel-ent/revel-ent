@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const getSupabaseAdminClientMock = vi.fn();
 const getStripeServerClientMock = vi.fn();
 const getStripeWebhookSecretMock = vi.fn();
+const dispatchMessageToRecipientsMock = vi.fn();
 
 vi.mock('@/lib/supabase-server', () => ({
   getSupabaseAdminClient: getSupabaseAdminClientMock
@@ -13,12 +14,18 @@ vi.mock('@/lib/atlas-stripe', () => ({
   getStripeWebhookSecret: getStripeWebhookSecretMock
 }));
 
+vi.mock('@/lib/notifications', () => ({
+  dispatchMessageToRecipients: dispatchMessageToRecipientsMock
+}));
+
 describe('stripe webhook route', () => {
   beforeEach(() => {
     vi.resetModules();
     getSupabaseAdminClientMock.mockReset();
     getStripeServerClientMock.mockReset();
     getStripeWebhookSecretMock.mockReset();
+    dispatchMessageToRecipientsMock.mockReset();
+    dispatchMessageToRecipientsMock.mockResolvedValue([]);
 
     getStripeWebhookSecretMock.mockReturnValue('whsec_test_123');
     getStripeServerClientMock.mockReturnValue({
@@ -189,5 +196,94 @@ describe('stripe webhook route', () => {
     expect(customerUpsertMock).toHaveBeenCalledTimes(1);
     expect(checkoutUpsertMock).toHaveBeenCalledTimes(1);
     expect(webhookUpsertMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends music questionnaire reminder after matching 30% deposit payment intent success', async () => {
+    const event = {
+      id: 'evt_payment_intent_123',
+      type: 'payment_intent.succeeded',
+      livemode: false,
+      data: {
+        object: {
+          id: 'pi_test_123',
+          amount: 555000,
+          amount_received: 555000,
+          metadata: {
+            eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
+            eventTitle: 'Akshay & Rani Patel Wedding Weekend'
+          }
+        }
+      }
+    };
+
+    getStripeServerClientMock.mockReturnValue({
+      webhooks: {
+        constructEvent: vi.fn().mockReturnValue(event)
+      }
+    });
+
+    const webhookUpsertMock = vi.fn().mockResolvedValue({ error: null });
+
+    getSupabaseAdminClientMock.mockReturnValue({
+      from: (table: string) => {
+        if (table === 'atlas_workspace_stripe_webhook_events') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({ data: null, error: null })
+              })
+            }),
+            upsert: webhookUpsertMock
+          };
+        }
+
+        if (table === 'events') {
+          return {
+            update: () => ({
+              eq: async () => ({ data: null, error: null })
+            })
+          };
+        }
+
+        if (table === 'atlas_workspace_stripe_checkout_sessions') {
+          return {
+            update: () => ({
+              eq: async () => ({ data: null, error: null })
+            })
+          };
+        }
+
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: null, error: null })
+            })
+          })
+        };
+      }
+    });
+
+    const { POST } = await import('@/app/api/stripe/webhook/route');
+
+    const response = await POST(
+      new Request('http://localhost/api/stripe/webhook', {
+        method: 'POST',
+        headers: { 'stripe-signature': 'test_sig' },
+        body: JSON.stringify({ any: 'payload' })
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(dispatchMessageToRecipientsMock).toHaveBeenCalledTimes(1);
+    expect(dispatchMessageToRecipientsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: 'email',
+        recipients: expect.arrayContaining([
+          'akshay.rani1128@gmail.com',
+          'events@amtopmplanners.com',
+          'dcevents.us@gmail.com'
+        ])
+      })
+    );
   });
 });

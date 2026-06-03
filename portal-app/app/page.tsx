@@ -93,19 +93,19 @@ export default function HomePage() {
         </header>
         <div className="atlas-home-flow-grid">
           <article className="atlas-home-flow-card">
-            <h3>1. Detect</h3>
+            <h3>Detect</h3>
             <p>Atlas ingests venue, timeline, and payment signals in real time.</p>
           </article>
           <article className="atlas-home-flow-card">
-            <h3>2. Forecast</h3>
+            <h3>Forecast</h3>
             <p>Constraint models reveal bottlenecks before they impact guest experience.</p>
           </article>
           <article className="atlas-home-flow-card">
-            <h3>3. Orchestrate</h3>
+            <h3>Orchestrate</h3>
             <p>One role-scoped feed aligns planners, couples, vendors, and family coordinators.</p>
           </article>
           <article className="atlas-home-flow-card">
-            <h3>4. Execute</h3>
+            <h3>Execute</h3>
             <p>Live mode delivers now/next/urgent actions with clean escalation paths.</p>
           </article>
         </div>

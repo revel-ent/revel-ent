@@ -3,6 +3,9 @@ import type Stripe from 'stripe';
 
 import { getStripeServerClient, getStripeWebhookSecret } from '@/lib/atlas-stripe';
 import { isUuid, parseWorkspacePlan } from '@/lib/atlas-commercial';
+import { getClientPlanForEvent } from '@/lib/mock-client-milestones';
+import { dispatchMessageToRecipients } from '@/lib/notifications';
+import { getEventStakeholderEmails } from '@/lib/event-stakeholders';
 import { getSupabaseAdminClient } from '@/lib/supabase-server';
 
 function getMetadataEventId(metadata: Record<string, string> | null | undefined): string | null {
@@ -78,6 +81,101 @@ async function recordWebhook(
     },
     { onConflict: 'stripe_event_id' }
   );
+}
+
+function getBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL;
+  if (configured && configured.trim().length > 0) {
+    return configured.replace(/\/$/, '');
+  }
+
+  return 'https://atlas.revel-ent.com';
+}
+
+function normalizePortalPath(pathname: string): string {
+  return pathname.startsWith('/') ? pathname : `/${pathname}`;
+}
+
+function buildMusicQuestionnaireReminder(params: {
+  eventId: string;
+  eventTitle?: string;
+  dueDateLabel?: string;
+}): { subject: string; message: string } {
+  const dueLine = params.dueDateLabel
+    ? `Please complete it by ${params.dueDateLabel}.`
+    : 'Please complete it within 7 days of your deposit confirmation.';
+  const portalLink = `${getBaseUrl()}${normalizePortalPath('/portal/couple')}`;
+
+  return {
+    subject: `REVEL Action Required: Music Questionnaire | ${params.eventTitle ?? params.eventId}`,
+    message: [
+      `Great news: the 30% booking deposit has been received for ${params.eventTitle ?? 'your event'}.`,
+      '',
+      'Next required step: complete the Music Questionnaire in Atlas.',
+      dueLine,
+      '',
+      'Please include your preferred percentage split for:',
+      '- Bhangra',
+      '- Bollywood (newer)',
+      '- Bollywood (older)',
+      '- Old school hip-hop',
+      '- Current hip-hop & Top 40',
+      '- Pop / Dance pop',
+      '- House',
+      '- EDM',
+      '- Latin',
+      '- Other (optional)',
+      '',
+      'Also add:',
+      '- Must-play artists/songs',
+      '- Do-not-play notes',
+      '- Fun extras (dance-off, games, jokes, toasts)',
+      '',
+      `Open Atlas: ${portalLink}`,
+      '',
+      'This reminder was sent to your current planning distribution list in Atlas so the couple, planner, and decorator stay aligned.'
+    ].join('\n')
+  };
+}
+
+async function sendDepositQuestionnaireReminder(params: {
+  eventId: string;
+  eventTitle?: string;
+  amountCents?: number;
+}) {
+  const plan = getClientPlanForEvent(params.eventId);
+  if (!plan) {
+    return;
+  }
+
+  const depositMilestone = plan.paymentMilestones.find((item) => item.percent === 30);
+  if (!depositMilestone) {
+    return;
+  }
+
+  const receivedCents = params.amountCents ?? 0;
+  const expectedDepositCents = Math.round(depositMilestone.amount * 100);
+  if (receivedCents !== expectedDepositCents) {
+    return;
+  }
+
+  const recipients = getEventStakeholderEmails(params.eventId);
+  if (recipients.length === 0) {
+    return;
+  }
+
+  const reminder = buildMusicQuestionnaireReminder({
+    eventId: params.eventId,
+    eventTitle: params.eventTitle,
+    dueDateLabel: 'June 11, 2026'
+  });
+
+  await dispatchMessageToRecipients({
+    channel: 'email',
+    recipients,
+    subject: reminder.subject,
+    message: reminder.message
+  });
 }
 
 export async function POST(request: Request) {
@@ -184,6 +282,12 @@ export async function POST(request: Request) {
           .from('atlas_workspace_stripe_checkout_sessions')
           .update({ status: 'paid', payment_status: 'paid', updated_at: new Date().toISOString() })
           .eq('stripe_payment_intent_id', paymentIntent.id);
+
+        await sendDepositQuestionnaireReminder({
+          eventId: relatedEventId,
+          eventTitle: paymentIntent.metadata?.eventTitle,
+          amountCents: paymentIntent.amount_received ?? paymentIntent.amount
+        });
 
         processingStatus = 'processed';
       }
