@@ -477,7 +477,7 @@ label,
 
 .atlas-home-hero-content h1 {
   margin: 0;
-  font-size: clamp(6rem, 14vw, 12rem);
+  font-size: clamp(3rem, 7vw, 6rem);
   line-height: 0.8;
   letter-spacing: 0.04em;
   text-transform: uppercase;
