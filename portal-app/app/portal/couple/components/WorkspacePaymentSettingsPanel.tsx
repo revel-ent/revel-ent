@@ -192,8 +192,8 @@ export default function WorkspacePaymentSettingsPanel() {
     <section className="client-panel">
       <div className="client-panel__header">
         <div>
-          <h2 className="client-panel__title">Workspace Payment Methods</h2>
-          <p className="client-panel__sub">Stripe rails are primary. Manual rails are optional and must include valid handles.</p>
+          <h2 className="client-panel__title">Optional Payment Options</h2>
+          <p className="client-panel__sub">Admin-managed payment rails for this workspace. Direct methods are optional and can remain separate from your brand and operations.</p>
         </div>
       </div>
 
@@ -328,7 +328,7 @@ export default function WorkspacePaymentSettingsPanel() {
           </div>
 
           <div className="payment-settings-footer">
-            <span className="payment-settings-policy">Checks are permanently disabled by policy.</span>
+            <span className="payment-settings-policy">Atlas checkout is optional. Direct payment instructions can also be stored here for planner/admin use.</span>
             <div className="split">
               <button
                 className="btn primary"
@@ -339,7 +339,7 @@ export default function WorkspacePaymentSettingsPanel() {
                 {checkingOut ? 'Redirecting...' : 'Start Stripe Checkout'}
               </button>
               <button className="btn" type="button" onClick={() => void saveSettings()} disabled={disabled || checkingOut}>
-              {saving ? 'Saving...' : 'Save Payment Settings'}
+                {saving ? 'Saving...' : 'Save Payment Settings'}
               </button>
             </div>
           </div>

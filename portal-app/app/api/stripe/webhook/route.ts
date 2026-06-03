@@ -3,6 +3,7 @@ import type Stripe from 'stripe';
 
 import { getStripeServerClient, getStripeWebhookSecret } from '@/lib/atlas-stripe';
 import { isUuid, parseWorkspacePlan } from '@/lib/atlas-commercial';
+import { markPaymentMilestoneComplete } from '@/lib/couple-domains';
 import { getClientPlanForEvent } from '@/lib/mock-client-milestones';
 import { dispatchMessageToRecipients } from '@/lib/notifications';
 import { getEventStakeholderEmails } from '@/lib/event-stakeholders';
@@ -115,21 +116,20 @@ function buildMusicQuestionnaireReminder(params: {
       dueLine,
       '',
       'Please include your preferred percentage split for:',
-      '- Bhangra',
+      '- Bhangra (newer)',
+      '- Bhangra (old school)',
       '- Bollywood (newer)',
       '- Bollywood (older)',
       '- Old school hip-hop',
       '- Current hip-hop & Top 40',
-      '- Pop / Dance pop',
       '- House',
-      '- EDM',
       '- Latin',
       '- Other (optional)',
       '',
       'Also add:',
-      '- Must-play artists/songs',
-      '- Do-not-play notes',
-      '- Fun extras (dance-off, games, jokes, toasts)',
+      '- Other genre details',
+      '- Dance-off ideas or hosting notes',
+      '- Additional notes about artists, genres, and transitions',
       '',
       `Open Atlas: ${portalLink}`,
       '',
@@ -282,6 +282,8 @@ export async function POST(request: Request) {
           .from('atlas_workspace_stripe_checkout_sessions')
           .update({ status: 'paid', payment_status: 'paid', updated_at: new Date().toISOString() })
           .eq('stripe_payment_intent_id', paymentIntent.id);
+
+        markPaymentMilestoneComplete(relatedEventId, 'pay-deposit');
 
         await sendDepositQuestionnaireReminder({
           eventId: relatedEventId,

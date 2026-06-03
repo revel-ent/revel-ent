@@ -2,11 +2,13 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session';
 import { findEventById } from '@/lib/mock-data';
 import { getClientPlanForEvent, formatDate, getDaysUntil } from '@/lib/mock-client-milestones';
+import { getApprovalProjectionForActor, getChecklistState, getMusicProjectionForActor } from '@/lib/couple-domains';
 import ClientPaymentPanel from '@/app/portal/couple/components/ClientPaymentPanel';
-import WorkspacePaymentSettingsPanel from '@/app/portal/couple/components/WorkspacePaymentSettingsPanel';
 import ClientTodoPanel from '@/app/portal/couple/components/ClientTodoPanel';
 import ClientUpgradesPanel from '@/app/portal/couple/components/ClientUpgradesPanel';
-import AtlasRecommendationCard from '@/app/portal/couple/components/AtlasRecommendationCard';
+import ClientTaskVisibilityPanel from '@/app/portal/couple/components/ClientTaskVisibilityPanel';
+import ApprovalsStatusPanel from '@/app/portal/couple/components/ApprovalsStatusPanel';
+import MusicExperienceWorkflowPanel from '@/app/portal/couple/components/MusicExperienceWorkflowPanel';
 import EventTimelineCard from '@/app/portal/components/EventTimelineCard';
 
 export default async function CouplePortalPage() {
@@ -15,6 +17,9 @@ export default async function CouplePortalPage() {
 
   const event = session.eventId ? findEventById(session.eventId) : undefined;
   const plan = session.eventId ? getClientPlanForEvent(session.eventId) : undefined;
+  const checklist = session.eventId ? getChecklistState(session.eventId) : null;
+  const musicProjection = session.eventId ? getMusicProjectionForActor({ eventId: session.eventId, actorRole: session.role }) : null;
+  const approvalsProjection = session.eventId ? getApprovalProjectionForActor({ eventId: session.eventId, actorRole: session.role }) : null;
 
   const primaryDate = plan?.primaryDates[0];
   const dayCount = primaryDate ? getDaysUntil(primaryDate) : null;
@@ -71,10 +76,11 @@ export default async function CouplePortalPage() {
       {plan && (
         <>
           <div className="couple-dashboard-grid">
-            <AtlasRecommendationCard />
-            <ClientPaymentPanel plan={plan} />
-            <WorkspacePaymentSettingsPanel />
-            <ClientTodoPanel plan={plan} />
+            {checklist ? <ClientPaymentPanel totalContractValue={plan.totalContractValue} initialData={checklist} /> : null}
+            {checklist ? <ClientTodoPanel initialData={checklist} /> : null}
+            {musicProjection?.music ? <MusicExperienceWorkflowPanel initialMusic={musicProjection.music} /> : null}
+            {approvalsProjection ? <ApprovalsStatusPanel initialData={approvalsProjection} /> : null}
+            <ClientTaskVisibilityPanel />
             <ClientUpgradesPanel plan={plan} />
             <EventTimelineCard />
           </div>

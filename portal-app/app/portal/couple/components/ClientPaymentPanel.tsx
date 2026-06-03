@@ -1,52 +1,74 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  type ClientEventPlan,
   type PaymentMilestone,
-  type MilestoneStatus,
   formatCurrency,
   formatDate,
   getDaysUntil
 } from '@/lib/mock-client-milestones';
+import { type ChecklistProjection } from '@/lib/couple-domains';
 
 interface Props {
-  plan: ClientEventPlan;
+  totalContractValue: number;
+  initialData: ChecklistProjection;
 }
 
-function statusLabel(status: MilestoneStatus, daysUntil?: number): string {
+function statusLabel(status: PaymentMilestone['status'], daysUntil?: number): string {
   if (status === 'completed') return 'Paid';
   if (status === 'overdue') return 'Overdue';
   if (daysUntil !== undefined && daysUntil <= 7 && daysUntil >= 0) return `Due in ${daysUntil}d`;
   return 'Upcoming';
 }
 
-function statusClass(status: MilestoneStatus, daysUntil?: number): string {
+function statusClass(status: PaymentMilestone['status'], daysUntil?: number): string {
   if (status === 'completed') return 'milestone-badge milestone-badge--paid';
   if (status === 'overdue') return 'milestone-badge milestone-badge--overdue';
   if (daysUntil !== undefined && daysUntil <= 7 && daysUntil >= 0) return 'milestone-badge milestone-badge--urgent';
   return 'milestone-badge milestone-badge--upcoming';
 }
 
-export default function ClientPaymentPanel({ plan }: Props) {
-  const [milestones, setMilestones] = useState<PaymentMilestone[]>(() => plan.paymentMilestones);
+export default function ClientPaymentPanel({ totalContractValue, initialData }: Props) {
+  const [milestones, setMilestones] = useState<PaymentMilestone[]>(() => initialData.payments);
+  const [summary, setSummary] = useState(initialData.summary);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const totalPaid = milestones
     .filter((m) => m.status === 'completed')
     .reduce((sum, m) => sum + m.amount, 0);
-  const totalRemaining = plan.totalContractValue - totalPaid;
-  const paidPercent = Math.round((totalPaid / plan.totalContractValue) * 100);
+  const paidPercent = Math.round((totalPaid / totalContractValue) * 100);
 
-  function markPaid(id: string) {
-    setMilestones((prev) =>
-      prev.map((m) =>
-        m.id === id
-          ? { ...m, status: 'completed' as MilestoneStatus, completedAt: new Date().toISOString().slice(0, 10) }
-          : m
-      )
-    );
+  useEffect(() => {
+    async function refresh() {
+      const response = await fetch('/api/events/checklist', { cache: 'no-store' });
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = (await response.json()) as ChecklistProjection;
+      setMilestones(payload.payments);
+      setSummary(payload.summary);
+    }
+
+    const handleRefresh = () => {
+      void refresh();
+    };
+
+    window.addEventListener('atlas:couple-domains-refresh', handleRefresh);
+    return () => window.removeEventListener('atlas:couple-domains-refresh', handleRefresh);
+  }, []);
+
+  async function markPaid(id: string) {
+    const response = await fetch(`/api/events/payments/${id}`, { method: 'PATCH' });
+    if (!response.ok) {
+      return;
+    }
+
+    const payload = (await response.json()) as { updatedMilestone: PaymentMilestone; summary: ChecklistProjection['summary'] };
+    setMilestones((prev) => prev.map((item) => (item.id === id ? payload.updatedMilestone : item)));
+    setSummary(payload.summary);
     setConfirmingId(null);
+    window.dispatchEvent(new Event('atlas:couple-domains-refresh'));
   }
 
   return (
@@ -55,7 +77,10 @@ export default function ClientPaymentPanel({ plan }: Props) {
         <div>
           <h2 className="client-panel__title">Payment Schedule</h2>
           <p className="client-panel__sub">
-            Contract total: <strong>{formatCurrency(plan.totalContractValue)}</strong>
+            Contract total: <strong>{formatCurrency(totalContractValue)}</strong>
+          </p>
+          <p className="item-note">
+            Atlas tracks milestones whether you pay inside Atlas or directly with your planner or coordinator. Direct payment methods stay outside this product.
           </p>
         </div>
         <div className="payment-progress-block">
@@ -63,7 +88,7 @@ export default function ClientPaymentPanel({ plan }: Props) {
             <div className="payment-progress-bar__fill" style={{ width: `${paidPercent}%` }} />
           </div>
           <span className="payment-progress-label">
-            {formatCurrency(totalPaid)} paid · {formatCurrency(totalRemaining)} remaining
+            {formatCurrency(summary.paidAmount)} paid · {formatCurrency(summary.remainingAmount)} remaining
           </span>
         </div>
       </div>

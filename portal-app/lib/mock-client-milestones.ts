@@ -103,7 +103,7 @@ const AKSHAY_RANI_PLAN: ClientEventPlan = {
       category: 'planning',
       title: 'Complete Music Questionnaire (First Step After Deposit)',
       detail:
-        'Please submit your dance-floor music preferences within 7 days of your 30% deposit confirmation. Include approximate percentage split by genre: Bhangra, Bollywood (newer), Bollywood (older), old school hip-hop, current hip-hop/Top 40, pop/dance pop, house, EDM, Latin, and other. Add must-play artists/songs, do-not-play notes, and whether you want fun extras (dance-off, games, jokes, or toasts).',
+        'Please submit your dance-floor music preferences within 7 days of your 30% deposit confirmation. Include approximate percentage split by genre: Bhangra (newer), Bhangra (old school), Bollywood (newer), Bollywood (older), old school hip-hop, current hip-hop/Top 40 hits, house, Latin, and other. Add any dance-off ideas plus additional notes about artists, genres, or transitions.',
       dueDate: '2026-06-11',
       status: 'pending',
       clientCompletable: true,
