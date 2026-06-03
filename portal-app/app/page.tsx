@@ -65,7 +65,7 @@ export default function HomePage() {
         <div className="atlas-home-role-grid">
           <article className="atlas-home-role-card">
             <h3>For Couples</h3>
-            <p>Track approvals, payments, and critical decisions without operational overload.</p>
+            <p>Find aligned venues, track approvals and payments, and make critical decisions without operational overload.</p>
           </article>
           <article className="atlas-home-role-card">
             <h3>For Planners</h3>
@@ -77,7 +77,7 @@ export default function HomePage() {
           </article>
           <article className="atlas-home-role-card">
             <h3>For Guests & Family</h3>
-            <p>Get concierge-level clarity for schedule, arrival logistics, and day-of questions.</p>
+            <p>Use the AI concierge for instant schedule, arrival logistics, and day-of answers without group-chat noise.</p>
           </article>
           <article className="atlas-home-role-card">
             <h3>For Venues</h3>

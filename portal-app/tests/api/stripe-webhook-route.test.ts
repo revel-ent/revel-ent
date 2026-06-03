@@ -206,8 +206,8 @@ describe('stripe webhook route', () => {
       data: {
         object: {
           id: 'pi_test_123',
-          amount: 555000,
-          amount_received: 555000,
+          amount: 531000,
+          amount_received: 531000,
           metadata: {
             eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
             eventTitle: 'Akshay & Rani Patel Wedding Weekend'

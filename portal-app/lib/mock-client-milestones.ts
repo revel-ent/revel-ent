@@ -53,11 +53,10 @@ export interface ClientEventPlan {
 
 // ─────────────────────────────────────────────
 // November 27-28 2026 — Akshay & Rani Patel
-// Contract total: $18,500 (example)
+// Contract total: $17,700
 // Signed: May 28, 2026
 // 30% deposit due 7 days from signing → June 4, 2026
-// 40% mid-payment due 60 days out → Sep 28, 2026
-// 30% final due 14 days before event → Nov 13, 2026
+// Remaining 70% final due 14 days before event → Nov 13, 2026
 // ─────────────────────────────────────────────
 const AKSHAY_RANI_PLAN: ClientEventPlan = {
   eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
@@ -65,12 +64,12 @@ const AKSHAY_RANI_PLAN: ClientEventPlan = {
   primaryDates: ['2026-11-27', '2026-11-28'],
   venueName: 'InterContinental Buckhead',
   estimatedGuests: 220,
-  totalContractValue: 18500,
+  totalContractValue: 17700,
   paymentMilestones: [
     {
       id: 'pay-deposit',
       label: '30% Booking Deposit',
-      amount: 5550,
+      amount: 5310,
       percent: 30,
       dueDate: '2026-06-04',
       status: 'pending',
@@ -78,20 +77,10 @@ const AKSHAY_RANI_PLAN: ClientEventPlan = {
       note: 'Wire transfer to account on file. Please include your event code REVEL-NOV27-2026 in the memo.'
     },
     {
-      id: 'pay-mid',
-      label: '40% Mid-Event Payment',
-      amount: 7400,
-      percent: 40,
-      dueDate: '2026-09-28',
-      status: 'pending',
-      clientCompletable: true,
-      note: 'Due 60 days before your event. ACH or card payment is recommended.'
-    },
-    {
       id: 'pay-final',
-      label: '30% Final Balance',
-      amount: 5550,
-      percent: 30,
+      label: 'Remaining Balance',
+      amount: 12390,
+      percent: 70,
       dueDate: '2026-11-13',
       status: 'pending',
       clientCompletable: true,
