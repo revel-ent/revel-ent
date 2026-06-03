@@ -1,3 +1,5 @@
+import { type Role } from '@/lib/auth';
+
 export type AtlasConfidenceLevel = 'measured' | 'venue_doc' | 'sales_claim' | 'estimated';
 
 export type AtlasSeverity = 'info' | 'warning' | 'critical';
@@ -138,7 +140,7 @@ export interface AtlasOverride {
   venueId: string;
   triggerKey: AtlasTriggerKey;
   actorUserId: string;
-  actorRole: 'admin' | 'couple' | 'planner' | 'vendor' | 'guest' | 'delegate_coordinator' | 'venue_coordinator';
+  actorRole: Role;
   action: AtlasOverrideAction;
   reasonCode: string | null;
   note: string | null;
@@ -173,7 +175,7 @@ export interface AtlasEntitlementAuditEntry {
   auditId: string;
   eventId: string;
   actorUserId: string;
-  actorRole: 'admin' | 'couple' | 'planner' | 'vendor' | 'guest' | 'delegate_coordinator' | 'venue_coordinator';
+  actorRole: Role;
   changeKind: AtlasEntitlementChangeKind;
   reasonCode: string | null;
   note: string | null;

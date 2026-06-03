@@ -14,6 +14,13 @@ Event is explicitly flagged as Revel-managed (service contract or internal opera
 ### Access
 All relevant stakeholders for that event can be invited with role-scoped access.
 
+### Credential Lifecycle
+- Revel operations (or delegated planner admin) uploads stakeholder roster.
+- Atlas generates a unique credential invitation per person (no shared event code).
+- Invitation email is sent to each stakeholder with one-time invite link and backup invite code.
+- Invite acceptance sets personal login credentials and activates role-scoped workspace access.
+- Reminder/update emails are routed by role and assignment scope.
+
 ### Entitlements
 - Core workspace features included.
 - Core intelligence features included for event execution.
@@ -32,11 +39,21 @@ Event is not marked as Revel-managed and is created by an external couple/planne
 ### Access
 Workspace owner invites stakeholders (planner, vendors, venue coordinators, guests) with role-scoped permissions.
 
+### Credential Lifecycle
+- Workspace owner invites each stakeholder by email.
+- Atlas generates a unique invite per person and sends it directly via email.
+- Invite acceptance creates that user's personal credentials and role-scoped access.
+- Owner can resend, revoke, or rotate any pending invite without affecting other accounts.
+
 ### Entitlements
 Tiered access by workspace plan, with intelligence depth increasing by tier.
 
 ### Billing Responsibility
 Single workspace payer per wedding (typically couple or planner).
+
+### Billing Gate
+- Workspace must complete sign-up and payment (or approved trial activation) before stakeholder invites are sent.
+- If billing becomes delinquent, new invites and advanced entitlements are blocked while preserving owner recovery access.
 
 ### Workspace Ownership
 Owner controls workspace billing and invitations; ownership transfer policy to be defined.
@@ -96,6 +113,13 @@ At event/workspace creation:
 4. Apply plan-level entitlements (independent mode only).
 5. Apply role-scoped permissions from policy matrix.
 6. Allow approved human override with audit trace.
+
+## Auth and Invite Policy Decisions (Locked)
+1. No shared event code authentication in production workflow.
+2. Every participant receives a unique invite credential.
+3. Invite tokens are single-use and time-bound.
+4. Atlas emails credentials/invites directly to invited participants.
+5. Notifications and reminders are role-scoped and event-scoped.
 
 ## Monetization Non-Goals (Phase 1)
 - No mandatory per-stakeholder billing within one wedding.

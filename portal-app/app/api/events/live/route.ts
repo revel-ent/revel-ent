@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { canUseLiveMode } from '@/lib/auth';
-import { buildLiveSnapshotFromTimeline, getEventTimelineFromPersistedRows, getLiveSnapshot } from '@/lib/mock-event-experience';
+import { buildBaseCanonicalTimeline, buildLiveSnapshotFromCanonicalTimeline, mapPersistedTimelineRows } from '@/lib/canonical-timeline';
 import { getSession } from '@/lib/session';
 import { getSupabaseAdminClient } from '@/lib/supabase-server';
 
@@ -34,14 +34,10 @@ export async function GET() {
       .order('scheduled_start', { ascending: true });
 
     if (!error && data && data.length > 0) {
-      const timeline = getEventTimelineFromPersistedRows({
-        eventId: session.eventId,
-        role: session.role,
-        rows: data
-      });
+      const timeline = mapPersistedTimelineRows(session.eventId, data);
 
       return NextResponse.json({
-        ...buildLiveSnapshotFromTimeline({
+        ...buildLiveSnapshotFromCanonicalTimeline({
           eventId: session.eventId,
           role: session.role,
           timeline
@@ -52,7 +48,11 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    ...getLiveSnapshot(session.eventId, session.role),
+    ...buildLiveSnapshotFromCanonicalTimeline({
+      eventId: session.eventId,
+      role: session.role,
+      timeline: buildBaseCanonicalTimeline(session.eventId)
+    }),
     source: 'mock'
   });
 }

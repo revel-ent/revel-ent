@@ -1,4 +1,4 @@
-export const ROLES = ['admin', 'couple', 'planner', 'vendor', 'guest', 'delegate_coordinator', 'venue_coordinator'] as const;
+export const ROLES = ['admin', 'couple', 'planner', 'production', 'dj_mc', 'vendor', 'guest', 'delegate_coordinator', 'venue_coordinator'] as const;
 
 export type Role = (typeof ROLES)[number];
 
@@ -44,6 +44,26 @@ export const ROLE_PERMISSION_MATRIX: Record<Role, RolePermission> = {
     canUseVenueWorkspace: false,
     requiresBoundedDayOfWindowForLiveUpdates: false
   },
+  production: {
+    portalRoutes: ['/portal', '/portal/live', '/portal/production'],
+    canUseOnboardingApi: false,
+    canApproveOnboardingTimeline: false,
+    canUseIntake: false,
+    canUseLiveMode: true,
+    canUpdateLiveTimeline: true,
+    canUseVenueWorkspace: false,
+    requiresBoundedDayOfWindowForLiveUpdates: true
+  },
+  dj_mc: {
+    portalRoutes: ['/portal', '/portal/live', '/portal/dj'],
+    canUseOnboardingApi: false,
+    canApproveOnboardingTimeline: false,
+    canUseIntake: false,
+    canUseLiveMode: true,
+    canUpdateLiveTimeline: false,
+    canUseVenueWorkspace: false,
+    requiresBoundedDayOfWindowForLiveUpdates: true
+  },
   vendor: {
     portalRoutes: ['/portal', '/portal/vendor'],
     canUseOnboardingApi: false,
@@ -87,12 +107,14 @@ export const ROLE_PERMISSION_MATRIX: Record<Role, RolePermission> = {
 };
 
 export const ROUTE_ACCESS: Record<string, Role[]> = {
-  '/portal': ['admin', 'couple', 'planner', 'vendor', 'guest', 'delegate_coordinator', 'venue_coordinator'],
+  '/portal': ['admin', 'couple', 'planner', 'production', 'dj_mc', 'vendor', 'guest', 'delegate_coordinator', 'venue_coordinator'],
   '/portal/onboarding': ['admin', 'couple', 'planner', 'delegate_coordinator'],
   '/portal/intake': ['admin', 'planner'],
-  '/portal/live': ['admin', 'planner', 'delegate_coordinator', 'venue_coordinator'],
+  '/portal/live': ['admin', 'planner', 'production', 'dj_mc', 'delegate_coordinator', 'venue_coordinator'],
   '/portal/couple': ['admin', 'couple'],
   '/portal/planner': ['admin', 'planner'],
+  '/portal/production': ['admin', 'production'],
+  '/portal/dj': ['admin', 'dj_mc'],
   '/portal/vendor': ['admin', 'vendor'],
   '/portal/guest': ['admin', 'guest'],
   '/portal/venue': ['admin', 'venue_coordinator']

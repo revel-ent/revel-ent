@@ -8,14 +8,16 @@ interface TimelineStep {
   title: string;
   startsAtIso: string;
   endsAtIso: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'delayed';
+  status: 'pending' | 'ready' | 'in_progress' | 'completed' | 'delayed' | 'blocked';
   ownerLabel: string;
   instructions: string;
+  readOnly: boolean;
 }
 
 interface TimelineResponse {
   eventId: string;
   role: string;
+  conflicts: Array<{ id: string; message: string; severity: string }>;
   timeline: TimelineStep[];
 }
 
@@ -37,6 +39,7 @@ export default function EventTimelineCard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeline, setTimeline] = useState<TimelineStep[]>([]);
+  const [conflicts, setConflicts] = useState<TimelineResponse['conflicts']>([]);
 
   useEffect(() => {
     async function loadTimeline() {
@@ -49,6 +52,7 @@ export default function EventTimelineCard() {
 
         const data = (await response.json()) as TimelineResponse;
         setTimeline(data.timeline || []);
+        setConflicts(data.conflicts || []);
       } catch (timelineError) {
         setError(timelineError instanceof Error ? timelineError.message : 'Request failed');
       } finally {
@@ -78,6 +82,11 @@ export default function EventTimelineCard() {
 
       {!loading && !error ? (
         <div className="tool-result">
+          {conflicts.length > 0 ? (
+            <div className="alert">
+              <strong>Timeline checks:</strong> {conflicts.map((conflict) => conflict.message).join(' ')}
+            </div>
+          ) : null}
           {timeline.length === 0 ? <p>No timeline available yet.</p> : null}
           <ul className="timeline-list">
             {timeline.map((step) => (

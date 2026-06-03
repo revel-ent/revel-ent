@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 type PersonaId =
   | 'couple'
@@ -183,89 +183,54 @@ export default function RoleOrientationPanel({
   displayName: string;
 }) {
   const basePersona = normalizeToPersona(sessionRole);
-  const [expanded, setExpanded] = useState(false);
-  const [persona, setPersona] = useState<PersonaId>(() => {
-    if (typeof window === 'undefined') {
-      return basePersona;
-    }
-
-    const storedPersona = window.localStorage.getItem('revel.portal.persona');
-    if (!storedPersona) {
-      return basePersona;
-    }
-
-    return GUIDES.some((item) => item.id === storedPersona) ? (storedPersona as PersonaId) : basePersona;
-  });
-
   const guide = useMemo(() => {
-    return GUIDES.find((item) => item.id === persona) ?? GUIDES.find((item) => item.id === basePersona) ?? GUIDES[0];
-  }, [persona, basePersona]);
-
-  function onPersonaChange(nextPersona: PersonaId) {
-    setPersona(nextPersona);
-    window.localStorage.setItem('revel.portal.persona', nextPersona);
-  }
+    return GUIDES.find((item) => item.id === basePersona) ?? GUIDES[0];
+  }, [basePersona]);
 
   return (
-    <section className={`orientation-shell ${expanded ? 'orientation-shell--expanded' : 'orientation-shell--compact'}`}>
+    <section className="orientation-shell">
       <div className="orientation-header">
         <div>
           <span className="eyebrow">Role Orientation</span>
           <h2 className="orientation-title">{guide.headline}</h2>
           <p className="orientation-subtitle">{guide.outcome}</p>
-          <p className="orientation-next-summary">
-            <strong>Next:</strong> {guide.nextBestAction}
-          </p>
         </div>
         <div className="orientation-select-wrap">
-          <label htmlFor="orientationPersona">I am using REVEL as</label>
-          <select
-            id="orientationPersona"
-            value={persona}
-            onChange={(event) => onPersonaChange(event.target.value as PersonaId)}
-          >
-            {GUIDES.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
+          <label>Signed-in Role</label>
+          <div className="orientation-toggle" aria-live="polite">
+            {guide.label}
+          </div>
           <span className="chip">Signed in: {displayName}</span>
-          <button
-            className="btn secondary orientation-toggle"
-            type="button"
-            aria-expanded={expanded}
-            onClick={() => setExpanded((current) => !current)}
-          >
-            {expanded ? 'Hide Guide' : 'Show Guide'}
-          </button>
         </div>
       </div>
 
-      <div className="orientation-detail" hidden={!expanded}>
-        <div className="orientation-kpis">
-          <article className="orientation-kpi-card">
-            <span className="kpi-label">Time Saved</span>
-            <strong className="kpi-value">{guide.timeSaved}</strong>
-          </article>
-          <article className="orientation-kpi-card">
-            <span className="kpi-label">Cost Protection</span>
-            <strong className="kpi-value">{guide.costImpact}</strong>
-          </article>
-          <article className="orientation-kpi-card">
-            <span className="kpi-label">Focus</span>
-            <strong className="kpi-value">{guide.label} Workflow</strong>
-          </article>
-        </div>
+      <div className="orientation-kpis">
+        <article className="orientation-kpi-card">
+          <span className="kpi-label">Time Saved</span>
+          <strong className="kpi-value">{guide.timeSaved}</strong>
+        </article>
+        <article className="orientation-kpi-card">
+          <span className="kpi-label">Cost Protection</span>
+          <strong className="kpi-value">{guide.costImpact}</strong>
+        </article>
+        <article className="orientation-kpi-card">
+          <span className="kpi-label">Focus</span>
+          <strong className="kpi-value">{guide.label} Workflow</strong>
+        </article>
+      </div>
 
-        <div className="orientation-steps">
-          <h3>How This Benefits Your Work</h3>
-          <ol>
-            {guide.steps.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-        </div>
+      <div className="orientation-steps">
+        <h3>How This Benefits Your Work</h3>
+        <ol>
+          {guide.steps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="orientation-next-action">
+        <span className="status-chip safe">Next Best Action</span>
+        <p>{guide.nextBestAction}</p>
       </div>
     </section>
   );

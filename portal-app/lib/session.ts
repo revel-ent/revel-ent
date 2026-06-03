@@ -8,6 +8,7 @@ export interface Session {
   email: string;
   displayName: string;
   role: Role;
+  organizationId: string | null;
   eventId: string | null;
 }
 
@@ -30,6 +31,7 @@ export async function getSession(): Promise<Session | null> {
     email: payload.email,
     displayName: payload.displayName,
     role: payload.role,
+    organizationId: payload.organizationId ?? null,
     eventId: payload.eventId
   };
 }

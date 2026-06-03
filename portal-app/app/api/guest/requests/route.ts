@@ -11,14 +11,6 @@ interface GuestRequestPayload {
 
 export const runtime = 'nodejs';
 
-function isPersistenceNotConfiguredError(message: string): boolean {
-  const normalized = message.toLowerCase();
-  return (
-    normalized.includes('relation "guest_requests" does not exist') ||
-    normalized.includes("could not find the 'guest_requests' table")
-  );
-}
-
 export async function POST(request: Request) {
   const session = await getSession();
 
@@ -69,10 +61,6 @@ export async function POST(request: Request) {
   });
 
   if (insertError) {
-    if (isPersistenceNotConfiguredError(insertError.message)) {
-      return NextResponse.json({ error: 'persistence_not_configured' }, { status: 503 });
-    }
-
     return NextResponse.json({ error: 'guest_request_insert_failed', details: insertError.message }, { status: 500 });
   }
 

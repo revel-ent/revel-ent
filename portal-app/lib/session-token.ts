@@ -7,6 +7,7 @@ export interface SessionPayload {
   email: string;
   displayName: string;
   role: Role;
+  organizationId?: string | null;
   eventId: string | null;
 }
 
@@ -53,6 +54,7 @@ export async function signSessionToken(payload: SessionPayload): Promise<string>
     email: payload.email,
     displayName: payload.displayName,
     role: payload.role,
+    organizationId: payload.organizationId ?? null,
     eventId: payload.eventId
   })
     .setProtectedHeader({ alg: 'HS256' })
@@ -69,6 +71,7 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
     const email = typeof payload.email === 'string' ? payload.email : null;
     const displayName = typeof payload.displayName === 'string' ? payload.displayName : null;
     const role = typeof payload.role === 'string' ? payload.role : null;
+    const organizationIdRaw = payload.organizationId;
     const eventIdRaw = payload.eventId;
 
     if (!userId || !email || !displayName || !role) {
@@ -84,6 +87,7 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
       email,
       displayName,
       role: role as Role,
+      organizationId: typeof organizationIdRaw === 'string' ? organizationIdRaw : null,
       eventId: typeof eventIdRaw === 'string' ? eventIdRaw : null
     };
   } catch {

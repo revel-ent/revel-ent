@@ -1,0 +1,15 @@
+{
+  "js/ts.tsserver.maxMemory": 4096,
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.next/**": true,
+    "**/data/**": true,
+    "**/docs/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/data": true,
+    "**/docs": true
+  }
+}

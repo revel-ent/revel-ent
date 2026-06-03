@@ -15,9 +15,6 @@ export function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
-// TODO(auth): This is a demo bridge to map session tokens onto UUID-shaped IDs.
-// Replace with first-class identity (Supabase Auth, Clerk, Auth0, or magic-link flow)
-// where auth.uid() maps directly to memberships.user_id.
 export function resolveSessionUserUuid(params: { userId: string; email: string }): string {
   if (isUuid(params.userId)) {
     return params.userId;

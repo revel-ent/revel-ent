@@ -9,16 +9,6 @@ import { resolveSessionUserUuid } from '@/lib/user-identity';
 export const runtime = 'nodejs';
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
-const SIGNED_URL_TTL_SECONDS = 5 * 60;
-
-function isPersistenceNotConfiguredError(message: string): boolean {
-  const normalized = message.toLowerCase();
-  return (
-    normalized.includes('bucket not found') ||
-    normalized.includes('relation "intake_documents" does not exist') ||
-    normalized.includes("could not find the 'intake_documents' table")
-  );
-}
 
 function isTextLikeFile(file: File): boolean {
   const name = file.name.toLowerCase();
@@ -90,22 +80,14 @@ export async function POST(request: Request) {
   });
 
   if (uploadError) {
-    if (isPersistenceNotConfiguredError(uploadError.message)) {
-      return NextResponse.json({ error: 'persistence_not_configured' }, { status: 503 });
-    }
-
     return NextResponse.json({ error: 'upload_failed', details: uploadError.message }, { status: 500 });
   }
 
   const { data: signedData, error: signedUrlError } = await supabase.storage
     .from('atlas-intake')
-    .createSignedUrl(relativeStoragePath, SIGNED_URL_TTL_SECONDS);
+    .createSignedUrl(relativeStoragePath, 60 * 60);
 
   if (signedUrlError) {
-    if (isPersistenceNotConfiguredError(signedUrlError.message)) {
-      return NextResponse.json({ error: 'persistence_not_configured' }, { status: 503 });
-    }
-
     return NextResponse.json({ error: 'signed_url_failed', details: signedUrlError.message }, { status: 500 });
   }
 
@@ -140,10 +122,6 @@ export async function POST(request: Request) {
   });
 
   if (intakeInsertError) {
-    if (isPersistenceNotConfiguredError(intakeInsertError.message)) {
-      return NextResponse.json({ error: 'persistence_not_configured' }, { status: 503 });
-    }
-
     return NextResponse.json({ error: 'intake_insert_failed', details: intakeInsertError.message }, { status: 500 });
   }
 

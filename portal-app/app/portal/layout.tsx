@@ -31,40 +31,36 @@ export default async function PortalLayout({ children }: { children: React.React
               <span className="badge">Event: {eventLabel}</span>
             </div>
           </div>
-          <nav className="portal-nav-links" aria-label="Portal navigation">
+          <nav className="portal-nav-links">
             {isDevRoleSwitchEnabled() ? (
-              <div className="portal-nav-controls">
-                <DevRoleSwitcher currentRole={session.role} currentEventId={session.eventId} events={demoEvents} />
-              </div>
+              <DevRoleSwitcher currentRole={session.role} currentEventId={session.eventId} events={demoEvents} />
             ) : null}
-            <div className="portal-route-links">
-              <Link className="portal-nav-link" href="/portal">
-                Dashboard
+            <Link className="portal-nav-link" href="/portal">
+              Dashboard
+            </Link>
+            <Link className="portal-nav-link" href="/portal/onboarding">
+              Onboarding
+            </Link>
+            {canUseIntake(session.role) ? (
+              <Link className="portal-nav-link" href="/portal/intake">
+                Intake
               </Link>
-              <Link className="portal-nav-link" href="/portal/onboarding">
-                Onboarding
+            ) : null}
+            {canUseLiveMode(session.role) ? (
+              <Link className="portal-nav-link" href="/portal/live">
+                Live Mode
               </Link>
-              {canUseIntake(session.role) ? (
-                <Link className="portal-nav-link" href="/portal/intake">
-                  Intake
-                </Link>
-              ) : null}
-              {canUseLiveMode(session.role) ? (
-                <Link className="portal-nav-link" href="/portal/live">
-                  Live Mode
-                </Link>
-              ) : null}
-              {canUseVenueWorkspace(session.role) ? (
-                <Link className="portal-nav-link" href="/portal/venue">
-                  Venue
-                </Link>
-              ) : null}
-              <form action="/api/auth/logout" method="POST">
-                <button className="portal-nav-link" type="submit">
-                  Logout
-                </button>
-              </form>
-            </div>
+            ) : null}
+            {canUseVenueWorkspace(session.role) ? (
+              <Link className="portal-nav-link" href="/portal/venue">
+                Venue
+              </Link>
+            ) : null}
+            <form action="/api/auth/logout" method="POST">
+              <button className="portal-nav-link" type="submit">
+                Logout
+              </button>
+            </form>
           </nav>
         </div>
       </header>

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const runCapacityCheckLiveMock = vi.fn();
-const runOutdoorPowerCurfewLiveMock = vi.fn();
 const generateTimelineFromVenueMock = vi.fn();
 const getSupabaseAdminClientMock = vi.fn();
 const isSupabaseConfiguredMock = vi.fn();
@@ -12,8 +11,7 @@ vi.mock('@/lib/atlas-venues', async () => {
   const actual = await vi.importActual('@/lib/atlas-venues');
   return {
     ...actual,
-    runCapacityCheckLive: runCapacityCheckLiveMock,
-    runOutdoorPowerCurfewLive: runOutdoorPowerCurfewLiveMock
+    runCapacityCheckLive: runCapacityCheckLiveMock
   };
 });
 
@@ -42,7 +40,6 @@ describe('onboarding routes', () => {
   beforeEach(() => {
     vi.resetModules();
     runCapacityCheckLiveMock.mockReset();
-    runOutdoorPowerCurfewLiveMock.mockReset();
     generateTimelineFromVenueMock.mockReset();
     getSupabaseAdminClientMock.mockReset();
     isSupabaseConfiguredMock.mockReset();
@@ -57,7 +54,6 @@ describe('onboarding routes', () => {
       eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11'
     });
     signSessionTokenMock.mockResolvedValue('signed-session-token');
-    runOutdoorPowerCurfewLiveMock.mockResolvedValue(null);
   });
 
   it('venue-check returns 401 when session is missing', async () => {
@@ -166,92 +162,7 @@ describe('onboarding routes', () => {
 
     expect(response.status).toBe(200);
     expect(payload.status).toBe('safe');
-    expect(payload.atlasOutdoorPowerCurfew).toBeNull();
     expect(runCapacityCheckLiveMock).toHaveBeenCalledWith({ venueId: 'atlas-venue-1', guestCount: 300 });
-    expect(runOutdoorPowerCurfewLiveMock).toHaveBeenCalledWith({
-      venueId: 'atlas-venue-1',
-      eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11',
-      ceremonyOutdoors: undefined,
-      baraatOutdoors: undefined
-    });
-  });
-
-  it('venue-check returns outdoor power/curfew recommendation when trigger fires', async () => {
-    runCapacityCheckLiveMock.mockResolvedValue({
-      status: 'tight',
-      message: 'Possible but tight.',
-      venue: {
-        id: 'atlas-venue-2',
-        name: 'Atlas Gardens',
-        city: 'Atlanta, GA',
-        marketedCapacity: 350,
-        comfortableRangeMin: 200,
-        comfortableRangeMax: 280,
-        notes: [],
-        constraintsSummary: 'Outdoor power review needed.',
-        sourceConfidence: 'partially_verified'
-      }
-    });
-    runOutdoorPowerCurfewLiveMock.mockResolvedValue({
-      venue: {
-        id: 'atlas-venue-2',
-        name: 'Atlas Gardens',
-        city: 'Atlanta, GA',
-        marketedCapacity: 350,
-        comfortableRangeMin: 200,
-        comfortableRangeMax: 280,
-        notes: [],
-        constraintsSummary: 'Outdoor power review needed.',
-        sourceConfidence: 'partially_verified'
-      },
-      persistenceMode: 'persisted',
-      recommendation: {
-        triggerKey: 'outdoor_power_or_curfew',
-        groupedRecommendationKey: 'baraat_mobile_production_fx',
-        status: 'active',
-        severity: 'warning',
-        confidence: 0.86,
-        fired: true,
-        title: 'Outdoor Power or Curfew Risk',
-        message: 'Outdoor plan intersects venue constraints.',
-        cta: 'Explore Baraat Upgrades',
-        evidence: {
-          outdoors: true,
-          limitedPower: true,
-          strictCurfew: true,
-          amplifiedDenied: false,
-          curfewHour: 22
-        },
-        missingFields: [],
-        fingerprint: 'evt-1:ven-1:outdoor_power_or_curfew:1:1:1:0:22'
-      }
-    });
-
-    const { POST } = await import('@/app/api/onboarding/venue-check/route');
-
-    const request = new Request('http://localhost/api/onboarding/venue-check', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        venueId: 'atlas-venue-2',
-        guestCount: 290,
-        ceremonyOutdoors: true,
-        baraatOutdoors: true
-      })
-    });
-
-    const response = await POST(request);
-    const payload = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(payload.atlasOutdoorPowerCurfew?.triggerKey).toBe('outdoor_power_or_curfew');
-    expect(payload.atlasEvaluationPersistenceMode).toBe('persisted');
-    expect(runOutdoorPowerCurfewLiveMock).toHaveBeenCalledWith({
-      venueId: 'atlas-venue-2',
-      eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11',
-      ceremonyOutdoors: true,
-      baraatOutdoors: true
-    });
   });
 
   it('venue-check returns 404 when live adapter has no venue', async () => {

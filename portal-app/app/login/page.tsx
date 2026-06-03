@@ -1,8 +1,8 @@
 import { isDemoAuthEnabled, isLocalDevelopmentEnvironment } from '@/lib/runtime-flags';
 
 const ERROR_MAP: Record<string, string> = {
-  missing_fields: 'Please enter both email and event access code.',
-  membership_not_found: 'No event membership was found for those credentials.',
+  missing_fields: 'Please enter both email and your invite code.',
+  invalid_credentials: 'No account was found for that email and invite code.',
   configuration_error:
     'Portal login is temporarily unavailable due to server configuration. Please contact support.'
 };
@@ -65,7 +65,7 @@ export default async function LoginPage({
             <h3>Secure Event Access</h3>
             <span className="chip">Event Scoped</span>
           </div>
-          <p className="card-muted">Use your event credentials to continue. Your workspace is resolved after sign-in.</p>
+          <p className="card-muted">Use your personal invite credentials. Your workspace is resolved after sign-in.</p>
 
           {errorMessage ? (
             <div className="alert error">
@@ -83,8 +83,8 @@ export default async function LoginPage({
               </div>
 
               <div>
-                <label htmlFor="eventCode">Event Access Code</label>
-                <input id="eventCode" name="eventCode" type="text" placeholder="REVEL-NOV-2026" required />
+                <label htmlFor="inviteCode">Invite Code</label>
+                <input id="inviteCode" name="inviteCode" type="text" placeholder="ATLAS-PLN-MAULIN-2026" required />
               </div>
 
               <button className="btn primary" type="submit">
@@ -110,25 +110,25 @@ export default async function LoginPage({
             </summary>
             <div className="demo-credential-list">
               <p>
-                <strong>Admin:</strong> jigar@revel-ent.com + REVEL-NOV-2026
+                <strong>Admin:</strong> jigar@revel-ent.com + ATLAS-ADM-JIGAR-2026
               </p>
               <p>
-                <strong>Planner:</strong> maulin@revel-ent.com + REVEL-NOV-2026
+                <strong>Planner:</strong> maulin@revel-ent.com + ATLAS-PLN-MAULIN-2026
               </p>
               <p>
-                <strong>Couple:</strong> jayati@example.com + REVEL-NOV-2026
+                <strong>Couple:</strong> jayati@example.com + ATLAS-CPL-JAYATI-2026
               </p>
               <p>
-                <strong>Vendor:</strong> heckno@revel-ent.com + REVEL-NOV-2026
+                <strong>Vendor:</strong> heckno@revel-ent.com + ATLAS-VND-HECKNO-2026
               </p>
               <p>
-                <strong>Guest:</strong> guestfamily@example.com + REVEL-NOV-2026
+                <strong>Guest:</strong> guestfamily@example.com + ATLAS-GST-FAMILY-2026
               </p>
               <p>
-                <strong>Family Coordinator:</strong> priya@example.com + REVEL-NOV-2026
+                <strong>Family Coordinator:</strong> priya@example.com + ATLAS-DEL-PRIYA-2026
               </p>
               <p>
-                <strong>Venue Coordinator:</strong> anita.venue@example.com + REVEL-NOV-2026
+                <strong>Venue Coordinator:</strong> anita.venue@example.com + ATLAS-VEN-ANITA-2026
               </p>
             </div>
           </details>

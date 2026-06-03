@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/session';
-import { getVendorMilestonesForEvent } from '@/lib/mock-vendor-milestones';
+import { getTaskProjectionForActor } from '@/lib/canonical-tasks';
 
 function formatDate(isoDate: string): string {
   return new Date(`${isoDate}T12:00:00`).toLocaleDateString('en-US', {
@@ -9,9 +9,10 @@ function formatDate(isoDate: string): string {
   });
 }
 
-function statusClass(status: 'pending' | 'acknowledged' | 'completed'): string {
+function statusClass(status: 'pending' | 'acknowledged' | 'in_progress' | 'completed' | 'blocked'): string {
   if (status === 'completed') return 'status-chip completed';
-  if (status === 'acknowledged') return 'status-chip in_progress';
+  if (status === 'acknowledged' || status === 'in_progress') return 'status-chip in_progress';
+  if (status === 'blocked') return 'status-chip delayed';
   return 'status-chip pending';
 }
 
@@ -22,35 +23,40 @@ export default async function VendorMilestoneBoard() {
     return null;
   }
 
-  const milestones = getVendorMilestonesForEvent(session.eventId);
+  const projection = getTaskProjectionForActor({
+    eventId: session.eventId,
+    actorUserId: session.userId,
+    actorRole: session.role
+  });
+  const tasks = projection.tasks;
 
   return (
     <article className="card">
       <div className="card-header">
-        <h3>Vendor Milestones</h3>
-        <span className="chip">Due-Date First</span>
+        <h3>Assigned Tasks</h3>
+        <span className="chip">Timeline Linked</span>
       </div>
       <p>
-        Milestones can expose due dates without requiring full financial disclosure. Amounts remain hidden when
-        configured by event policy.
+        Each task is linked to the exact timeline moment it supports so vendors only see the work and schedule slices
+        relevant to their assignment.
       </p>
 
       <ul className="feed-list">
-        {milestones.length === 0 ? (
-          <li className="feed-item">Milestones will appear here once your assignments are released by the planning team.</li>
+        {tasks.length === 0 ? (
+          <li className="feed-item">Assignments will appear here once the planning team links your work to a timeline moment.</li>
         ) : null}
-        {milestones.map((item) => (
+        {tasks.map((item) => (
           <li className="feed-item" key={item.id}>
             <div className="item-title-row">
-              <span className="item-title">{item.vendorType}: {item.title}</span>
+              <span className="item-title">{item.title}</span>
               <span className={statusClass(item.status)}>{item.status.toUpperCase()}</span>
             </div>
-            <p className="item-meta">Due {formatDate(item.dueDate)}</p>
-            <p className="item-note">{item.note}</p>
+            {item.dueAtIso ? <p className="item-meta">Due {formatDate(item.dueAtIso.slice(0, 10))}</p> : null}
+            <p className="item-note">{item.description}</p>
             <p className="item-note vendor-finance-note">
-              {item.amountVisibleToVendor && typeof item.amountDue === 'number'
-                ? `Amount Due: $${item.amountDue.toLocaleString('en-US')}`
-                : 'Financial amount hidden by policy. Date-based reminder is active.'}
+              {item.linkedTimeline.length > 0
+                ? `Linked timeline: ${item.linkedTimeline.map((slice) => slice.title).join(', ')}`
+                : 'Timeline link pending.'}
             </p>
           </li>
         ))}

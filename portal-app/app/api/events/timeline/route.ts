@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { getEventTimelineForRole, getEventTimelineFromPersistedRows } from '@/lib/mock-event-experience';
-import { getSession } from '@/lib/session';
+import { createTimelineResponse, buildBaseCanonicalTimeline, mapPersistedTimelineRows } from '@/lib/canonical-timeline';
+import { requireEventRoleContext } from '@/lib/event-context';
 import { getSupabaseAdminClient } from '@/lib/supabase-server';
 
 function isUuid(value: string): boolean {
@@ -9,43 +9,39 @@ function isUuid(value: string): boolean {
 }
 
 export async function GET() {
-  const session = await getSession();
+  const { context, response } = await requireEventRoleContext();
 
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!session.eventId) {
-    return NextResponse.json({ error: 'Missing event context' }, { status: 400 });
+  if (response || !context) {
+    return response as NextResponse;
   }
 
   const supabase = getSupabaseAdminClient();
 
-  if (supabase && isUuid(session.eventId)) {
+  if (supabase && isUuid(context.eventId)) {
     const { data, error } = await supabase
       .from('timelines')
       .select('timeline_id,phase_code,title,scheduled_start,scheduled_end,status,escalation_hint,notes,atlas_prompt')
-      .eq('event_id', session.eventId)
+      .eq('event_id', context.eventId)
       .order('scheduled_start', { ascending: true });
 
     if (!error && data && data.length > 0) {
-      return NextResponse.json({
-        eventId: session.eventId,
-        role: session.role,
-        source: 'supabase',
-        timeline: getEventTimelineFromPersistedRows({
-          eventId: session.eventId,
-          role: session.role,
-          rows: data
+      return NextResponse.json(
+        createTimelineResponse({
+          eventId: context.eventId,
+          role: context.role,
+          source: 'supabase',
+          items: mapPersistedTimelineRows(context.eventId, data)
         })
-      });
+      );
     }
   }
 
-  return NextResponse.json({
-    eventId: session.eventId,
-    role: session.role,
-    source: 'mock',
-    timeline: getEventTimelineForRole(session.eventId, session.role)
-  });
+  return NextResponse.json(
+    createTimelineResponse({
+      eventId: context.eventId,
+      role: context.role,
+      source: 'mock',
+      items: buildBaseCanonicalTimeline(context.eventId)
+    })
+  );
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { findMembershipByEmailAndEventCode } from '@/lib/mock-data';
+import { findMembershipByEmailAndInviteCode } from '@/lib/mock-data';
 import { isDemoAuthEnabled } from '@/lib/runtime-flags';
 import {
   getSessionCookieName,
@@ -15,23 +15,23 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const email = String(formData.get('email') || '').trim().toLowerCase();
-  const eventCode = String(formData.get('eventCode') || '').trim();
+  const inviteCode = String(formData.get('inviteCode') || '').trim();
   const next = String(formData.get('next') || '/portal').trim();
 
   const nextPath = next.startsWith('/portal') ? next : '/portal';
 
-  if (!email || !eventCode) {
+  if (!email || !inviteCode) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('error', 'missing_fields');
     loginUrl.searchParams.set('next', nextPath);
     return NextResponse.redirect(loginUrl);
   }
 
-  const membership = findMembershipByEmailAndEventCode(email, eventCode);
+  const membership = findMembershipByEmailAndInviteCode(email, inviteCode);
 
   if (!membership) {
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('error', 'membership_not_found');
+    loginUrl.searchParams.set('error', 'invalid_credentials');
     loginUrl.searchParams.set('next', nextPath);
     return NextResponse.redirect(loginUrl);
   }
@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       email: membership.email,
       displayName: membership.displayName,
       role: membership.role,
+      organizationId: membership.organizationId,
       eventId: membership.eventId
     });
   } catch {
