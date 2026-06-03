@@ -1,6 +1,29 @@
 import Link from 'next/link';
 
 export default function HomePage() {
+  const productPreviewRows = [
+    {
+      label: 'Timeline Updated',
+      detail: 'Start time changes to 5:30 PM.',
+      state: 'Updated',
+    },
+    {
+      label: 'Planner Approved',
+      detail: 'Run-of-show locks for all teams.',
+      state: 'Approved',
+    },
+    {
+      label: 'Deposit Released',
+      detail: 'Payment milestone opens automatically.',
+      state: 'Released',
+    },
+    {
+      label: 'Vendor Confirmed',
+      detail: 'Vendors get the final timeline instantly.',
+      state: 'Confirmed',
+    },
+  ];
+
   return (
     <main className="atlas-home">
       <section className="atlas-home-hero">
@@ -19,120 +42,104 @@ export default function HomePage() {
         <div className="atlas-home-overlay" />
 
         <div className="atlas-home-hero-content container">
-          <p className="atlas-home-kicker">Atlas Portal // Event Intelligence Engine</p>
-          <h1>Your Digital Wedding Atlas</h1>
+          <p className="atlas-home-kicker">Atlas Platform</p>
+          <h1>One Shared Plan For The Entire Event</h1>
           <p>
-            A future-facing command layer for complex weddings. Atlas fuses timeline intelligence, venue constraints,
-            and live coordination into one decisive control plane.
+            Atlas is the command center for couples, planners, vendors, venues, and families running one event
+            together.
           </p>
-          <div className="atlas-home-audience-strip" aria-label="Atlas audience roles">
-            <span>Couples</span>
-            <span>Planners</span>
-            <span>Vendors</span>
-            <span>Guests</span>
-            <span>Venues</span>
-          </div>
+          <p>
+            Unlike texting threads, spreadsheets, or scattered group chats, Atlas connects timeline changes,
+            approvals, payments, and hand-offs to one live plan everyone follows.
+          </p>
+          <section className="atlas-home-product-preview" aria-label="Atlas product preview">
+            <p className="atlas-home-preview-intro">See one live update move across the whole event:</p>
+            <div className="atlas-home-preview-board">
+              {productPreviewRows.map((row) => (
+                <article className="atlas-home-preview-row" key={row.label}>
+                  <div>
+                    <h3>{row.label}</h3>
+                    <p>{row.detail}</p>
+                  </div>
+                  <div className="atlas-home-preview-meta">
+                    <span className="atlas-home-preview-tag">{row.state}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <p className="atlas-home-preview-footnote">One change. One shared plan. Every team aligned.</p>
+          </section>
           <div className="atlas-home-hero-actions">
             <Link className="btn primary" href="/login">
-              Enter Atlas Portal
+              Enter Atlas
             </Link>
             <a className="btn secondary" href="#atlas-flow">
-              Explore The System
+              See How It Works
             </a>
-          </div>
-          <div className="atlas-home-metrics">
-            <article>
-              <span>Decision Velocity</span>
-              <strong>2.8x Faster</strong>
-            </article>
-            <article>
-              <span>Live Accuracy</span>
-              <strong>99.2% Signal Sync</strong>
-            </article>
-            <article>
-              <span>Coordination Load</span>
-              <strong>-43% Message Noise</strong>
-            </article>
           </div>
         </div>
       </section>
 
       <section className="atlas-home-role-matrix container">
         <header>
-          <p className="atlas-home-kicker">Role-Aware Access</p>
-          <h2>One secure login. Personalized command views by role.</h2>
+          <p className="atlas-home-kicker atlas-home-role-kicker">The Moment Everything Clicks</p>
+          <h2>Everyone Moves As One</h2>
+          <p className="atlas-home-role-subtitle">
+            When everyone sees the same plan, decisions happen faster and stress drops.
+          </p>
         </header>
-        <div className="atlas-home-role-grid">
-          <article className="atlas-home-role-card">
-            <h3>For Couples</h3>
-            <p>Find aligned venues, track approvals and payments, and make critical decisions without operational overload.</p>
+
+        <blockquote className="atlas-home-moment-quote">Everyone knew what came next. The event just flowed.</blockquote>
+
+        <div className="atlas-home-emotion-grid" aria-label="Atlas emotional outcomes">
+          <article className="atlas-home-emotion-card">
+            <h3>Same Plan</h3>
+            <p>Everyone works from a single source of truth.</p>
           </article>
-          <article className="atlas-home-role-card">
-            <h3>For Planners</h3>
-            <p>Run the full production graph with venue intelligence, dispatch updates, and live risk controls.</p>
+          <article className="atlas-home-emotion-card">
+            <h3>Clear Hand-Offs</h3>
+            <p>Nothing falls through the cracks.</p>
           </article>
-          <article className="atlas-home-role-card">
-            <h3>For Vendors</h3>
-            <p>See exactly what changed, what is due next, and where your team needs to be.</p>
-          </article>
-          <article className="atlas-home-role-card">
-            <h3>For Guests & Family</h3>
-            <p>Use the AI concierge for instant schedule, arrival logistics, and day-of answers without group-chat noise.</p>
-          </article>
-          <article className="atlas-home-role-card">
-            <h3>For Venues</h3>
-            <p>Align floor plans, policy constraints, and load-in windows with less last-minute friction.</p>
+          <article className="atlas-home-emotion-card">
+            <h3>Calm Event Day</h3>
+            <p>Fewer surprises. More presence.</p>
           </article>
         </div>
       </section>
 
       <section id="atlas-flow" className="atlas-home-flow container">
         <header>
-          <p className="atlas-home-kicker">Operating Model</p>
-          <h2>A scrolling, depth-layered workflow from risk to resolution</h2>
+          <p className="atlas-home-kicker">How Atlas Runs The Event</p>
+          <h2>The command center behind timelines, approvals, and event-day execution</h2>
         </header>
         <div className="atlas-home-flow-grid">
           <article className="atlas-home-flow-card">
-            <h3>Detect</h3>
-            <p>Atlas ingests venue, timeline, and payment signals in real time.</p>
+            <h3>Plan</h3>
+            <p>Build your timeline and assign responsibilities before the event week starts.</p>
           </article>
           <article className="atlas-home-flow-card">
-            <h3>Forecast</h3>
-            <p>Constraint models reveal bottlenecks before they impact guest experience.</p>
+            <h3>Coordinate</h3>
+            <p>Track tasks, approvals, payments, and vendor handoffs in one place.</p>
           </article>
           <article className="atlas-home-flow-card">
-            <h3>Orchestrate</h3>
-            <p>One role-scoped feed aligns planners, couples, vendors, and family coordinators.</p>
+            <h3>Communicate</h3>
+            <p>Share updates so everyone sees the same plan and the same changes.</p>
           </article>
           <article className="atlas-home-flow-card">
             <h3>Execute</h3>
-            <p>Live mode delivers now/next/urgent actions with clean escalation paths.</p>
+            <p>Run event day with fewer surprises and clearer next actions for every team.</p>
           </article>
-        </div>
-      </section>
-
-      <section className="atlas-home-depth container">
-        <div className="atlas-home-depth-layer atlas-home-depth-layer-a">
-          <h3>Venue Reality Layer</h3>
-          <p>Capacity truth, sound policy, rigging constraints, and turnaround windows in one view.</p>
-        </div>
-        <div className="atlas-home-depth-layer atlas-home-depth-layer-b">
-          <h3>Commercial Layer</h3>
-          <p>Independent billing, Stripe checkout, and entitlement control mapped to workspace ownership.</p>
-        </div>
-        <div className="atlas-home-depth-layer atlas-home-depth-layer-c">
-          <h3>Execution Layer</h3>
-          <p>Role-targeted dispatches, risk alerts, and timeline updates synced across the full event graph.</p>
         </div>
       </section>
 
       <section className="atlas-home-cta container">
         <div>
-          <p className="atlas-home-kicker">Ready For Lift-Off</p>
-          <h2>Step into Atlas and run the weekend with zero blind spots.</h2>
+          <p className="atlas-home-kicker">Ready To Replace The Chaos</p>
+          <h2>Run your event from one shared plan, not a dozen message threads.</h2>
+          <p className="atlas-home-cta-note">Invite couples, planners, vendors, venues, and family into one command center.</p>
         </div>
         <Link className="btn primary" href="/login">
-          Enter Atlas Portal
+          Enter Atlas
         </Link>
       </section>
     </main>
