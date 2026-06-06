@@ -136,7 +136,7 @@ export default function HomePage() {
         <div>
           <p className="atlas-home-kicker">Ready To Replace The Chaos</p>
           <h2>Run your event from one shared plan, not a dozen message threads.</h2>
-          <p className="atlas-home-cta-note">Invite couples, planners, vendors, venues, and family into one command center.</p>
+          <p className="atlas-home-cta-note">Invite-only at launch so every event gets secure role setup and white-glove onboarding.</p>
         </div>
         <Link className="btn primary" href="/login">
           Enter Atlas
