@@ -8,8 +8,8 @@ export default function VendorPortalPage() {
     <section className="page-wrap">
       <header className="portal-page-header">
         <span className="eyebrow">Vendor Workspace</span>
-        <h1 className="page-title">Assigned Tasks and Execution Feed</h1>
-        <p className="page-subtitle">Assigned-event tasks, load-in notes, timing updates, and acknowledgement feed.</p>
+        <h1 className="page-title">Vendor Team Tasks and Execution Feed</h1>
+        <p className="page-subtitle">For photographer, videographer, decor, and partner teams: assigned-event tasks, load-in notes, timing updates, and acknowledgement feed.</p>
       </header>
 
       <div className="portal-card-grid">

@@ -56,9 +56,11 @@ const ONBOARDING_ROLE_OPTIONS = [
   { value: 'couple', label: 'Client (Couple)' },
   { value: 'planner', label: 'Planner' },
   { value: 'decorator', label: 'Decorator' },
-  { value: 'vendor', label: 'Vendor' },
+  { value: 'vendor', label: 'Vendor (Photographer / Videographer / Decor / Other)' },
   { value: 'guest', label: 'Guest' },
-  { value: 'delegate_coordinator', label: 'Family Coordinator' }
+  { value: 'delegate_coordinator', label: 'Family Coordinator' },
+  { value: 'venue_coordinator', label: 'Venue Manager / Venue Coordinator' },
+  { value: 'dj_mc', label: 'DJ / Entertainment Team' }
 ] as const;
 
 function getStatusTone(status: CapacityStatus) {

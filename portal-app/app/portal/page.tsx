@@ -51,7 +51,7 @@ const DASHBOARD_ACTIONS: Array<{
     href: '/portal/vendor',
     label: 'Vendor',
     title: 'Assigned Tasks and Acknowledgements',
-    body: 'See load-in notes, timing updates, and assigned coordination actions for this event.',
+    body: 'For photographer, videographer, decor, and partner teams. See load-in notes, timing updates, and assigned coordination actions for this event.',
     capability: 'vendor.coordination'
   },
   {
