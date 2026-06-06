@@ -1,4 +1,6 @@
 import VenueTaskWindowPanel from '@/app/portal/venue/components/VenueTaskWindowPanel';
+import EventTimelineCard from '@/app/portal/components/EventTimelineCard';
+import LiveModeCard from '@/app/portal/components/LiveModeCard';
 
 export default function VenueWorkspacePage() {
   return (
@@ -36,6 +38,9 @@ export default function VenueWorkspacePage() {
           </div>
           <p>Publish constrained updates (parking, route, weather contingencies) to the right roles at the right time.</p>
         </article>
+
+        <EventTimelineCard />
+        <LiveModeCard />
       </div>
     </section>
   );
