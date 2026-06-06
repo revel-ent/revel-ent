@@ -9,6 +9,7 @@ import {
   hashInviteToken,
   parseInviteExpiryHours
 } from '@/lib/invite-lifecycle';
+import { buildInviteLink, deliverInviteEmail } from '@/lib/invite-delivery';
 import { getSession } from '@/lib/session';
 import { getSupabaseAdminClient } from '@/lib/supabase-server';
 
@@ -164,14 +165,38 @@ export async function POST(
     );
   }
 
+  const { data: eventRow } = await supabase
+    .from('events')
+    .select('event_label')
+    .eq('event_id', tokenRow.event_id)
+    .maybeSingle();
+
+  const inviteLink = buildInviteLink({
+    origin: request.url,
+    email: tokenRow.invitee_email,
+    inviteToken: nextTokenValue,
+    nextPath: '/portal'
+  });
+
+  const delivery = await deliverInviteEmail({
+    email: tokenRow.invitee_email,
+    displayName: tokenRow.invitee_display_name || tokenRow.invitee_email,
+    role: tokenRow.target_role,
+    eventLabel: (eventRow?.event_label as string | undefined) ?? undefined,
+    inviterDisplayName: session.displayName,
+    inviteToken: nextTokenValue,
+    inviteLink,
+    expiresAtIso: expiresAt
+  });
+
   const { error: deliveryUpdateError } = await supabase
     .from('invite_tokens')
     .update({
-      status: 'delivered',
+      status: delivery.delivered ? 'delivered' : 'generated',
       delivery_channel: 'email',
-      delivery_provider: 'application_simulated',
-      delivery_reference: `sim_${inserted.token_id}`,
-      delivered_at: nowIso,
+      delivery_provider: delivery.provider,
+      delivery_reference: delivery.reference ?? null,
+      delivered_at: delivery.delivered ? nowIso : null,
       updated_at: nowIso
     })
     .eq('token_id', inserted.token_id);
@@ -186,7 +211,7 @@ export async function POST(
         actor_user_id: session.userId,
         actor_role: session.role,
         event_type: 'invite_delivery_failed',
-        payload: { reason: deliveryUpdateError.message }
+        payload: { reason: deliveryUpdateError.message, canonicalEvent: 'invite_delivery_failed' }
       }
     ]);
 
@@ -202,7 +227,7 @@ export async function POST(
       actor_user_id: session.userId,
       actor_role: session.role,
       event_type: 'invite_revoked',
-      payload: { reason: 'resend_replaced' }
+      payload: { reason: 'resend_replaced', canonicalEvent: 'invite_revoked' }
     },
     {
       token_id: inserted.token_id,
@@ -212,7 +237,7 @@ export async function POST(
       actor_user_id: session.userId,
       actor_role: session.role,
       event_type: 'invite_generated',
-      payload: { reason: 'resend', expiresAt }
+      payload: { reason: 'resend', expiresAt, canonicalEvent: 'invite_resent' }
     },
     {
       token_id: inserted.token_id,
@@ -221,8 +246,15 @@ export async function POST(
       membership_id: tokenRow.membership_id,
       actor_user_id: session.userId,
       actor_role: session.role,
-      event_type: 'invite_delivered',
-      payload: { channel: 'email', provider: 'application_simulated' }
+      event_type: delivery.delivered ? 'invite_delivered' : 'invite_delivery_failed',
+      payload: delivery.delivered
+        ? {
+            channel: 'email',
+            provider: delivery.provider,
+            reference: delivery.reference ?? null,
+            canonicalEvent: 'invite_sent'
+          }
+        : { provider: delivery.provider, reason: delivery.error ?? 'delivery_failed', canonicalEvent: 'invite_delivery_failed' }
     }
   ]);
 
@@ -232,12 +264,14 @@ export async function POST(
       invite: {
         tokenId: inserted.token_id,
         inviteToken: nextTokenValue,
+        inviteLink,
         inviteeEmail: tokenRow.invitee_email,
         targetRole: tokenRow.target_role,
         roleProfile: tokenRow.role_profile,
         expiresAt,
-        status: 'delivered'
-      }
+        status: delivery.delivered ? 'delivered' : 'generated'
+      },
+      delivery
     },
     { status: 200 }
   );

@@ -83,7 +83,7 @@ export function parseInviteRole(value: unknown): Role | null {
 
 export function parseInviteExpiryHours(value: unknown): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return 72;
+    return 168;
   }
 
   const bounded = Math.floor(value);

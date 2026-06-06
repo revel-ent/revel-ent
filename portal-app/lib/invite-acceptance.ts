@@ -107,7 +107,8 @@ export async function acceptInviteWithToken(input: AcceptInviteInput): Promise<A
       actor_role: null,
       event_type: 'invite_expired',
       payload: {
-        acceptedAttemptAt: nowIso
+        acceptedAttemptAt: nowIso,
+        canonicalEvent: 'invite_expired'
       }
     });
 
@@ -160,7 +161,8 @@ export async function acceptInviteWithToken(input: AcceptInviteInput): Promise<A
     event_type: 'invite_accepted',
     payload: {
       inviteeEmail: email,
-      acceptedAt: nowIso
+      acceptedAt: nowIso,
+      canonicalEvent: 'invite_accepted'
     }
   });
 

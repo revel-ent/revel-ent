@@ -14,6 +14,7 @@ import {
   parseInviteRole,
   parseInviteRoleProfile
 } from '@/lib/invite-lifecycle';
+import { buildInviteLink, deliverInviteEmail } from '@/lib/invite-delivery';
 import { getSession } from '@/lib/session';
 import { getSupabaseAdminClient } from '@/lib/supabase-server';
 import { resolveSessionUserUuid } from '@/lib/user-identity';
@@ -178,7 +179,7 @@ export async function POST(request: Request) {
 
   const { data: eventRow, error: eventError } = await supabase
     .from('events')
-    .select('event_id,organization_id')
+    .select('event_id,organization_id,event_label')
     .eq('event_id', session.eventId)
     .maybeSingle();
 
@@ -267,14 +268,32 @@ export async function POST(request: Request) {
     );
   }
 
+  const inviteLink = buildInviteLink({
+    origin: request.url,
+    email: inviteeEmail,
+    inviteToken: inviteTokenValue,
+    nextPath: '/portal'
+  });
+
+  const delivery = await deliverInviteEmail({
+    email: inviteeEmail,
+    displayName: displayName,
+    role: targetRole,
+    eventLabel: eventRow.event_label as string | undefined,
+    inviterDisplayName: session.displayName,
+    inviteToken: inviteTokenValue,
+    inviteLink,
+    expiresAtIso: expiresAt
+  });
+
   const { error: deliveryUpdateError } = await supabase
     .from('invite_tokens')
     .update({
-      status: 'delivered',
+      status: delivery.delivered ? 'delivered' : 'generated',
       delivery_channel: 'email',
-      delivery_provider: 'application_simulated',
-      delivery_reference: `sim_${inviteRow.token_id}`,
-      delivered_at: nowIso,
+      delivery_provider: delivery.provider,
+      delivery_reference: delivery.reference ?? null,
+      delivered_at: delivery.delivered ? nowIso : null,
       updated_at: nowIso
     })
     .eq('token_id', inviteRow.token_id);
@@ -289,7 +308,7 @@ export async function POST(request: Request) {
         actor_user_id: session.userId,
         actor_role: session.role,
         event_type: 'invite_delivery_failed',
-        payload: { reason: deliveryUpdateError.message }
+        payload: { reason: deliveryUpdateError.message, canonicalEvent: 'invite_delivery_failed' }
       }
     ]);
 
@@ -309,22 +328,44 @@ export async function POST(request: Request) {
         inviteeEmail,
         targetRole,
         roleProfile,
-        expiresAt
+        expiresAt,
+        canonicalEvent: 'invite_created'
       }
     },
-    {
-      token_id: inviteRow.token_id,
-      organization_id: organizationId,
-      event_id: session.eventId,
-      membership_id: membershipUpsert.membership_id,
-      actor_user_id: session.userId,
-      actor_role: session.role,
-      event_type: 'invite_delivered',
-      payload: {
-        channel: 'email',
-        provider: 'application_simulated'
-      }
-    }
+    ...(delivery.delivered
+      ? [
+          {
+            token_id: inviteRow.token_id,
+            organization_id: organizationId,
+            event_id: session.eventId,
+            membership_id: membershipUpsert.membership_id,
+            actor_user_id: session.userId,
+            actor_role: session.role,
+            event_type: 'invite_delivered' as const,
+            payload: {
+              channel: 'email',
+              provider: delivery.provider,
+              reference: delivery.reference ?? null,
+              canonicalEvent: 'invite_sent'
+            }
+          }
+        ]
+      : [
+          {
+            token_id: inviteRow.token_id,
+            organization_id: organizationId,
+            event_id: session.eventId,
+            membership_id: membershipUpsert.membership_id,
+            actor_user_id: session.userId,
+            actor_role: session.role,
+            event_type: 'invite_delivery_failed' as const,
+            payload: {
+              provider: delivery.provider,
+              reason: delivery.error ?? 'delivery_failed',
+              canonicalEvent: 'invite_delivery_failed'
+            }
+          }
+        ])
   ]);
 
   return NextResponse.json(
@@ -333,14 +374,16 @@ export async function POST(request: Request) {
       invite: {
         tokenId: inviteRow.token_id,
         inviteToken: inviteTokenValue,
+        inviteLink,
         inviteeEmail,
         inviteeDisplayName: displayName,
         targetRole,
         roleProfile,
         expiresAt,
         membershipId: membershipUpsert.membership_id,
-        status: 'delivered'
-      }
+        status: delivery.delivered ? 'delivered' : 'generated'
+      },
+      delivery
     },
     { status: 201 }
   );

@@ -141,7 +141,8 @@ export async function POST(
       event_type: 'invite_revoked',
       payload: {
         membershipDeactivated,
-        acceptedPreviously: Boolean(tokenRow.accepted_at)
+        acceptedPreviously: Boolean(tokenRow.accepted_at),
+        canonicalEvent: 'invite_revoked'
       }
     }
   ]);
