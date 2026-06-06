@@ -6,6 +6,7 @@ import { buildBaseCanonicalTimeline } from '@/lib/canonical-timeline';
 import { getClientPlanForEvent, formatDate, getDaysUntil } from '@/lib/mock-client-milestones';
 import { type ChecklistProjection, getApprovalProjectionForActor, getChecklistState, getMusicProjectionForActor } from '@/lib/couple-domains';
 import ClientPaymentPanel from '@/app/portal/couple/components/ClientPaymentPanel';
+import ClientContactsPanel from '@/app/portal/couple/components/ClientContactsPanel';
 import ApprovalsStatusPanel from '@/app/portal/couple/components/ApprovalsStatusPanel';
 import MusicExperienceWorkflowPanel from '@/app/portal/couple/components/MusicExperienceWorkflowPanel';
 import EventTimelineCard from '@/app/portal/components/EventTimelineCard';
@@ -227,6 +228,8 @@ export default async function CouplePortalPage() {
                 </a>
               </div>
             </section>
+
+            {session.eventId ? <ClientContactsPanel eventId={session.eventId} /> : null}
           </div>
 
           <section className="client-panel concierge-activity" aria-label="Activity feed">
