@@ -2,8 +2,8 @@ import { isLocalDevelopmentEnvironment } from '@/lib/runtime-flags';
 import { isSupabaseConfigured } from '@/lib/supabase-server';
 
 const ERROR_MAP: Record<string, string> = {
-  missing_fields: 'Please enter both email and your invite code.',
-  invalid_credentials: 'No account was found for that email and invite code.',
+  missing_fields: 'Please enter both email and your invite token.',
+  invalid_credentials: 'No account was found for that email and invite token.',
   invalid_invite_token: 'This invite token is not valid. Confirm the latest invite link or token and try again.',
   invite_email_mismatch: 'This invite token does not match the email entered.',
   invite_revoked: 'This invite has been revoked. Ask your planner or admin to resend a new invite.',
@@ -124,7 +124,7 @@ export default async function LoginPage({
                 <strong>Planner:</strong> maulin@revel-ent.com
               </p>
               <p>
-                <strong>Couple:</strong> jayati@example.com
+                <strong>Couple (Jayati & Uppal):</strong> jayati@example.com
               </p>
               <p>
                 <strong>Vendor:</strong> heckno@revel-ent.com
