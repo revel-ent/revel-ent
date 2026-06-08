@@ -8,6 +8,7 @@ coverage
 .env.local
 .env
 data/
+.scratch/
 
 # Local-only auth/demo helpers (reference prod flows + demo codes — never commit)
 scripts/demo-login.html

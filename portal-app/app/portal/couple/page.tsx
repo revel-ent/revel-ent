@@ -10,6 +10,7 @@ import ClientContactsPanel from '@/app/portal/couple/components/ClientContactsPa
 import ApprovalsStatusPanel from '@/app/portal/couple/components/ApprovalsStatusPanel';
 import MusicExperienceWorkflowPanel from '@/app/portal/couple/components/MusicExperienceWorkflowPanel';
 import EventTimelineCard from '@/app/portal/components/EventTimelineCard';
+import InviteManagementPanel from '@/app/portal/components/InviteManagementPanel';
 
 type HeroAction = {
   title: string;
@@ -268,6 +269,8 @@ export default async function CouplePortalPage() {
             <div id="quick-approvals">{approvalsProjection ? <ApprovalsStatusPanel initialData={approvalsProjection} /> : null}</div>
             <div id="quick-payments">{checklist ? <ClientPaymentPanel totalContractValue={plan.totalContractValue} initialData={checklist} /> : null}</div>
           </div>
+
+          <InviteManagementPanel />
         </>
       )}
     </section>
