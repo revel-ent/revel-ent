@@ -54,16 +54,17 @@ export interface ClientEventPlan {
 // ─────────────────────────────────────────────
 // November 27-28 2026 — Akshay & Rani Patel
 // Contract total: $17,700
-// Signed: May 28, 2026
-// 30% deposit due 7 days from signing → June 4, 2026
-// Remaining 70% final due 14 days before event → Nov 13, 2026
+// Signed: May 15, 2026 (both parties)
+// 30% deposit ($5,310) due at signing
+// Remaining 70% ($12,390) final due 14 days before event → Nov 13, 2026
+// Venue: Crowne Plaza Peachtree City, 201 Aberdeen Pkwy, Peachtree City, GA 30269
 // ─────────────────────────────────────────────
 const AKSHAY_RANI_PLAN: ClientEventPlan = {
   eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
-  contractSignedDate: '2026-05-28',
+  contractSignedDate: '2026-05-15',
   primaryDates: ['2026-11-27', '2026-11-28'],
-  venueName: 'InterContinental Buckhead',
-  estimatedGuests: 220,
+  venueName: 'Crowne Plaza Peachtree City',
+  estimatedGuests: 300,
   totalContractValue: 17700,
   paymentMilestones: [
     {
@@ -71,10 +72,10 @@ const AKSHAY_RANI_PLAN: ClientEventPlan = {
       label: '30% Booking Deposit',
       amount: 5310,
       percent: 30,
-      dueDate: '2026-06-04',
-      status: 'pending',
+      dueDate: '2026-05-15',
+      status: 'overdue',
       clientCompletable: true,
-      note: 'Wire transfer to account on file. Please include your event code REVEL-NOV27-2026 in the memo.'
+      note: 'Due at signing. Accepted methods: Zelle, Venmo, Apple Pay, Cash App, check (payable to Revel Entertainment LLC, 7001 Omaha Court Midland, GA 31820), or credit card (+3% processing fee).'
     },
     {
       id: 'pay-final',
@@ -94,7 +95,7 @@ const AKSHAY_RANI_PLAN: ClientEventPlan = {
       title: 'Signed Contract on File',
       detail: 'Your agreement is signed and recorded. No action needed.',
       status: 'completed',
-      completedAt: '2026-05-28',
+      completedAt: '2026-05-15',
       clientCompletable: false,
       badgeLabel: 'Done'
     },
@@ -125,7 +126,7 @@ const AKSHAY_RANI_PLAN: ClientEventPlan = {
       category: 'planning',
       title: 'Schedule Venue Walk-Through',
       detail:
-        'We recommend an in-person site visit at InterContinental Buckhead to review stage placement, décor constraints, and production flow.',
+        'We recommend an in-person site visit at Crowne Plaza Peachtree City to review stage placement, décor constraints, and production flow.',
       dueDate: '2026-07-31',
       status: 'pending',
       clientCompletable: false,
@@ -206,14 +207,6 @@ const AKSHAY_RANI_PLAN: ClientEventPlan = {
       popular: true
     },
     {
-      id: 'upg-dhol',
-      title: 'Dhol Player — Baraat & Reception',
-      description: 'Live dhol for the Baraat procession and an energetic reception entrance set.',
-      price: 800,
-      unit: 'flat',
-      category: 'Live Music'
-    },
-    {
       id: 'upg-uplighting',
       title: 'Enhanced Uplighting Package',
       description:
@@ -235,12 +228,12 @@ const AKSHAY_RANI_PLAN: ClientEventPlan = {
 };
 
 // ─────────────────────────────────────────────
-// Jayati & Akshay — existing event (partial plan shown as reference)
+// Jayati & Uppal — existing event (partial plan shown as reference)
 // ─────────────────────────────────────────────
-const JAYATI_AKSHAY_PLAN: ClientEventPlan = {
+const JAYATI_UPPAL_PLAN: ClientEventPlan = {
   eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11',
   contractSignedDate: '2026-02-14',
-  primaryDates: ['2026-11-21', '2026-11-22'],
+  primaryDates: ['2026-05-23', '2026-05-24'],
   venueName: 'DoubleTree Atlanta Northlake',
   estimatedGuests: 340,
   totalContractValue: 24000,
@@ -360,7 +353,7 @@ const JAYATI_AKSHAY_PLAN: ClientEventPlan = {
   ]
 };
 
-const PLANS: ClientEventPlan[] = [JAYATI_AKSHAY_PLAN, AKSHAY_RANI_PLAN];
+const PLANS: ClientEventPlan[] = [JAYATI_UPPAL_PLAN, AKSHAY_RANI_PLAN];
 
 export function getClientPlanForEvent(eventId: string): ClientEventPlan | undefined {
   return PLANS.find((plan) => plan.eventId === eventId);
