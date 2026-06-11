@@ -3,6 +3,49 @@ import { NextResponse } from 'next/server';
 import { type Role } from '@/lib/auth';
 import { getSession, type Session } from '@/lib/session';
 import { getDomainScopesForRole, type DomainKey, type DomainScope } from '@/lib/role-scoped-adapters';
+import { getSupabaseAdminClient } from '@/lib/supabase-server';
+
+export interface EventRecord {
+  id: string;
+  title: string;
+  city: string;
+  venueName: string;
+  guestCountEstimate: number;
+}
+
+export async function getEventRecord(eventId: string): Promise<EventRecord | null> {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) return null;
+
+  const { data: event } = await supabase
+    .from('events')
+    .select('event_id, event_label, city, guest_count_estimate, venue_id')
+    .eq('event_id', eventId)
+    .maybeSingle();
+
+  if (!event) return null;
+
+  let venueName = '';
+  const venueId = event.venue_id as string | null;
+  if (venueId) {
+    const { data: venue } = await supabase
+      .from('venues')
+      .select('name, room_name')
+      .eq('venue_id', venueId)
+      .maybeSingle();
+    if (venue) {
+      venueName = [venue.name, venue.room_name].filter(Boolean).join(' — ');
+    }
+  }
+
+  return {
+    id: event.event_id as string,
+    title: event.event_label as string,
+    city: event.city as string,
+    venueName,
+    guestCountEstimate: (event.guest_count_estimate as number) ?? 0,
+  };
+}
 
 export type WorkspaceSurface =
   | 'admin_planner'
@@ -18,6 +61,10 @@ export interface EventRoleContext extends Session {
   workspaceSurface: WorkspaceSurface;
   roleContextLocked: true;
   domainScopes: Record<DomainKey, DomainScope>;
+}
+
+export interface EventRoleContextWithEvent extends EventRoleContext {
+  eventId: string;
 }
 
 export interface RequireEventContextOptions {
@@ -78,7 +125,7 @@ export async function getEventRoleContext(): Promise<EventRoleContext | null> {
 
 export async function requireEventRoleContext(
   options: RequireEventContextOptions = {}
-): Promise<{ context: EventRoleContext | null; response: NextResponse | null }> {
+): Promise<{ context: EventRoleContextWithEvent | null; response: NextResponse | null }> {
   const context = await getEventRoleContext();
 
   if (!context) {
@@ -93,5 +140,5 @@ export async function requireEventRoleContext(
     return { context: null, response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
   }
 
-  return { context, response: null };
+  return { context: context as EventRoleContextWithEvent, response: null };
 }
