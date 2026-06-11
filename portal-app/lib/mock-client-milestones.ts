@@ -73,9 +73,10 @@ const AKSHAY_RANI_PLAN: ClientEventPlan = {
       amount: 5310,
       percent: 30,
       dueDate: '2026-05-15',
-      status: 'overdue',
+      status: 'completed',
+      completedAt: '2026-06-07',
       clientCompletable: true,
-      note: 'Due at signing. Accepted methods: Zelle, Venmo, Apple Pay, Cash App, check (payable to Revel Entertainment LLC, 7001 Omaha Court Midland, GA 31820), or credit card (+3% processing fee).'
+      note: 'Received June 7, 2026 via PayPal credit card. Thank you!'
     },
     {
       id: 'pay-final',
