@@ -3,6 +3,7 @@ import {
   deriveAcceptedUserId,
   hashInviteToken,
   inferDisplayNameFromEmail,
+  isEventAccessExpired,
   normalizeEmail,
   sanitizeNextPath
 } from '@/lib/invite-lifecycle';
@@ -76,16 +77,75 @@ export async function acceptInviteWithToken(input: AcceptInviteInput): Promise<A
     return { ok: false, error: { error: 'invalid_invite_role', status: 500 } };
   }
 
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  // Access entitlement window: valid from acceptance until the wedding ends_on + grace period.
+  // This governs both first-time acceptance and returning-user re-login below.
+  const { data: eventAccessRow, error: eventAccessError } = await supabase
+    .from('events')
+    .select('ends_on')
+    .eq('event_id', tokenRow.event_id)
+    .maybeSingle();
+
+  if (eventAccessError) {
+    return { ok: false, error: { error: 'event_lookup_failed', details: eventAccessError.message, status: 500 } };
+  }
+
+  if (isEventAccessExpired(eventAccessRow?.ends_on ?? null, now)) {
+    return { ok: false, error: { error: 'event_access_ended', status: 403 } };
+  }
+
   if (tokenRow.status === 'revoked') {
     return { ok: false, error: { error: 'invite_revoked', status: 410 } };
   }
 
+  // Returning-user re-login: an already-accepted token re-mints a session for the matching email,
+  // as long as the entitlement window is open (checked above) and the membership is still active.
+  // This is what lets people return after their short-lived session expires without a fresh code.
   if (tokenRow.status === 'accepted') {
-    return { ok: false, error: { error: 'invite_already_accepted', status: 409 } };
+    const { data: membershipRow, error: membershipReadError } = await supabase
+      .from('memberships')
+      .select('active')
+      .eq('membership_id', tokenRow.membership_id)
+      .eq('event_id', tokenRow.event_id)
+      .maybeSingle();
+
+    if (membershipReadError) {
+      return { ok: false, error: { error: 'membership_lookup_failed', details: membershipReadError.message, status: 500 } };
+    }
+
+    if (!membershipRow || membershipRow.active !== true) {
+      return { ok: false, error: { error: 'invite_revoked', status: 410 } };
+    }
+
+    const returningUserId = deriveAcceptedUserId(email);
+    const returningDisplayName = tokenRow.invitee_display_name || inferDisplayNameFromEmail(email);
+
+    const returningSessionToken = await signSessionToken({
+      userId: returningUserId,
+      email,
+      displayName: returningDisplayName,
+      role: tokenRow.target_role,
+      organizationId: tokenRow.organization_id,
+      eventId: tokenRow.event_id,
+      lastActiveEventId: tokenRow.event_id
+    });
+
+    return {
+      ok: true,
+      value: {
+        source: 'supabase',
+        accepted: true,
+        eventId: tokenRow.event_id,
+        organizationId: tokenRow.organization_id,
+        role: tokenRow.target_role,
+        nextPath,
+        sessionToken: returningSessionToken
+      }
+    };
   }
 
-  const now = new Date();
-  const nowIso = now.toISOString();
   const expiresAt = new Date(tokenRow.expires_at);
 
   if (tokenRow.status === 'expired' || now.getTime() > expiresAt.getTime()) {

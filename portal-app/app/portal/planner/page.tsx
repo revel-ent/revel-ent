@@ -6,6 +6,7 @@ import PlannerTaskBoard from '@/app/portal/planner/components/PlannerTaskBoard';
 import VendorAssignmentRoster from '@/app/portal/planner/components/VendorAssignmentRoster';
 import EventTimelineCard from '@/app/portal/components/EventTimelineCard';
 import LiveModeCard from '@/app/portal/components/LiveModeCard';
+import InviteManagementPanel from '@/app/portal/components/InviteManagementPanel';
 import WorkspacePaymentSettingsPanel from '@/app/portal/couple/components/WorkspacePaymentSettingsPanel';
 
 export default async function PlannerPortalPage() {
@@ -20,6 +21,7 @@ export default async function PlannerPortalPage() {
       </header>
 
       <AtlasVenueIntelligencePanel />
+      <InviteManagementPanel />
       <WorkspacePaymentSettingsPanel />
 
       <div className="portal-card-grid">

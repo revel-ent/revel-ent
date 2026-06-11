@@ -124,6 +124,30 @@ export function deriveAcceptedUserId(email: string): string {
   });
 }
 
+// Access entitlement window: how long after the wedding ends a member may still sign in.
+// This governs real access lifetime (tied to the event), distinct from the short-lived session TTL.
+export const EVENT_ACCESS_GRACE_DAYS = 7;
+
+// Returns true when the event's access window has closed (now is past ends_on + grace).
+// A missing/unparseable ends_on means "no closing date yet" -> access remains open.
+export function isEventAccessExpired(endsOn: string | null | undefined, now: Date = new Date()): boolean {
+  if (!endsOn) {
+    return false;
+  }
+
+  const end = new Date(endsOn);
+
+  if (Number.isNaN(end.getTime())) {
+    return false;
+  }
+
+  const cutoff = new Date(end.getTime());
+  cutoff.setUTCDate(cutoff.getUTCDate() + EVENT_ACCESS_GRACE_DAYS);
+  cutoff.setUTCHours(23, 59, 59, 999);
+
+  return now.getTime() > cutoff.getTime();
+}
+
 export function isInviteExpired(status: InviteTokenStatus, expiresAt: string | Date): boolean {
   if (status === 'accepted' || status === 'revoked' || status === 'expired') {
     return false;

@@ -9,6 +9,7 @@ const ERROR_MAP: Record<string, string> = {
   invite_revoked: 'This invite has been revoked. Ask your planner or admin to resend a new invite.',
   invite_expired: 'This invite has expired. Ask your planner or admin to resend a fresh invite.',
   invite_already_accepted: 'This invite was already accepted. Sign in with your active access email.',
+  event_access_ended: 'Access for this event has ended. Contact your planner or admin if you still need in.',
   invite_lifecycle_requires_supabase: 'Invite acceptance is not configured in this environment yet.',
   configuration_error: 'Portal login is temporarily unavailable due to server configuration. Please contact support.'
 };

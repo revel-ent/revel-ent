@@ -1,4 +1,4 @@
-import { listMembersByEvent } from '@/lib/mock-data';
+import { getSupabaseAdminClient } from '@/lib/supabase-server';
 
 interface Props {
   eventId: string;
@@ -11,20 +11,51 @@ const CONTACT_LABELS: Record<string, string> = {
   dj_mc: 'DJ / MC',
   vendor: 'Vendor',
   decorator: 'Decorator',
-  couple: 'Couple'
 };
 
 const CONTACT_PRIORITY = ['planner', 'venue_coordinator', 'production', 'dj_mc', 'vendor', 'decorator'] as const;
 
-export default function ClientContactsPanel({ eventId }: Props) {
-  const members = listMembersByEvent(eventId);
+async function loadContacts(eventId: string) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) return [];
+
+  const { data: tokens } = await supabase
+    .from('invite_tokens')
+    .select('invitee_email, invitee_display_name, target_role')
+    .eq('event_id', eventId)
+    .eq('status', 'accepted')
+    .order('created_at', { ascending: true });
+
+  if (!tokens) return [];
+
+  // Deduplicate by email, keep first occurrence, exclude test/example accounts and couple role
+  const seen = new Set<string>();
+  const real: { role: string; name: string; email: string }[] = [];
+  for (const t of tokens) {
+    const email = (t.invitee_email as string) ?? '';
+    const role = (t.target_role as string) ?? '';
+    if (role === 'couple') continue;
+    if (email.endsWith('@example.com')) continue;
+    if (seen.has(email)) continue;
+    seen.add(email);
+    real.push({
+      role,
+      name: (t.invitee_display_name as string | null) || email.split('@')[0],
+      email,
+    });
+  }
+  return real;
+}
+
+export default async function ClientContactsPanel({ eventId }: Props) {
+  const members = await loadContacts(eventId);
   const contacts = CONTACT_PRIORITY.flatMap((role) =>
     members
       .filter((member) => member.role === role)
       .map((member) => ({
         label: CONTACT_LABELS[member.role] ?? member.role,
-        name: member.displayName,
-        email: member.email
+        name: member.name,
+        email: member.email,
       }))
   );
 

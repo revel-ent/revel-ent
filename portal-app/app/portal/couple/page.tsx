@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session';
-import { findEventById } from '@/lib/mock-data';
+import { getEventRecord } from '@/lib/event-context';
 import { getCoordinationFeedByEvent } from '@/lib/mock-ops';
 import { buildBaseCanonicalTimeline } from '@/lib/canonical-timeline';
 import { getClientPlanForEvent, formatDate, getDaysUntil } from '@/lib/mock-client-milestones';
@@ -10,6 +10,7 @@ import ClientContactsPanel from '@/app/portal/couple/components/ClientContactsPa
 import ApprovalsStatusPanel from '@/app/portal/couple/components/ApprovalsStatusPanel';
 import MusicExperienceWorkflowPanel from '@/app/portal/couple/components/MusicExperienceWorkflowPanel';
 import EventTimelineCard from '@/app/portal/components/EventTimelineCard';
+import InviteManagementPanel from '@/app/portal/components/InviteManagementPanel';
 
 type HeroAction = {
   title: string;
@@ -105,7 +106,7 @@ export default async function CouplePortalPage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
-  const event = session.eventId ? findEventById(session.eventId) : undefined;
+  const event = session.eventId ? await getEventRecord(session.eventId) : undefined;
   const plan = session.eventId ? getClientPlanForEvent(session.eventId) : undefined;
   const checklist = session.eventId ? getChecklistState(session.eventId) : null;
   const musicProjection = session.eventId ? getMusicProjectionForActor({ eventId: session.eventId, actorRole: session.role }) : null;
@@ -268,6 +269,8 @@ export default async function CouplePortalPage() {
             <div id="quick-approvals">{approvalsProjection ? <ApprovalsStatusPanel initialData={approvalsProjection} /> : null}</div>
             <div id="quick-payments">{checklist ? <ClientPaymentPanel totalContractValue={plan.totalContractValue} initialData={checklist} /> : null}</div>
           </div>
+
+          <InviteManagementPanel />
         </>
       )}
     </section>

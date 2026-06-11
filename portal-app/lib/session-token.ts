@@ -13,7 +13,7 @@ export interface SessionPayload {
 }
 
 const SESSION_COOKIE_NAME = 'revel_session';
-const SESSION_DURATION_SECONDS = 60 * 60 * 8;
+const SESSION_DURATION_SECONDS = 60 * 60 * 24;
 
 function getSessionSecret(): Uint8Array {
   const secret = process.env.PORTAL_SESSION_SECRET;

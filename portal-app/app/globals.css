@@ -1342,6 +1342,22 @@ textarea:focus {
   border-color: rgba(182, 98, 92, 0.52);
 }
 
+.concierge-timeline-empty {
+  padding: 1.4rem 0 0.4rem;
+}
+.concierge-timeline-empty__heading {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+  margin: 0 0 0.4rem;
+}
+.concierge-timeline-empty__body {
+  font-size: 0.875rem;
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+  line-height: 1.55;
+}
+
 .timeline-list,
 .feed-list,
 .clean-list {
