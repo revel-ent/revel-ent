@@ -87,7 +87,15 @@ export default function EventTimelineCard() {
               <strong>Timeline checks:</strong> {conflicts.map((conflict) => conflict.message).join(' ')}
             </div>
           ) : null}
-          {timeline.length === 0 ? <p>No timeline available yet.</p> : null}
+          {timeline.length === 0 ? (
+            <div className="concierge-timeline-empty">
+              <p className="concierge-timeline-empty__heading">Your timeline is in progress.</p>
+              <p className="concierge-timeline-empty__body">
+                Your planning team is building your personalized day-of timeline. It will appear here once your
+                planner publishes the first draft — usually within a few days of your deposit confirmation.
+              </p>
+            </div>
+          ) : null}
           <ul className="timeline-list">
             {timeline.map((step) => (
               <li key={step.id} className="timeline-item">
