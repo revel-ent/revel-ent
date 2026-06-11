@@ -9,6 +9,35 @@ export interface CoordinationItem {
 }
 
 const COORDINATION_FEED: CoordinationItem[] = [
+  // ── Akshay & Rani Patel (b3c9e1f2-…) ────────────────────────────────────
+  {
+    id: 'ar-001',
+    eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
+    owner: 'Revel Entertainment',
+    role: 'ops',
+    status: 'executed',
+    timestamp: '2026-06-11T12:00:00Z',
+    update: 'Your full production team is now confirmed — DJ Heckno, MC Jigar, and DC Events are locked in for your weekend.'
+  },
+  {
+    id: 'ar-002',
+    eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
+    owner: 'Revel Entertainment',
+    role: 'ops',
+    status: 'executed',
+    timestamp: '2026-06-07T10:00:00Z',
+    update: 'Booking deposit received — your dates are secured and planning is officially underway.'
+  },
+  {
+    id: 'ar-003',
+    eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
+    owner: 'Revel Entertainment',
+    role: 'ops',
+    status: 'executed',
+    timestamp: '2026-05-15T09:00:00Z',
+    update: 'Contract signed and on file. Welcome to the Revel family — we are honored to be part of your wedding weekend.'
+  },
+  // ── Jayati & Uppal (0f1d7d0a-…) — reference event ───────────────────────
   {
     id: 'chg-001',
     eventId: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11',

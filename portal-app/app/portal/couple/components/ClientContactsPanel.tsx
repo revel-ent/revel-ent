@@ -6,14 +6,24 @@ interface Props {
 
 const CONTACT_LABELS: Record<string, string> = {
   planner: 'Planner',
-  venue_coordinator: 'Venue',
+  venue_coordinator: 'Venue Coordinator',
   production: 'Production',
   dj_mc: 'DJ / MC',
+  dj: 'DJ',
+  mc: 'MC',
   vendor: 'Vendor',
   decorator: 'Decorator',
 };
 
 const CONTACT_PRIORITY = ['planner', 'venue_coordinator', 'production', 'dj_mc', 'vendor', 'decorator'] as const;
+
+function resolveContactLabel(role: string, name: string, profile: string): string {
+  if (role === 'dj_mc') {
+    if (profile === 'dj' || name.toLowerCase().startsWith('dj ')) return 'DJ';
+    if (profile === 'mc' || name.toLowerCase().includes('(mc)') || name.toLowerCase().startsWith('mc ')) return 'MC';
+  }
+  return CONTACT_LABELS[role] ?? role;
+}
 
 async function loadContacts(eventId: string) {
   const supabase = getSupabaseAdminClient();
@@ -21,28 +31,25 @@ async function loadContacts(eventId: string) {
 
   const { data: tokens } = await supabase
     .from('invite_tokens')
-    .select('invitee_email, invitee_display_name, target_role')
+    .select('invitee_email, invitee_display_name, target_role, role_profile')
     .eq('event_id', eventId)
     .eq('status', 'accepted')
     .order('created_at', { ascending: true });
 
   if (!tokens) return [];
 
-  // Deduplicate by email, keep first occurrence, exclude test/example accounts and couple role
   const seen = new Set<string>();
-  const real: { role: string; name: string; email: string }[] = [];
+  const real: { role: string; label: string; name: string; email: string }[] = [];
   for (const t of tokens) {
-    const email = (t.invitee_email as string) ?? '';
-    const role = (t.target_role as string) ?? '';
+    const email   = (t.invitee_email as string) ?? '';
+    const role    = (t.target_role as string) ?? '';
+    const profile = (t.role_profile as string) ?? 'general';
+    const name    = (t.invitee_display_name as string | null) || email.split('@')[0];
     if (role === 'couple') continue;
     if (email.endsWith('@example.com')) continue;
     if (seen.has(email)) continue;
     seen.add(email);
-    real.push({
-      role,
-      name: (t.invitee_display_name as string | null) || email.split('@')[0],
-      email,
-    });
+    real.push({ role, label: resolveContactLabel(role, name, profile), name, email });
   }
   return real;
 }
@@ -53,7 +60,7 @@ export default async function ClientContactsPanel({ eventId }: Props) {
     members
       .filter((member) => member.role === role)
       .map((member) => ({
-        label: CONTACT_LABELS[member.role] ?? member.role,
+        label: member.label,
         name: member.name,
         email: member.email,
       }))

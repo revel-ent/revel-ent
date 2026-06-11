@@ -11,6 +11,7 @@ export interface EventRecord {
   city: string;
   venueName: string;
   guestCountEstimate: number;
+  moodBoardUrl: string | null;
 }
 
 export async function getEventRecord(eventId: string): Promise<EventRecord | null> {
@@ -19,7 +20,7 @@ export async function getEventRecord(eventId: string): Promise<EventRecord | nul
 
   const { data: event } = await supabase
     .from('events')
-    .select('event_id, event_label, city, guest_count_estimate, venue_id')
+    .select('event_id, event_label, city, guest_count_estimate, venue_id, atlas_entitlement_snapshot')
     .eq('event_id', eventId)
     .maybeSingle();
 
@@ -38,12 +39,16 @@ export async function getEventRecord(eventId: string): Promise<EventRecord | nul
     }
   }
 
+  const snapshot = (event.atlas_entitlement_snapshot as Record<string, unknown> | null) ?? {};
+  const moodBoardUrl = typeof snapshot.mood_board_url === 'string' ? snapshot.mood_board_url : null;
+
   return {
     id: event.event_id as string,
     title: event.event_label as string,
     city: event.city as string,
     venueName,
     guestCountEstimate: (event.guest_count_estimate as number) ?? 0,
+    moodBoardUrl,
   };
 }
 

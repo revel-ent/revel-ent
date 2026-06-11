@@ -1,4 +1,4 @@
-export const ROLES = ['admin', 'couple', 'planner', 'production', 'dj_mc', 'vendor', 'guest', 'delegate_coordinator', 'venue_coordinator'] as const;
+export const ROLES = ['admin', 'couple', 'planner', 'production', 'dj_mc', 'decorator', 'vendor', 'guest', 'delegate_coordinator', 'venue_coordinator'] as const;
 
 export type Role = (typeof ROLES)[number];
 export const MODULE_CAPABILITIES = [
@@ -109,6 +109,17 @@ export const ROLE_PERMISSION_MATRIX: Record<Role, RolePermission> = {
     canUpdateLiveTimeline: false,
     canUseVenueWorkspace: false,
     requiresBoundedDayOfWindowForLiveUpdates: true
+  },
+  decorator: {
+    portalRoutes: ['/portal', '/portal/vendor'],
+    moduleCapabilities: ['vendor.coordination'],
+    canUseOnboardingApi: false,
+    canApproveOnboardingTimeline: false,
+    canUseIntake: false,
+    canUseLiveMode: false,
+    canUpdateLiveTimeline: false,
+    canUseVenueWorkspace: false,
+    requiresBoundedDayOfWindowForLiveUpdates: false
   },
   vendor: {
     portalRoutes: ['/portal', '/portal/vendor'],

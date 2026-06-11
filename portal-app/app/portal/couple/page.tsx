@@ -270,6 +270,38 @@ export default async function CouplePortalPage() {
             <div id="quick-payments">{checklist ? <ClientPaymentPanel totalContractValue={plan.totalContractValue} initialData={checklist} /> : null}</div>
           </div>
 
+          {event?.moodBoardUrl ? (
+            <section className="client-panel concierge-moodboard" aria-label="Vision Board">
+              <div className="client-panel__header">
+                <div>
+                  <h2 className="client-panel__title">Your Vision Board</h2>
+                  <p className="client-panel__sub">The aesthetic direction for your entire weekend, curated by your decorator.</p>
+                </div>
+              </div>
+              <div className="concierge-moodboard__frame">
+                <iframe
+                  src={event.moodBoardUrl}
+                  title="Wedding Vision Board"
+                  className="concierge-moodboard__embed"
+                  allowFullScreen
+                />
+              </div>
+              <a className="concierge-moodboard__link" href={event.moodBoardUrl} target="_blank" rel="noopener noreferrer">
+                Open full screen
+              </a>
+            </section>
+          ) : (
+            <section className="client-panel concierge-moodboard concierge-moodboard--empty" aria-label="Vision Board">
+              <div className="client-panel__header">
+                <div>
+                  <h2 className="client-panel__title">Your Vision Board</h2>
+                  <p className="client-panel__sub">The aesthetic direction for your entire weekend, curated by your decorator.</p>
+                </div>
+              </div>
+              <p className="item-note">Your vision board will appear here once your decorator shares it with your planning team.</p>
+            </section>
+          )}
+
           <InviteManagementPanel />
         </>
       )}
