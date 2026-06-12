@@ -25,7 +25,7 @@ const EVENTS: EventRecord[] = [
     id: '0f1d7d0a-7c8f-4f5f-9c89-9c8b2f3e1a11',
     organizationId: 'org-revel-ent',
     code: 'REVEL-NOV-2026',
-    title: 'Jayati & Akshay Wedding Weekend',
+    title: 'Jayati & Uppal Wedding Weekend (May 23-24)',
     city: 'Atlanta, GA',
     venueName: 'DoubleTree Atlanta Northlake',
     guestCountEstimate: 340
@@ -43,10 +43,10 @@ const EVENTS: EventRecord[] = [
     id: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
     organizationId: 'org-revel-ent',
     code: 'REVEL-NOV27-2026',
-    title: 'Akshay & Rani Patel Wedding Weekend',
-    city: 'Atlanta, GA',
-    venueName: 'InterContinental Buckhead',
-    guestCountEstimate: 220
+    title: 'Akshay & Rani Wedding Weekend (November 27-28)',
+    city: 'Peachtree City, GA',
+    venueName: 'Crowne Plaza Peachtree City',
+    guestCountEstimate: 300
   }
 ];
 
@@ -160,22 +160,31 @@ const MEMBERS: MemberRecord[] = [
     inviteCode: 'ATLAS-PLN-AMTOPM-2026'
   },
   {
-    userId: 'usr-vendor-dreamcatchers',
+    userId: 'usr-decorator-dcevents',
     email: 'dcevents.us@gmail.com',
-    displayName: 'The Dreamcatchers Events LLC',
-    role: 'vendor',
+    displayName: 'DC Events (The Dreamcatchers)',
+    role: 'decorator',
     organizationId: 'org-revel-ent',
     eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
-    inviteCode: 'ATLAS-VND-DREAM-2026'
+    inviteCode: 'ATLAS-DEC-DCEVENTS-2026'
   },
   {
-    userId: 'usr-dj-rani-akshay',
-    email: 'djmc.akshayrani@example.com',
-    displayName: 'Signature DJ + MC',
+    userId: 'usr-dj-heckno',
+    email: 'hecknobeats@gmail.com',
+    displayName: 'DJ Heckno',
     role: 'dj_mc',
     organizationId: 'org-revel-ent',
     eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
-    inviteCode: 'ATLAS-DJ-AKRN-2026'
+    inviteCode: 'ATLAS-DJ-HECKNO-AR-2026'
+  },
+  {
+    userId: 'usr-mc-jigar',
+    email: 'jigarmody24@gmail.com',
+    displayName: 'MC Jigar Mody',
+    role: 'dj_mc',
+    organizationId: 'org-revel-ent',
+    eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
+    inviteCode: 'ATLAS-MC-JIGAR-AR-2026'
   },
   {
     userId: 'usr-production-akshay-rani',

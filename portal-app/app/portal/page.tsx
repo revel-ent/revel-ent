@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { canAccessModule, type ModuleCapability } from '@/lib/auth';
 import { getSession } from '@/lib/session';
-import { findEventById } from '@/lib/mock-data';
+import { getEventRecord } from '@/lib/event-context';
 
 const DASHBOARD_ACTIONS: Array<{
   href: string;
@@ -70,7 +70,8 @@ export default async function PortalHomePage() {
     redirect('/login');
   }
 
-  const eventTitle = session.eventId ? findEventById(session.eventId)?.title : null;
+  const eventRecord = session.eventId ? await getEventRecord(session.eventId) : null;
+  const eventTitle = eventRecord?.title ?? null;
   const visibleActions = DASHBOARD_ACTIONS.filter((action) => canAccessModule(session.role, action.capability));
 
   return (

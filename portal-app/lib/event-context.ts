@@ -94,7 +94,7 @@ export function getWorkspaceSurfaceForRole(role: Role): WorkspaceSurface {
     return 'dj_mc';
   }
 
-  if (role === 'vendor') {
+  if (role === 'vendor' || role === 'decorator') {
     return 'vendor';
   }
 

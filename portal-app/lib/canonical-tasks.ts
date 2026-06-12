@@ -115,6 +115,10 @@ function inferVendorProfile(member: MemberRecord): VendorProfile {
     return 'venue';
   }
 
+  if (member.role === 'decorator') {
+    return 'decorator';
+  }
+
   const label = member.displayName.toLowerCase();
   if (label.includes('dreamcatchers') || label.includes('decor')) {
     return 'decorator';
@@ -135,7 +139,7 @@ function getTaskTemplates(eventId: string): TaskTemplate[] {
       status: 'pending',
       priority: 'high',
       ownerRole: 'planner',
-      assigneeRole: 'vendor',
+      assigneeRole: 'decorator',
       vendorProfile: 'decorator',
       linkedTimelineItemIds: ['step-loadin'],
       dueAtIso: inDays(3),
@@ -214,6 +218,7 @@ function resolveAssigneeMember(template: TaskTemplate, eventId: string): MemberR
   const members = listMembersByEvent(eventId);
   return (
     members.find((member) => member.role === template.assigneeRole && inferVendorProfile(member) === template.vendorProfile) ??
+    (template.vendorProfile === 'decorator' ? members.find((m) => m.role === 'decorator') ?? null : null) ??
     (template.assigneeRole === 'dj_mc' ? findMembershipByRoleAndEvent('vendor', eventId) : null) ??
     (template.assigneeRole !== 'planner' ? findMembershipByRoleAndEvent('planner', eventId) : null)
   );
@@ -274,7 +279,7 @@ function mapTimelineSlices(bundle: TaskBundle, ids: string[]): TimelineSlice[] {
     .filter((item) => ids.includes(item.id))
     .map((item) => ({
       id: item.id,
-      phase: item.phaseCode,
+      phase: item.phase,
       title: item.title,
       startsAtIso: item.scheduledStartIso,
       endsAtIso: item.scheduledEndIso,

@@ -14,7 +14,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Missing event context' }, { status: 400 });
   }
 
-  if (!['admin', 'planner', 'vendor'].includes(session.role)) {
+  if (!['admin', 'planner', 'production', 'dj_mc', 'decorator', 'vendor'].includes(session.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

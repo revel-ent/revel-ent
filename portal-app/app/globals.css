@@ -2732,3 +2732,74 @@ textarea:focus {
     width: 100%;
   }
 }
+
+/* ── Decorator: Share with Couple panel ─────────────────────────────────── */
+.decorator-share-panel {
+  margin-bottom: 1.4rem;
+}
+
+.decorator-share-panel__body {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  margin: 0.2rem 0 1rem;
+  line-height: 1.6;
+}
+
+.decorator-share-panel__form {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.decorator-share-panel__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.decorator-share-panel__row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: stretch;
+}
+
+.decorator-share-panel__input {
+  flex: 1;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.6rem;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.92rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.decorator-share-panel__input:focus {
+  border-color: var(--gold);
+}
+
+.decorator-share-panel__input:disabled {
+  opacity: 0.55;
+}
+
+.decorator-share-panel__btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.decorator-share-panel__success {
+  color: var(--success);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.decorator-share-panel__hint {
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+  margin: 0.5rem 0 0;
+  line-height: 1.55;
+}

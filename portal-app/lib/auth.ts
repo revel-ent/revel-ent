@@ -168,7 +168,7 @@ export const ROLE_PERMISSION_MATRIX: Record<Role, RolePermission> = {
 };
 
 export const ROUTE_ACCESS: Record<string, Role[]> = {
-  '/portal': ['admin', 'couple', 'planner', 'production', 'dj_mc', 'vendor', 'guest', 'delegate_coordinator', 'venue_coordinator'],
+  '/portal': ['admin', 'couple', 'planner', 'production', 'dj_mc', 'decorator', 'vendor', 'guest', 'delegate_coordinator', 'venue_coordinator'],
   '/portal/onboarding': ['admin', 'couple', 'planner', 'delegate_coordinator'],
   '/portal/intake': ['admin', 'planner'],
   '/portal/live': ['admin', 'planner', 'production', 'dj_mc', 'delegate_coordinator', 'venue_coordinator'],
@@ -176,7 +176,7 @@ export const ROUTE_ACCESS: Record<string, Role[]> = {
   '/portal/planner': ['admin', 'planner'],
   '/portal/production': ['admin', 'planner', 'production'],
   '/portal/dj': ['admin', 'dj_mc'],
-  '/portal/vendor': ['admin', 'vendor'],
+  '/portal/vendor': ['admin', 'decorator', 'vendor'],
   '/portal/guest': ['admin', 'guest'],
   '/portal/venue': ['admin', 'venue_coordinator']
 };
