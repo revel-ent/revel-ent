@@ -409,113 +409,93 @@ const projectTasks = createRoleScopedAdapter<
   }
 });
 
+function buildRosterEntries(
+  bundle: TaskBundle,
+  options: {
+    assignmentFilter?: (assignment: CanonicalVendorAssignment) => boolean;
+    taskFilter?: (task: CanonicalTask) => boolean;
+    includeEmail: boolean;
+    readOnly: boolean;
+  }
+): VendorRosterEntry[] {
+  // One roster entry per person: assignments sharing an assignee are merged so
+  // list keys stay unique even when several tasks resolve to the same member.
+  const grouped = new Map<string, { assignment: CanonicalVendorAssignment; tasks: CanonicalTask[] }>();
+
+  for (const assignment of bundle.assignments) {
+    if (options.assignmentFilter && !options.assignmentFilter(assignment)) {
+      continue;
+    }
+
+    const tasks = bundle.tasks.filter(
+      (task) => task.assignmentId === assignment.id && (!options.taskFilter || options.taskFilter(task))
+    );
+
+    const existing = grouped.get(assignment.assigneeUserId);
+    if (existing) {
+      existing.tasks.push(...tasks);
+    } else {
+      grouped.set(assignment.assigneeUserId, { assignment, tasks });
+    }
+  }
+
+  return Array.from(grouped.values()).map(({ assignment, tasks }) => ({
+    userId: assignment.assigneeUserId,
+    displayName: assignment.assigneeLabel,
+    email: options.includeEmail ? assignment.assigneeEmail : '',
+    role: assignment.assigneeRole,
+    vendorProfile: assignment.vendorProfile,
+    assignmentCount: tasks.length,
+    openTaskCount: tasks.filter((task) => task.status !== 'completed').length,
+    linkedTimeline: mapTimelineSlices(bundle, Array.from(new Set(tasks.flatMap((task) => task.linkedTimelineItemIds)))),
+    taskIds: tasks.map((task) => task.id),
+    readOnly: options.readOnly
+  }));
+}
+
 const projectVendorRoster = createRoleScopedAdapter<
   TaskBundle,
   { roster: VendorRosterEntry[]; permissions: { canManageAssignments: boolean } }
 >({
   domain: 'vendors',
   projectors: {
-    full: (bundle) => {
-      const roster = bundle.assignments.map((assignment) => {
-        const tasks = bundle.tasks.filter((task) => task.assignmentId === assignment.id);
-        return {
-          userId: assignment.assigneeUserId,
-          displayName: assignment.assigneeLabel,
-          email: assignment.assigneeEmail,
-          role: assignment.assigneeRole,
-          vendorProfile: assignment.vendorProfile,
-          assignmentCount: tasks.length,
-          openTaskCount: tasks.filter((task) => task.status !== 'completed').length,
-          linkedTimeline: mapTimelineSlices(bundle, Array.from(new Set(tasks.flatMap((task) => task.linkedTimelineItemIds)))),
-          taskIds: tasks.map((task) => task.id),
-          readOnly: false
-        } satisfies VendorRosterEntry;
-      });
-
-      return { roster, permissions: { canManageAssignments: true } };
-    },
-    owner_filtered: (bundle) => {
-      const roster = bundle.assignments.map((assignment) => {
-        const tasks = bundle.tasks.filter((task) => task.assignmentId === assignment.id && task.clientVisible);
-        return {
-          userId: assignment.assigneeUserId,
-          displayName: assignment.assigneeLabel,
-          email: '',
-          role: assignment.assigneeRole,
-          vendorProfile: assignment.vendorProfile,
-          assignmentCount: tasks.length,
-          openTaskCount: tasks.filter((task) => task.status !== 'completed').length,
-          linkedTimeline: mapTimelineSlices(bundle, Array.from(new Set(tasks.flatMap((task) => task.linkedTimelineItemIds)))),
-          taskIds: tasks.map((task) => task.id),
-          readOnly: true
-        } satisfies VendorRosterEntry;
-      });
-
-      return { roster: roster.filter((entry) => entry.assignmentCount > 0), permissions: { canManageAssignments: false } };
-    },
-    operations: (bundle) => ({
-      roster: bundle.assignments
-        .filter((assignment) => assignment.assigneeRole === 'production' || assignment.assigneeRole === 'dj_mc' || assignment.assigneeRole === 'venue_coordinator')
-        .map((assignment) => {
-          const tasks = bundle.tasks.filter((task) => task.assignmentId === assignment.id);
-          return {
-            userId: assignment.assigneeUserId,
-            displayName: assignment.assigneeLabel,
-            email: assignment.assigneeEmail,
-            role: assignment.assigneeRole,
-            vendorProfile: assignment.vendorProfile,
-            assignmentCount: tasks.length,
-            openTaskCount: tasks.filter((task) => task.status !== 'completed').length,
-            linkedTimeline: mapTimelineSlices(bundle, Array.from(new Set(tasks.flatMap((task) => task.linkedTimelineItemIds)))),
-            taskIds: tasks.map((task) => task.id),
-            readOnly: true
-          } satisfies VendorRosterEntry;
-        }),
+    full: (bundle) => ({
+      roster: buildRosterEntries(bundle, { includeEmail: true, readOnly: false }),
+      permissions: { canManageAssignments: true }
+    }),
+    owner_filtered: (bundle) => ({
+      roster: buildRosterEntries(bundle, {
+        taskFilter: (task) => task.clientVisible,
+        includeEmail: false,
+        readOnly: true
+      }).filter((entry) => entry.assignmentCount > 0),
       permissions: { canManageAssignments: false }
     }),
-    assigned: (bundle) => {
-      const assignment = bundle.assignments.find((item) => item.assigneeUserId === bundle.actorUserId);
-      if (!assignment) {
-        return { roster: [], permissions: { canManageAssignments: false } };
-      }
-
-      const tasks = bundle.tasks.filter((task) => task.assignmentId === assignment.id);
-      return {
-        roster: [
-          {
-            userId: assignment.assigneeUserId,
-            displayName: assignment.assigneeLabel,
-            email: assignment.assigneeEmail,
-            role: assignment.assigneeRole,
-            vendorProfile: assignment.vendorProfile,
-            assignmentCount: tasks.length,
-            openTaskCount: tasks.filter((task) => task.status !== 'completed').length,
-            linkedTimeline: mapTimelineSlices(bundle, Array.from(new Set(tasks.flatMap((task) => task.linkedTimelineItemIds)))),
-            taskIds: tasks.map((task) => task.id),
-            readOnly: true
-          }
-        ],
-        permissions: { canManageAssignments: false }
-      };
-    },
+    operations: (bundle) => ({
+      roster: buildRosterEntries(bundle, {
+        assignmentFilter: (assignment) =>
+          assignment.assigneeRole === 'production' ||
+          assignment.assigneeRole === 'dj_mc' ||
+          assignment.assigneeRole === 'venue_coordinator',
+        includeEmail: true,
+        readOnly: true
+      }),
+      permissions: { canManageAssignments: false }
+    }),
+    assigned: (bundle) => ({
+      roster: buildRosterEntries(bundle, {
+        assignmentFilter: (assignment) => assignment.assigneeUserId === bundle.actorUserId,
+        includeEmail: true,
+        readOnly: true
+      }),
+      permissions: { canManageAssignments: false }
+    }),
     venue: (bundle) => ({
-      roster: bundle.assignments
-        .filter((assignment) => assignment.assigneeRole === 'venue_coordinator')
-        .map((assignment) => {
-          const tasks = bundle.tasks.filter((task) => task.assignmentId === assignment.id);
-          return {
-            userId: assignment.assigneeUserId,
-            displayName: assignment.assigneeLabel,
-            email: assignment.assigneeEmail,
-            role: assignment.assigneeRole,
-            vendorProfile: assignment.vendorProfile,
-            assignmentCount: tasks.length,
-            openTaskCount: tasks.filter((task) => task.status !== 'completed').length,
-            linkedTimeline: mapTimelineSlices(bundle, Array.from(new Set(tasks.flatMap((task) => task.linkedTimelineItemIds)))),
-            taskIds: tasks.map((task) => task.id),
-            readOnly: true
-          } satisfies VendorRosterEntry;
-        }),
+      roster: buildRosterEntries(bundle, {
+        assignmentFilter: (assignment) => assignment.assigneeRole === 'venue_coordinator',
+        includeEmail: true,
+        readOnly: true
+      }),
       permissions: { canManageAssignments: false }
     })
   }

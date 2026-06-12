@@ -2,14 +2,14 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session';
 import { getEventRecord } from '@/lib/event-context';
 import { getCoordinationFeedByEvent } from '@/lib/mock-ops';
-import { buildBaseCanonicalTimeline } from '@/lib/canonical-timeline';
 import { getClientPlanForEvent, formatDate, getDaysUntil } from '@/lib/mock-client-milestones';
 import { type ChecklistProjection, getApprovalProjectionForActor, getChecklistState, getMusicProjectionForActor } from '@/lib/couple-domains';
 import ClientPaymentPanel from '@/app/portal/couple/components/ClientPaymentPanel';
 import ClientContactsPanel from '@/app/portal/couple/components/ClientContactsPanel';
 import ApprovalsStatusPanel from '@/app/portal/couple/components/ApprovalsStatusPanel';
 import MusicExperienceWorkflowPanel from '@/app/portal/couple/components/MusicExperienceWorkflowPanel';
-import EventTimelineCard from '@/app/portal/components/EventTimelineCard';
+import CollapsibleSection from '@/app/portal/couple/components/CollapsibleSection';
+import CoupleTimelinePanel from '@/app/portal/couple/components/CoupleTimelinePanel';
 import InviteManagementPanel from '@/app/portal/components/InviteManagementPanel';
 
 type HeroAction = {
@@ -63,8 +63,8 @@ function getNextHeroAction(params: {
   const musicTodo = checklist.checklist.find((item) => item.id.includes('music-questionnaire'));
   if (musicTodo && musicTodo.status !== 'completed' && !musicTodo.locked) {
     return {
-      title: 'Complete Music Questionnaire',
-      detail: 'Share your music preferences so your planner and DJ can shape a dance floor that feels like you.',
+      title: 'Complete Your Music Questionnaire',
+      detail: 'Tell us what moves you — your planner and DJ will shape a dance floor that feels unmistakably yours.',
       buttonLabel: 'Start Questionnaire',
       target: '#quick-music'
     };
@@ -82,9 +82,9 @@ function getNextHeroAction(params: {
 
   if (!approvalsComplete) {
     return {
-      title: 'Review Your Open Sign-offs',
-      detail: 'A few final decisions are waiting on you so your team can keep moving with confidence.',
-      buttonLabel: 'Review Sign-offs',
+      title: 'Review Your Open Decisions',
+      detail: 'A few final choices are waiting on you so your team can keep moving with confidence.',
+      buttonLabel: 'Review Decisions',
       target: '#quick-approvals'
     };
   }
@@ -92,7 +92,7 @@ function getNextHeroAction(params: {
   const timelineTodo = findTodoByHint(checklist.checklist, ['timeline', 'day-of-brief']);
   if (timelineTodo && timelineTodo.status !== 'completed') {
     return {
-      title: 'Review Timeline Draft',
+      title: 'Review Your Timeline Draft',
       detail: 'Take a final look at the flow of your day and share any adjustments you would love to make.',
       buttonLabel: 'Review Timeline',
       target: '#quick-timeline'
@@ -117,36 +117,33 @@ export default async function CouplePortalPage() {
   const approvalsComplete = Boolean(approvalsProjection && approvalsProjection.summary.completeCount === approvalsProjection.summary.totalCount);
   const heroAction = getNextHeroAction({ checklist, approvalsComplete });
 
-  const timelinePreview = session.eventId
-    ? buildBaseCanonicalTimeline(session.eventId)
-        .filter((item) => item.status === 'pending' || item.status === 'ready' || item.status === 'in_progress')
-        .slice(0, 3)
-    : [];
-
-  const activityFeed = session.eventId ? getCoordinationFeedByEvent(session.eventId).slice(0, 4) : [];
+  const activityFeed = session.eventId ? getCoordinationFeedByEvent(session.eventId).slice(0, 3) : [];
   const signedTodo = checklist ? findTodoByHint(checklist.checklist, ['todo-contract']) : undefined;
   const depositMilestone = checklist ? checklist.payments.find((item) => item.percent === 30 || item.id.includes('deposit')) : undefined;
   const musicTodo = checklist ? findTodoByHint(checklist.checklist, ['music-questionnaire']) : undefined;
   const timelineTodo = checklist ? findTodoByHint(checklist.checklist, ['timeline', 'day-of-brief']) : undefined;
+  const openDecisions = approvalsProjection ? approvalsProjection.summary.totalCount - approvalsProjection.summary.completeCount : 0;
 
   const progressMilestones = [
-    { label: 'Signed Contract', done: signedTodo?.status === 'completed', action: false },
-    { label: 'Booking Deposit', done: depositMilestone?.status === 'completed', action: depositMilestone?.status === 'pending' },
-    { label: 'Music Questionnaire', done: musicTodo?.status === 'completed', action: Boolean(musicTodo && musicTodo.status !== 'completed' && !musicTodo.locked) },
-    { label: 'Timeline Review', done: timelineTodo?.status === 'completed', action: Boolean(timelineTodo && timelineTodo.status !== 'completed') },
-    { label: 'Final Approvals', done: approvalsComplete, action: approvalsProjection ? approvalsProjection.summary.completeCount < approvalsProjection.summary.totalCount : false }
+    { label: 'Contract', done: signedTodo?.status === 'completed', action: false },
+    { label: 'Deposit', done: depositMilestone?.status === 'completed', action: depositMilestone?.status === 'pending' },
+    { label: 'Music', done: musicTodo?.status === 'completed', action: Boolean(musicTodo && musicTodo.status !== 'completed' && !musicTodo.locked) },
+    { label: 'Timeline', done: timelineTodo?.status === 'completed', action: false },
+    { label: 'Final Touches', done: approvalsComplete, action: false }
   ];
+
+  const musicIsNextAction = heroAction?.target === '#quick-music';
+  const paymentsNeedAction = Boolean(checklist?.payments.some((item) => item.status === 'pending' && item.clientCompletable));
 
   return (
     <section className="page-wrap concierge-page">
-      <header className="portal-page-header">
+      <header className="portal-page-header concierge-header">
         <span className="eyebrow">Your Wedding Concierge</span>
-        <h1 className="page-title">{event?.title ?? 'Your Wedding'}</h1>
+        <h1 className="page-title concierge-title">{event?.title ?? 'Your Wedding'}</h1>
         <div className="couple-event-meta">
+          {dayCount !== null && dayCount > 0 ? <span className="couple-meta-chip couple-meta-chip--countdown">{dayCount} days to go</span> : null}
           {event?.venueName ? <span className="couple-meta-chip">{event.venueName}</span> : null}
           {plan ? <span className="couple-meta-chip">{plan.primaryDates.map((d) => formatDate(d)).join(' & ')}</span> : null}
-          {plan ? <span className="couple-meta-chip">{event?.guestCountEstimate} guests</span> : null}
-          {dayCount !== null && dayCount > 0 ? <span className="couple-meta-chip couple-meta-chip--countdown">{dayCount} days away</span> : null}
         </div>
       </header>
 
@@ -159,7 +156,7 @@ export default async function CouplePortalPage() {
           <section className={`concierge-hero${heroAction ? '' : ' concierge-hero--on-track'}`}>
             {heroAction ? (
               <>
-                <p className="concierge-hero__kicker">Next Action</p>
+                <p className="concierge-hero__kicker">One Thing for You</p>
                 <h2 className="concierge-hero__title">{heroAction.title}</h2>
                 <p className="concierge-hero__body">{heroAction.detail}</p>
                 <a className="btn primary concierge-hero__cta" href={heroAction.target}>
@@ -171,111 +168,85 @@ export default async function CouplePortalPage() {
                 <p className="concierge-hero__kicker">Everything Is On Track</p>
                 <h2 className="concierge-hero__title">Your planning is moving beautifully.</h2>
                 <p className="concierge-hero__body">
-                  Everything important is in motion. Take a breath, enjoy the season, and visit anytime for thoughtful updates from your team.
+                  Everything important is in motion. Take a breath, enjoy the season, and visit anytime for updates from your team.
                 </p>
-                <a className="btn primary concierge-hero__cta" href="#quick-timeline">
-                  Review Timeline
-                </a>
               </>
             )}
           </section>
 
-          <div className="concierge-grid">
-            <section className="client-panel concierge-progress" aria-label="Planning progress milestones">
-              <div className="client-panel__header">
-                <div>
-                  <h2 className="client-panel__title">Progress</h2>
-                  <p className="client-panel__sub">A graceful snapshot of what is complete and what is ready for your touch.</p>
-                </div>
+          <section className="concierge-stepper" aria-label="Planning progress">
+            {progressMilestones.map((item) => (
+              <div key={item.label} className={`concierge-step${item.done ? ' concierge-step--done' : item.action ? ' concierge-step--action' : ''}`}>
+                <span className="concierge-step__dot" aria-hidden>
+                  {item.done ? '✓' : ''}
+                </span>
+                <span className="concierge-step__label">{item.label}</span>
               </div>
-              <ul className="concierge-progress-list">
-                {progressMilestones.map((item) => (
-                  <li key={item.label} className="concierge-progress-item">
-                    <span className={`concierge-progress-dot${item.done ? ' concierge-progress-dot--done' : item.action ? ' concierge-progress-dot--action' : ''}`} aria-hidden>
-                      {item.done ? '✓' : '•'}
-                    </span>
-                    <span className="concierge-progress-label">{item.label}</span>
-                    <span className={`todo-badge ${item.done ? 'todo-badge--done' : item.action ? 'todo-badge--action' : 'todo-badge--upcoming'}`}>
-                      {item.done ? 'Complete' : item.action ? 'Needs You' : 'In Motion'}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section className="client-panel concierge-quick-actions" aria-label="Quick actions">
-              <div className="client-panel__header">
-                <div>
-                  <h2 className="client-panel__title">Quick Actions</h2>
-                  <p className="client-panel__sub">Go straight to the moments that need your voice.</p>
-                </div>
-              </div>
-              <div className="concierge-quick-grid">
-                <a className="concierge-quick-tile" href="#quick-music">
-                  <strong>Music</strong>
-                  <span>{musicTodo?.status === 'completed' ? 'Complete' : musicTodo?.locked ? 'Available after deposit confirmation' : 'Ready for you'}</span>
-                </a>
-                <a className="concierge-quick-tile" href="#quick-timeline">
-                  <strong>Timeline</strong>
-                  <span>{timelineTodo?.status === 'completed' ? 'Complete' : 'Awaiting your review'}</span>
-                </a>
-                <a className="concierge-quick-tile" href="#quick-approvals">
-                  <strong>Approvals</strong>
-                  <span>{approvalsComplete ? 'Complete' : 'Awaiting your review'}</span>
-                </a>
-                <a className="concierge-quick-tile" href="#quick-payments">
-                  <strong>Payments</strong>
-                  <span>{depositMilestone?.status === 'completed' ? 'On track' : 'Needs confirmation'}</span>
-                </a>
-              </div>
-            </section>
-
-            {session.eventId ? <ClientContactsPanel eventId={session.eventId} /> : null}
-          </div>
-
-          <section className="client-panel concierge-activity" aria-label="Activity feed">
-            <div className="client-panel__header">
-              <div>
-                <h2 className="client-panel__title">Activity Feed</h2>
-                <p className="client-panel__sub">Recent notes from your planner and creative partners.</p>
-              </div>
-            </div>
-            <ul className="concierge-feed-list">
-              {activityFeed.length > 0
-                ? activityFeed.map((item) => (
-                    <li key={item.id} className="concierge-feed-item">
-                      <div className="item-title-row">
-                        <strong className="item-title">{item.owner.replace('REVEL Ops', 'Operations Desk')}</strong>
-                        <span className="item-meta">{getRelativeTimeLabel(item.timestamp)}</span>
-                      </div>
-                      <p className="item-note">{item.update}</p>
-                    </li>
-                  ))
-                : timelinePreview.map((item) => (
-                    <li key={item.id} className="concierge-feed-item">
-                      <div className="item-title-row">
-                        <strong className="item-title">{item.ownerLabel}</strong>
-                        <span className="item-meta">{item.status.replace('_', ' ')}</span>
-                      </div>
-                      <p className="item-note">{item.title}</p>
-                    </li>
-                  ))}
-            </ul>
+            ))}
           </section>
 
-          <div className="couple-dashboard-grid concierge-detail-stack">
-            <div id="quick-music">{musicProjection?.music ? <MusicExperienceWorkflowPanel initialMusic={musicProjection.music} /> : null}</div>
-            <div id="quick-timeline"><EventTimelineCard /></div>
-            <div id="quick-approvals">{approvalsProjection ? <ApprovalsStatusPanel initialData={approvalsProjection} /> : null}</div>
-            <div id="quick-payments">{checklist ? <ClientPaymentPanel totalContractValue={plan.totalContractValue} initialData={checklist} /> : null}</div>
-          </div>
+          <section className="concierge-quick-actions" aria-label="Quick actions">
+            <div className="concierge-quick-grid">
+              <a className="concierge-quick-tile" href="#quick-music">
+                <strong>Music</strong>
+                <span>{musicTodo?.status === 'completed' ? 'Complete' : musicTodo?.locked ? 'Opens after deposit' : 'Ready for you'}</span>
+              </a>
+              <a className="concierge-quick-tile" href="#quick-timeline">
+                <strong>Timeline</strong>
+                <span>{timelineTodo?.status === 'completed' ? 'Complete' : 'With your planner'}</span>
+              </a>
+              <a className="concierge-quick-tile" href="#quick-approvals">
+                <strong>Decisions</strong>
+                <span>{approvalsComplete ? 'All done' : `${openDecisions} waiting for you`}</span>
+              </a>
+              <a className="concierge-quick-tile" href="#quick-payments">
+                <strong>Payments</strong>
+                <span>{paymentsNeedAction ? 'Needs confirmation' : 'On track'}</span>
+              </a>
+            </div>
+          </section>
+
+          <CollapsibleSection id="quick-music" title="Music Questionnaire" hint="Shape your dance floor" badge={musicTodo?.status === 'completed' ? 'Complete' : 'Ready for you'} defaultOpen={musicIsNextAction}>
+            {musicProjection?.music ? <MusicExperienceWorkflowPanel initialMusic={musicProjection.music} /> : null}
+          </CollapsibleSection>
+
+          <CollapsibleSection id="quick-timeline" title="Weekend Timeline" hint="The flow of your celebration" badge={timelineTodo?.status === 'completed' ? 'Complete' : 'In progress'}>
+            <CoupleTimelinePanel eventDates={plan.primaryDates} />
+          </CollapsibleSection>
+
+          <CollapsibleSection id="quick-approvals" title="Your Decisions" hint="Choices awaiting your green light" badge={approvalsComplete ? 'All done' : `${openDecisions} open`}>
+            {approvalsProjection ? <ApprovalsStatusPanel initialData={approvalsProjection} /> : null}
+          </CollapsibleSection>
+
+          <CollapsibleSection id="quick-payments" title="Payments" hint="Milestones and receipts" badge={paymentsNeedAction ? 'Action needed' : 'On track'}>
+            {checklist ? <ClientPaymentPanel totalContractValue={plan.totalContractValue} initialData={checklist} /> : null}
+          </CollapsibleSection>
+
+          <CollapsibleSection id="your-team" title="Your Team" hint="The people bringing it to life">
+            {session.eventId ? <ClientContactsPanel eventId={session.eventId} /> : null}
+          </CollapsibleSection>
+
+          <CollapsibleSection id="recent-updates" title="Recent Updates" hint="Notes from your planning team" badge={activityFeed.length ? `${activityFeed.length} new` : undefined}>
+            <ul className="concierge-feed-list">
+              {activityFeed.map((item) => (
+                <li key={item.id} className="concierge-feed-item">
+                  <div className="item-title-row">
+                    <strong className="item-title">{item.owner.replace('REVEL Ops', 'Operations Desk')}</strong>
+                    <span className="item-meta">{getRelativeTimeLabel(item.timestamp)}</span>
+                  </div>
+                  <p className="item-note">{item.update}</p>
+                </li>
+              ))}
+              {activityFeed.length === 0 ? <li className="concierge-feed-item"><p className="item-note">Updates from your team will appear here.</p></li> : null}
+            </ul>
+          </CollapsibleSection>
 
           {event?.moodBoardUrl ? (
             <section className="client-panel concierge-moodboard" aria-label="Vision Board">
               <div className="client-panel__header">
                 <div>
                   <h2 className="client-panel__title">Your Vision Board</h2>
-                  <p className="client-panel__sub">The aesthetic direction for your entire weekend, curated by your decorator.</p>
+                  <p className="client-panel__sub">The look and feel of your weekend, curated by your decorator.</p>
                 </div>
               </div>
               <div className="concierge-moodboard__frame">
@@ -295,14 +266,16 @@ export default async function CouplePortalPage() {
               <div className="client-panel__header">
                 <div>
                   <h2 className="client-panel__title">Your Vision Board</h2>
-                  <p className="client-panel__sub">The aesthetic direction for your entire weekend, curated by your decorator.</p>
+                  <p className="client-panel__sub">The look and feel of your weekend, curated by your decorator.</p>
                 </div>
               </div>
-              <p className="item-note">Your vision board will appear here once your decorator shares it with your planning team.</p>
+              <p className="item-note">Your vision board will appear here once your decorator shares it.</p>
             </section>
           )}
 
-          <InviteManagementPanel />
+          <CollapsibleSection id="invite-family" title="Invite Family & Friends" hint="Share your wedding hub">
+            <InviteManagementPanel audience="couple" />
+          </CollapsibleSection>
         </>
       )}
     </section>

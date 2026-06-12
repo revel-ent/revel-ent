@@ -21,17 +21,24 @@ interface CreatedInvite {
   delivered: boolean;
 }
 
-// Roles a planner/couple/admin can assign. (admin is intentionally omitted — couple/planner
+// Roles a planner/admin can assign. (admin is intentionally omitted — couple/planner
 // cannot assign it, and admin-to-admin invites are an edge case handled via the API directly.)
-const ROLE_OPTIONS = [
+const STAFF_ROLE_OPTIONS = [
   { value: 'planner', label: 'Planner' },
   { value: 'couple', label: 'Couple / Client' },
   { value: 'vendor', label: 'Vendor (photographer, decor, catering, etc.)' },
   { value: 'dj_mc', label: 'DJ / MC / Entertainment' },
+  { value: 'decorator', label: 'Decorator / Floral' },
   { value: 'production', label: 'Production Team' },
   { value: 'venue_coordinator', label: 'Venue Coordinator' },
   { value: 'delegate_coordinator', label: 'Family Coordinator' },
   { value: 'guest', label: 'Guest' }
+] as const;
+
+// Couples invite their people — the planning team handles event staffing.
+const COUPLE_ROLE_OPTIONS = [
+  { value: 'guest', label: 'Family & Friends' },
+  { value: 'delegate_coordinator', label: 'Family Coordinator (helps run your day)' }
 ] as const;
 
 const PROFILE_OPTIONS = [
@@ -48,7 +55,11 @@ const EXPIRY_OPTIONS = [
 ] as const;
 
 function roleLabel(role: string): string {
-  return ROLE_OPTIONS.find((option) => option.value === role)?.label ?? role;
+  return (
+    STAFF_ROLE_OPTIONS.find((option) => option.value === role)?.label ??
+    COUPLE_ROLE_OPTIONS.find((option) => option.value === role)?.label ??
+    role
+  );
 }
 
 function statusTone(status: InviteRecord['status']): string {
@@ -77,7 +88,10 @@ function formatStamp(value: string | null): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function InviteManagementPanel() {
+export default function InviteManagementPanel({ audience = 'staff' }: { audience?: 'staff' | 'couple' }) {
+  const isCoupleAudience = audience === 'couple';
+  const roleOptions = isCoupleAudience ? COUPLE_ROLE_OPTIONS : STAFF_ROLE_OPTIONS;
+
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const [invites, setInvites] = useState<InviteRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,7 +103,7 @@ export default function InviteManagementPanel() {
 
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [role, setRole] = useState<string>('vendor');
+  const [role, setRole] = useState<string>(isCoupleAudience ? 'guest' : 'vendor');
   const [roleProfile, setRoleProfile] = useState<string>('general');
   const [expiresInHours, setExpiresInHours] = useState<number>(168);
 
@@ -248,9 +262,11 @@ export default function InviteManagementPanel() {
     <section className="client-panel" aria-label="Invite people to this event">
       <div className="client-panel__header">
         <div>
-          <h2 className="client-panel__title">Invite People to Atlas</h2>
+          <h2 className="client-panel__title">{isCoupleAudience ? 'Invite Family & Friends' : 'Invite People to Atlas'}</h2>
           <p className="client-panel__sub">
-            Send a role-scoped invite. Each person gets their own secure login and sees only what their role allows.
+            {isCoupleAudience
+              ? 'Share your wedding hub with the people closest to you. Each person gets their own private link.'
+              : 'Each person gets their own secure login and sees only what their role needs.'}
           </p>
         </div>
       </div>
@@ -301,9 +317,9 @@ export default function InviteManagementPanel() {
           </label>
 
           <label>
-            Role
+            {isCoupleAudience ? 'They are' : 'Role'}
             <select className="input" value={role} onChange={(event) => setRole(event.target.value)} disabled={formDisabled}>
-              {ROLE_OPTIONS.map((option) => (
+              {roleOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -311,21 +327,23 @@ export default function InviteManagementPanel() {
             </select>
           </label>
 
-          <label>
-            Specialty
-            <select
-              className="input"
-              value={roleProfile}
-              onChange={(event) => setRoleProfile(event.target.value)}
-              disabled={formDisabled}
-            >
-              {PROFILE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {!isCoupleAudience ? (
+            <label>
+              Specialty
+              <select
+                className="input"
+                value={roleProfile}
+                onChange={(event) => setRoleProfile(event.target.value)}
+                disabled={formDisabled}
+              >
+                {PROFILE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
 
           <label>
             Invite valid for
@@ -354,14 +372,20 @@ export default function InviteManagementPanel() {
           <h3 className="client-panel__title" style={{ fontSize: '1.05rem' }}>
             Sent Invites
           </h3>
-          <p className="client-panel__sub">Resend issues a fresh link (and revokes the old one). Revoke removes access.</p>
+          <p className="client-panel__sub">
+            {isCoupleAudience
+              ? 'Resend issues a fresh link. Revoke removes their access.'
+              : 'Resend issues a fresh link (and revokes the old one). Revoke removes access.'}
+          </p>
         </div>
       </div>
 
       {loading ? <p className="card-muted">Loading invites…</p> : null}
 
       {!loading && invites.length === 0 ? (
-        <p className="card-muted">No invites yet. Send your first one above.</p>
+        <p className="card-muted">
+          {isCoupleAudience ? 'No invites yet — share your wedding hub with someone you love.' : 'No invites yet. Send your first one above.'}
+        </p>
       ) : null}
 
       <ul className="concierge-feed-list">

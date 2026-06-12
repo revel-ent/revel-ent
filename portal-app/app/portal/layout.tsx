@@ -22,25 +22,23 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div className="portal-shell">
-      <header className="portal-nav">
+      <header className={`portal-nav${isCoupleView ? ' portal-nav--couple' : ''}`}>
         <div className="portal-nav-inner">
           <div className="portal-brand">
-            <strong className="portal-brand-title">{isCoupleView ? 'ATLAS WEDDING CONCIERGE' : 'ATLAS'}</strong>
-            <div className="portal-meta">
-              <span className="badge">User: {session.displayName}</span>
-              {!isCoupleView ? <span className="badge">Role: {session.role}</span> : null}
-              <span className="badge">Event: {eventLabel}</span>
-            </div>
+            <strong className="portal-brand-title">ATLAS</strong>
+            {!isCoupleView ? (
+              <div className="portal-meta">
+                <span className="badge">User: {session.displayName}</span>
+                <span className="badge">Role: {session.role}</span>
+                <span className="badge">Event: {eventLabel}</span>
+              </div>
+            ) : null}
           </div>
           <nav className="portal-nav-links">
             {isDevRoleSwitchEnabled() && !isCoupleView ? (
               <DevRoleSwitcher currentRole={session.role} currentEventId={session.eventId} events={demoEvents} />
             ) : null}
-            {isCoupleView ? (
-              <Link className="portal-nav-link" href="/portal/couple">
-                My Wedding
-              </Link>
-            ) : (
+            {isCoupleView ? null : (
               <>
                 <Link className="portal-nav-link" href="/portal">
                   Dashboard

@@ -31,12 +31,19 @@ export function canManageInvites(role: Role): boolean {
   return ALLOWED_INVITE_MANAGER_ROLES.has(role);
 }
 
+// Couples invite their people (family/guests); event staffing stays with Revel and the planner.
+export const COUPLE_ASSIGNABLE_ROLES: ReadonlySet<Role> = new Set(['guest', 'delegate_coordinator']);
+
 export function canAssignRole(actorRole: Role, targetRole: Role): boolean {
   if (actorRole === 'admin') {
     return true;
   }
 
-  if ((actorRole === 'planner' || actorRole === 'couple') && targetRole === 'admin') {
+  if (actorRole === 'couple') {
+    return COUPLE_ASSIGNABLE_ROLES.has(targetRole);
+  }
+
+  if (actorRole === 'planner' && targetRole === 'admin') {
     return false;
   }
 

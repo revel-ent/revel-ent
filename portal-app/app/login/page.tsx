@@ -29,52 +29,46 @@ export default async function LoginPage({
   const supabaseConfigured = isSupabaseConfigured();
   const localDev = isLocalDevelopmentEnvironment();
 
+  const hasPrefilledInvite = Boolean(tokenFromUrl && emailFromUrl);
+
   return (
     <main className="container login-landing">
       <section className="login-showcase">
         <div className="login-showcase-head">
-          <span className="eyebrow">Atlas</span>
-          <h1>Welcome to Atlas</h1>
+          <span className="eyebrow">Atlas by Revel</span>
+          <h1>Where your celebration comes together</h1>
           <p>
-            Sign in to your event workspace for timeline control, venue intelligence, and day-of coordination across
-            your full wedding circle.
+            Your timeline, your music, your team — one beautiful place for everyone who is making your weekend
+            unforgettable.
           </p>
         </div>
 
         <div className="login-value-grid">
           <article className="login-value-card">
-            <span className="kpi-label">Efficiency</span>
-            <strong className="kpi-value">Fewer handoff delays</strong>
-            <p>One source of truth for couple, planner, vendor, and family workflows.</p>
+            <strong className="kpi-value">Always know what&apos;s next</strong>
+            <p>One clear next step at a time — never a to-do list avalanche.</p>
           </article>
           <article className="login-value-card">
-            <span className="kpi-label">Trust Layer</span>
-            <strong className="kpi-value">Venue-aware planning confidence</strong>
-            <p>Atlas checks operational assumptions before they become expensive surprises.</p>
+            <strong className="kpi-value">Your whole team, in step</strong>
+            <p>Planner, DJ, and decorator see the same plan you do. Nothing slips.</p>
           </article>
           <article className="login-value-card">
-            <span className="kpi-label">Day-Of Clarity</span>
-            <strong className="kpi-value">Decisive event-day execution</strong>
-            <p>Now/next actions, delay handling, and escalation paths in one command view.</p>
+            <strong className="kpi-value">Calm on the big day</strong>
+            <p>Every cue and moment choreographed before you walk in.</p>
           </article>
         </div>
-
-        <section className="login-audience-card">
-          <h3>Built for Complex, Multi-Day Weddings</h3>
-          <p>
-            Atlas is built as an independent operations platform. Revel-managed events include access, and independent
-            workspaces are fully supported through event-scoped permissions and billing.
-          </p>
-        </section>
       </section>
 
       <section className="login-access-panel">
         <article className="card login-form-card">
           <div className="card-header">
-            <h3>Secure Event Access</h3>
-            <span className="chip">Event Scoped</span>
+            <h3>{hasPrefilledInvite ? 'Welcome back' : 'Your Private Access'}</h3>
           </div>
-          <p className="card-muted">Use your personal invite credentials. Your workspace is resolved after sign-in.</p>
+          <p className="card-muted">
+            {hasPrefilledInvite
+              ? 'Your details are already filled in — one tap and you are in.'
+              : 'Use the personal link from your invitation, or enter your details below.'}
+          </p>
 
           {errorMessage ? (
             <div className="alert error">
@@ -88,26 +82,26 @@ export default async function LoginPage({
 
               <div>
                 <label htmlFor="email">Email</label>
-                <input id="email" name="email" type="email" placeholder="akshay.rani1128@gmail.com" defaultValue={emailFromUrl} required />
+                <input id="email" name="email" type="email" placeholder="you@example.com" defaultValue={emailFromUrl} required />
               </div>
 
               <div>
-                <label htmlFor="inviteToken">Invite Token</label>
-                <input id="inviteToken" name="inviteToken" type="text" placeholder="Paste invite token" defaultValue={tokenFromUrl} required />
+                <label htmlFor="inviteToken">Access Code</label>
+                <input id="inviteToken" name="inviteToken" type="text" placeholder="From your invitation" defaultValue={tokenFromUrl} required />
               </div>
 
               <button className="btn primary" type="submit">
-                Accept Invite and Continue
+                {hasPrefilledInvite ? 'Continue' : 'Continue to Atlas'}
               </button>
             </form>
           ) : (
             <div className="alert error" role="status">
-              <strong>Invite acceptance is not configured in this environment. Configure Supabase to continue.</strong>
+              <strong>Sign-in is being set up. Please try again shortly or contact your planner.</strong>
             </div>
           )}
 
           <p className="card-muted">
-            New to Atlas? Account creation and independent workspace onboarding are invite-based in this release.
+            Atlas is invite-only. If you need access, ask your planner or the couple to send you a personal link.
           </p>
         </article>
 

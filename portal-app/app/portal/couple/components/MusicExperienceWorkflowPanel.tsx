@@ -112,13 +112,6 @@ export default function MusicExperienceWorkflowPanel({ initialMusic }: { initial
     }
   }
 
-  const statusBadgeLabel =
-    music.status === 'completed'
-      ? 'Complete'
-      : music.status === 'ready'
-        ? 'Ready for you'
-        : 'Available after deposit confirmation';
-
   const formattedError =
     error === 'music_locked'
       ? 'Available after deposit confirmation.'
@@ -127,17 +120,7 @@ export default function MusicExperienceWorkflowPanel({ initialMusic }: { initial
         : error;
 
   return (
-    <article className="client-panel" id="music-experience-workflow">
-      <div className="client-panel__header">
-        <div>
-          <h2 className="client-panel__title">Music Questionnaire</h2>
-          <p className="client-panel__sub">Share your music preferences so we can shape a celebration that feels unmistakably yours.</p>
-        </div>
-        <span className={`todo-badge ${music.status === 'completed' ? 'todo-badge--done' : music.status === 'ready' ? 'todo-badge--action' : 'todo-badge--upcoming'}`}>
-          {statusBadgeLabel}
-        </span>
-      </div>
-
+    <article className="client-panel client-panel--bare" id="music-experience-workflow">
       {!music.unlockedByDeposit ? (
         <div className="portal-notice">
           <strong>Available after deposit confirmation.</strong> As soon as your booking deposit is confirmed, this questionnaire opens automatically.
@@ -148,32 +131,48 @@ export default function MusicExperienceWorkflowPanel({ initialMusic }: { initial
         <>
           <div className="tool-form">
             <p className="item-note">
-              Tell us the mix of sounds you and your guests love on the dance floor, then allocate the percentage you want for each style.
+              Slide each style to match your dream dance floor. We&apos;ve started you with a crowd-favorite mix — make it yours.
             </p>
 
-            {MUSIC_GENRE_KEYS.map((key) => (
-              <label key={key}>
-                {GENRE_LABELS[key]}
-                <input
-                  className="input"
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={form.genreMix[key]}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      genreMix: {
-                        ...current.genreMix,
-                        [key]: Number(event.target.value)
-                      }
-                    }))
-                  }
-                />
-              </label>
-            ))}
+            <div className={`music-allocation${total === 100 ? ' music-allocation--perfect' : ''}`} role="status">
+              <div className="music-allocation__bar">
+                <div className="music-allocation__fill" style={{ width: `${Math.min(100, total)}%` }} />
+              </div>
+              <span className="music-allocation__label">
+                {total === 100 ? 'Perfect mix — 100%' : total < 100 ? `${100 - total}% left to share` : `${total - 100}% over — ease one back`}
+              </span>
+            </div>
 
-            <p className={`item-note${total === 100 ? '' : ' alert error'}`}>Current total: {total}%</p>
+            <div className="music-sliders">
+              {MUSIC_GENRE_KEYS.map((key) => (
+                <div key={key} className="music-slider">
+                  <div className="music-slider__head">
+                    <span className="music-slider__name">{GENRE_LABELS[key]}</span>
+                    <span className={`music-slider__value${form.genreMix[key] > 0 ? ' music-slider__value--active' : ''}`}>
+                      {form.genreMix[key]}%
+                    </span>
+                  </div>
+                  <input
+                    className="music-slider__range"
+                    type="range"
+                    min="0"
+                    max="60"
+                    step="5"
+                    value={form.genreMix[key]}
+                    aria-label={`${GENRE_LABELS[key]} percentage`}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        genreMix: {
+                          ...current.genreMix,
+                          [key]: Number(event.target.value)
+                        }
+                      }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
 
             <label>
               Other (please specify)

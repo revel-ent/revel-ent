@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 
 type PersonaId =
@@ -168,6 +167,8 @@ function normalizeToPersona(role: string): PersonaId {
     role === 'planner' ||
     role === 'vendor' ||
     role === 'guest' ||
+    role === 'dj_mc' ||
+    role === 'decorator' ||
     role === 'admin'
   ) {
     return role;
@@ -184,15 +185,12 @@ export default function RoleOrientationPanel({
   displayName: string;
 }) {
   const pathname = usePathname();
+  const basePersona = normalizeToPersona(sessionRole);
+  const guide = GUIDES.find((item) => item.id === basePersona) ?? GUIDES[0];
 
   if (pathname?.startsWith('/portal/production')) {
     return null;
   }
-
-  const basePersona = normalizeToPersona(sessionRole);
-  const guide = useMemo(() => {
-    return GUIDES.find((item) => item.id === basePersona) ?? GUIDES[0];
-  }, [basePersona]);
 
   return (
     <section className="orientation-shell">

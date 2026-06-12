@@ -89,7 +89,7 @@ export async function GET() {
     return NextResponse.json({ error: 'invite_lifecycle_requires_supabase' }, { status: 503 });
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('invite_tokens')
     .select(
       'token_id,invitee_email,invitee_display_name,target_role,role_profile,status,delivery_channel,delivery_provider,delivered_at,expires_at,accepted_at,revoked_at,created_at,membership_id'
@@ -97,6 +97,13 @@ export async function GET() {
     .eq('event_id', session.eventId)
     .order('created_at', { ascending: false })
     .limit(250);
+
+  // Couples only see (and manage) the invites they're allowed to send — never event staff.
+  if (session.role === 'couple') {
+    query = query.in('target_role', ['guest', 'delegate_coordinator']);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: 'invite_list_failed', details: error.message }, { status: 500 });

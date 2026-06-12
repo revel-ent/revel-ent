@@ -20,6 +20,14 @@ function approvalDomainLabel(sourceDomain: ApprovalProjection['approvals'][numbe
   return sourceDomain === 'music' ? 'Music' : 'Planning';
 }
 
+function formatDueDate(value: string): string {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+}
+
 export default function ApprovalsStatusPanel({ initialData }: { initialData: ApprovalProjection }) {
   const [data, setData] = useState(initialData);
 
@@ -46,8 +54,8 @@ export default function ApprovalsStatusPanel({ initialData }: { initialData: App
     <article className="client-panel">
       <div className="client-panel__header">
         <div>
-          <h2 className="client-panel__title">Approvals & Sign-offs</h2>
-          <p className="client-panel__sub">A clear view of the decisions waiting for your final green light.</p>
+          <h2 className="client-panel__title">Your Decisions</h2>
+          <p className="client-panel__sub">The choices waiting for your final green light — everything else is handled.</p>
         </div>
         <div className="payment-progress-block">
           <div className="payment-progress-bar">
@@ -71,7 +79,7 @@ export default function ApprovalsStatusPanel({ initialData }: { initialData: App
               </div>
               <div className="milestone-item__row milestone-item__row--meta">
                 <span className="milestone-date">{approvalDomainLabel(approval.sourceDomain)}</span>
-                {approval.dueDate ? <span className="milestone-date">Due {approval.dueDate}</span> : null}
+                {approval.dueDate ? <span className="milestone-date">Due {formatDueDate(approval.dueDate)}</span> : null}
               </div>
               <p className="milestone-note">{approval.description}</p>
             </div>
