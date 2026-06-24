@@ -1283,3 +1283,54 @@ export async function runRiggingOrCeilingConstraintLive(
     persistenceMode
   };
 }
+
+export interface VenueFeasibilityInput {
+  venueId: string;
+  eventId: string | null;
+  desiredGuests: number;
+  eventMode?: CapacityEventMode;
+}
+
+export interface VenueFeasibilityResult {
+  venue: AtlasVenueSeed;
+  atlasOutdoorPowerCurfew: OutdoorPowerCurfewRecommendation;
+  recommendations: AtlasTriggerRecommendation[];
+  atlasEvaluationPersistenceMode: 'persisted' | 'skipped';
+}
+
+// Invocation seam: runs the full venue-feasibility trigger set (outdoor power/curfew + the three
+// operational-truth triggers) in a single detail load, persisting each evaluation when an event
+// context is present. This is what turns the dormant evaluators into live recommendations on the
+// venue-check surface.
+export async function runVenueFeasibilityLive(input: VenueFeasibilityInput): Promise<VenueFeasibilityResult | null> {
+  const detail = await getAtlasVenueDetail(input.venueId);
+
+  if (!detail) {
+    return null;
+  }
+
+  const atlasOutdoorPowerCurfew = evaluateOutdoorPowerCurfew({ detail, eventId: input.eventId });
+  const capacitySqueeze = evaluateCapacitySqueeze({
+    detail,
+    eventId: input.eventId,
+    desiredGuests: input.desiredGuests,
+    eventMode: input.eventMode
+  });
+  const tightRoomFlip = evaluateTightRoomFlip({ detail, eventId: input.eventId });
+  const riggingOrCeiling = evaluateRiggingOrCeilingConstraint({ detail, eventId: input.eventId });
+
+  const recommendations = [capacitySqueeze, tightRoomFlip, riggingOrCeiling];
+
+  const persistenceModes = await Promise.all(
+    [atlasOutdoorPowerCurfew, ...recommendations].map((recommendation) =>
+      persistAtlasEvaluation({ recommendation, detail, eventId: input.eventId })
+    )
+  );
+
+  return {
+    venue: detail,
+    atlasOutdoorPowerCurfew,
+    recommendations,
+    atlasEvaluationPersistenceMode: persistenceModes.includes('persisted') ? 'persisted' : 'skipped'
+  };
+}

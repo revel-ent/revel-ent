@@ -5,6 +5,21 @@ import { useRouter } from 'next/navigation';
 
 type CapacityStatus = 'safe' | 'tight' | 'unsafe';
 
+interface AtlasRecommendationView {
+  triggerKey: string;
+  groupedRecommendationKey: string;
+  status: 'active' | 'needs_review' | 'suppressed';
+  severity: 'info' | 'warning' | 'critical';
+  confidence: number;
+  fired: boolean;
+  title: string;
+  message: string;
+  cta: string;
+  evidence: Record<string, unknown>;
+  missingFields: string[];
+  fingerprint: string | null;
+}
+
 interface CapacityCheckResponse {
   status: CapacityStatus;
   message: string;
@@ -18,21 +33,9 @@ interface CapacityCheckResponse {
     constraintsSummary: string;
     sourceConfidence: 'vendor_verified' | 'partially_verified' | 'unverified';
   };
-  atlasOutdoorPowerCurfew?: {
-    triggerKey: string;
-    groupedRecommendationKey: string;
-    status: 'active' | 'needs_review' | 'suppressed';
-    severity: 'info' | 'warning' | 'critical';
-    confidence: number;
-    fired: boolean;
-    title: string;
-    message: string;
-    cta: string;
-    evidence: Record<string, unknown>;
-    missingFields: string[];
-    fingerprint: string | null;
-  } | null;
+  atlasOutdoorPowerCurfew?: AtlasRecommendationView | null;
   atlasEvaluationPersistenceMode?: 'persisted' | 'skipped';
+  recommendations?: AtlasRecommendationView[];
 }
 
 interface OnboardingVenue {
@@ -292,6 +295,25 @@ export default function ConciergeOnboardingPage() {
             ) : null}
           </article>
         ) : null}
+
+        {result?.recommendations
+          ?.filter((rec) => rec.status !== 'suppressed')
+          .map((rec) => (
+            <article className="card" key={rec.triggerKey}>
+              <div className="card-header">
+                <h3>{rec.title}</h3>
+                <span className={`status-chip ${rec.severity}`}>{rec.severity}</span>
+              </div>
+              <p>{rec.message}</p>
+              <p className="card-muted">
+                Recommendation: <strong>{rec.cta}</strong>
+              </p>
+              <p className="item-note">Confidence: {Math.round(rec.confidence * 100)}%</p>
+              {rec.missingFields.length > 0 ? (
+                <p className="item-note">Needs confirmation: {rec.missingFields.join(', ')}</p>
+              ) : null}
+            </article>
+          ))}
 
         {error ? (
           <div className="alert error">

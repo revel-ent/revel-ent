@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { runCapacityCheckLive } from '@/lib/atlas-venues';
+import { runCapacityCheckLive, runVenueFeasibilityLive } from '@/lib/atlas-venues';
 import { canUseOnboardingApi } from '@/lib/auth';
 import { getSession } from '@/lib/session';
 
@@ -46,5 +46,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'venue_not_found' }, { status: 404 });
   }
 
-  return NextResponse.json(result, { status: 200 });
+  // Run the operational-truth feasibility triggers alongside the legacy comfortable-range check.
+  // Persists when the planner is in an event context; otherwise returns inline for display only.
+  const feasibility = await runVenueFeasibilityLive({
+    venueId,
+    eventId: session.eventId ?? null,
+    desiredGuests: guestCount
+  });
+
+  return NextResponse.json(
+    {
+      ...result,
+      atlasOutdoorPowerCurfew: feasibility?.atlasOutdoorPowerCurfew ?? null,
+      atlasEvaluationPersistenceMode: feasibility?.atlasEvaluationPersistenceMode ?? 'skipped',
+      recommendations: feasibility?.recommendations ?? []
+    },
+    { status: 200 }
+  );
 }

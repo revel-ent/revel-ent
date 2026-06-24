@@ -8,6 +8,7 @@ import {
   runCapacitySqueezeLive,
   runRiggingOrCeilingConstraintLive,
   runTightRoomFlipLive,
+  runVenueFeasibilityLive,
   toVenueTrustSignal,
   type AtlasVenueDetail
 } from '@/lib/atlas-venues';
@@ -442,6 +443,23 @@ describe('run*Live persistence short-circuit', () => {
 
   it('returns null when the venue id is unknown', async () => {
     const result = await runCapacitySqueezeLive({ venueId: 'does-not-exist', eventId: null, desiredGuests: 100 });
+    expect(result).toBeNull();
+  });
+
+  it('runVenueFeasibilityLive runs all four triggers in one pass for a known venue', async () => {
+    const result = await runVenueFeasibilityLive({ venueId: SEED_VENUE_ID, eventId: null, desiredGuests: 300 });
+    expect(result).not.toBeNull();
+    expect(result?.atlasOutdoorPowerCurfew.triggerKey).toBe('outdoor_power_or_curfew');
+    expect(result?.recommendations.map((rec) => rec.triggerKey)).toEqual([
+      'capacity_squeeze',
+      'tight_room_flip',
+      'rigging_or_ceiling_constraint'
+    ]);
+    expect(result?.atlasEvaluationPersistenceMode).toBe('skipped');
+  });
+
+  it('runVenueFeasibilityLive returns null for an unknown venue', async () => {
+    const result = await runVenueFeasibilityLive({ venueId: 'does-not-exist', eventId: null, desiredGuests: 100 });
     expect(result).toBeNull();
   });
 });
