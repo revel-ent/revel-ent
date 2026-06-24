@@ -1,4 +1,5 @@
-import { type PaymentMilestone, type PlanningTodo, getClientPlanForEvent } from '@/lib/mock-client-milestones';
+import { type ClientEventPlan, type PaymentMilestone, type PlanningTodo } from '@/lib/mock-client-milestones';
+import { getClientPlanForEvent } from '@/lib/client-plans';
 import { createRoleScopedAdapter, getDomainScope } from '@/lib/role-scoped-adapters';
 import { type Role } from '@/lib/auth';
 import { getSupabaseAdminClient } from '@/lib/supabase-server';
@@ -170,6 +171,21 @@ async function loadRuntimeState(eventId: string): Promise<DomainRuntimeState> {
   return state;
 }
 
+async function requirePlan(eventId: string): Promise<ClientEventPlan> {
+  const plan = await getClientPlanForEvent(eventId);
+  if (!plan) {
+    throw new Error(`Missing client plan for event ${eventId}`);
+  }
+
+  return plan;
+}
+
+// Hydrate both the durable plan and the override state for an event.
+async function loadCouple(eventId: string): Promise<{ plan: ClientEventPlan; state: DomainRuntimeState }> {
+  const [plan, state] = await Promise.all([requirePlan(eventId), loadRuntimeState(eventId)]);
+  return { plan, state };
+}
+
 async function persistPaymentOverride(
   eventId: string,
   milestoneId: string,
@@ -246,26 +262,14 @@ function cloneTodo(base: PlanningTodo, override?: Pick<PlanningTodo, 'status' | 
   };
 }
 
-function getPlan(eventId: string) {
-  const plan = getClientPlanForEvent(eventId);
-  if (!plan) {
-    throw new Error(`Missing client plan for event ${eventId}`);
-  }
-
-  return plan;
-}
-
-// Sync builder over the already-hydrated cache. Public reads call loadRuntimeState() first.
-function buildChecklistState(eventId: string): ChecklistProjection {
-  const plan = getPlan(eventId);
-  const state = getOrCreateRuntimeState(eventId);
-
+// Sync builder over an already-resolved plan + hydrated override state.
+function buildChecklistState(plan: ClientEventPlan, state: DomainRuntimeState): ChecklistProjection {
   const payments = plan.paymentMilestones.map((item) => cloneMilestone(item, state.paymentOverrides[item.id]));
   const paidAmount = payments.filter((item) => item.status === 'completed').reduce((sum, item) => sum + item.amount, 0);
   const remainingAmount = plan.totalContractValue - paidAmount;
   const depositConfirmed = payments.some((item) => item.percent === 30 && item.status === 'completed');
 
-  const musicState = getMusicState(eventId);
+  const musicState = buildMusicState(plan, state);
   const checklist = plan.planningTodos.map((item) => {
     const override = state.todoOverrides[item.id];
     const todo = cloneTodo(item, override);
@@ -313,10 +317,10 @@ function buildChecklistState(eventId: string): ChecklistProjection {
   };
 }
 
-// Public read: hydrate from Supabase (if configured), then project.
+// Public read: hydrate plan + override state from Supabase (if configured), then project.
 export async function getChecklistState(eventId: string): Promise<ChecklistProjection> {
-  await loadRuntimeState(eventId);
-  return buildChecklistState(eventId);
+  const { plan, state } = await loadCouple(eventId);
+  return buildChecklistState(plan, state);
 }
 
 function topGenres(genreMix: Record<MusicGenreKey, number>) {
@@ -358,12 +362,11 @@ export function generateMusicProfile(input: MusicQuestionnaireInput): MusicProfi
   };
 }
 
-// Sync builder over the already-hydrated cache. Public reads call loadRuntimeState() first.
-export function getMusicState(eventId: string): MusicDomainRecord {
-  const state = getOrCreateRuntimeState(eventId);
-  const checklist = getPlan(eventId);
-  const payments = checklist.paymentMilestones.map((item) => cloneMilestone(item, state.paymentOverrides[item.id]));
+// Sync builder over an already-resolved plan + hydrated override state.
+function buildMusicState(plan: ClientEventPlan, state: DomainRuntimeState): MusicDomainRecord {
+  const payments = plan.paymentMilestones.map((item) => cloneMilestone(item, state.paymentOverrides[item.id]));
   const unlockedByDeposit = payments.some((item) => item.percent === 30 && item.status === 'completed');
+  const eventId = plan.eventId;
 
   if (state.musicSubmission) {
     return {
@@ -413,8 +416,8 @@ const projectApprovals = createRoleScopedAdapter<ApprovalProjection, ApprovalPro
 });
 
 export async function getMusicProjectionForActor(params: { eventId: string; actorRole: Role }) {
-  await loadRuntimeState(params.eventId);
-  const record = getMusicState(params.eventId);
+  const { plan, state } = await loadCouple(params.eventId);
+  const record = buildMusicState(plan, state);
   return {
     domainScope: getDomainScope('music', params.actorRole),
     music: projectMusic(params.actorRole, record)
@@ -422,9 +425,9 @@ export async function getMusicProjectionForActor(params: { eventId: string; acto
 }
 
 export async function getApprovalProjectionForActor(params: { eventId: string; actorRole: Role }): Promise<ApprovalProjection & { domainScope: ReturnType<typeof getDomainScope> }> {
-  await loadRuntimeState(params.eventId);
-  const checklist = buildChecklistState(params.eventId);
-  const music = getMusicState(params.eventId);
+  const { plan, state } = await loadCouple(params.eventId);
+  const checklist = buildChecklistState(plan, state);
+  const music = buildMusicState(plan, state);
   const approvalState: ApprovalProjection = {
     approvals: [
       {
@@ -471,8 +474,7 @@ export async function getApprovalProjectionForActor(params: { eventId: string; a
 }
 
 export async function markPaymentMilestoneComplete(eventId: string, milestoneId: string, completedAt = new Date().toISOString().slice(0, 10)) {
-  await loadRuntimeState(eventId);
-  const plan = getPlan(eventId);
+  const { plan } = await loadCouple(eventId);
   const milestone = plan.paymentMilestones.find((item) => item.id === milestoneId);
 
   if (!milestone) {
@@ -486,15 +488,13 @@ export async function markPaymentMilestoneComplete(eventId: string, milestoneId:
 }
 
 export async function toggleChecklistItem(eventId: string, itemId: string) {
-  await loadRuntimeState(eventId);
-  const plan = getPlan(eventId);
+  const { plan, state } = await loadCouple(eventId);
   const item = plan.planningTodos.find((todo) => todo.id === itemId);
 
   if (!item || !item.clientCompletable || item.id === 'todo-music-questionnaire') {
     return null;
   }
 
-  const state = getOrCreateRuntimeState(eventId);
   const current = state.todoOverrides[itemId]?.status ?? item.status;
   const override = current === 'completed'
     ? { status: 'pending' as const, completedAt: undefined, badgeLabel: item.badgeLabel }
@@ -511,8 +511,8 @@ export async function submitMusicQuestionnaire(eventId: string, input: MusicQues
     throw new Error('genre_mix_total_invalid');
   }
 
-  await loadRuntimeState(eventId);
-  const musicState = getMusicState(eventId);
+  const { plan, state } = await loadCouple(eventId);
+  const musicState = buildMusicState(plan, state);
   if (musicState.status === 'locked') {
     throw new Error('music_locked');
   }
@@ -534,7 +534,7 @@ export async function submitMusicQuestionnaire(eventId: string, input: MusicQues
     badgeLabel: 'Done'
   });
 
-  return getMusicState(eventId);
+  return buildMusicState(plan, getOrCreateRuntimeState(eventId));
 }
 
 export function __resetCoupleDomainsForTests() {
