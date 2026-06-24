@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { getChecklistState } from '@/lib/couple-domains';
+import { getChecklistState, getCouplePersistenceMode } from '@/lib/couple-domains';
 import { requireEventRoleContext } from '@/lib/event-context';
 
 export async function GET() {
@@ -10,12 +10,12 @@ export async function GET() {
     return response as NextResponse;
   }
 
-  const checklist = getChecklistState(context.eventId);
+  const checklist = await getChecklistState(context.eventId);
 
   return NextResponse.json({
     eventId: context.eventId,
     role: context.role,
-    source: 'simulation',
+    source: getCouplePersistenceMode(),
     permissions: {
       canUpdatePayments: context.role === 'couple' || context.role === 'planner' || context.role === 'admin',
       canUpdateChecklist: context.role === 'couple' || context.role === 'planner' || context.role === 'admin'

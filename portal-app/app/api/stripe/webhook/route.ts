@@ -283,7 +283,7 @@ export async function POST(request: Request) {
           .update({ status: 'paid', payment_status: 'paid', updated_at: new Date().toISOString() })
           .eq('stripe_payment_intent_id', paymentIntent.id);
 
-        markPaymentMilestoneComplete(relatedEventId, 'pay-deposit');
+        await markPaymentMilestoneComplete(relatedEventId, 'pay-deposit');
 
         await sendDepositQuestionnaireReminder({
           eventId: relatedEventId,

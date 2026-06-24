@@ -225,6 +225,8 @@ describe('stripe webhook route', () => {
     const webhookUpsertMock = vi.fn().mockResolvedValue({ error: null });
 
     getSupabaseAdminClientMock.mockReturnValue({
+      // The webhook durably marks the deposit milestone complete via the couple workspace state RPC.
+      rpc: async () => ({ data: null, error: null }),
       from: (table: string) => {
         if (table === 'atlas_workspace_stripe_webhook_events') {
           return {

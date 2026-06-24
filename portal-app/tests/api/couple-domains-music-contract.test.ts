@@ -16,33 +16,25 @@ describe('couple domains music contract', () => {
     __resetCoupleDomainsForTests();
   });
 
-  it('keeps music workflow locked until deposit confirmation and unlocks the todo after deposit', () => {
-    const before = getChecklistState(EVENT_ID);
-    const lockedTodo = before.checklist.find((item) => item.id === 'todo-music-questionnaire');
+  it('reflects the received booking deposit with an unlocked, actionable music questionnaire', async () => {
+    // Akshay & Rani's 30% deposit is already received (see AKSHAY_RANI_PLAN), so the music
+    // questionnaire derives as unlocked and actionable directly from the deposit state.
+    const state = await getChecklistState(EVENT_ID);
+    const musicTodo = state.checklist.find((item) => item.id === 'todo-music-questionnaire');
 
-    expect(before.summary.depositConfirmed).toBe(false);
-    expect(lockedTodo).toMatchObject({
+    expect(state.summary.depositConfirmed).toBe(true);
+    expect(musicTodo).toMatchObject({
       title: 'Complete Music Questionnaire',
-      locked: true,
-      actionLabel: null
-    });
-
-    markPaymentMilestoneComplete(EVENT_ID, 'pay-deposit', '2026-06-03');
-
-    const after = getChecklistState(EVENT_ID);
-    const unlockedTodo = after.checklist.find((item) => item.id === 'todo-music-questionnaire');
-    expect(after.summary.depositConfirmed).toBe(true);
-    expect(unlockedTodo).toMatchObject({
       locked: false,
       actionLabel: 'Complete Music Questionnaire',
       badgeLabel: 'Action Required'
     });
   });
 
-  it('submits structured music data, generates profile, and marks checklist complete', () => {
-    markPaymentMilestoneComplete(EVENT_ID, 'pay-deposit', '2026-06-03');
+  it('submits structured music data, generates profile, and marks checklist complete', async () => {
+    await markPaymentMilestoneComplete(EVENT_ID, 'pay-deposit', '2026-06-03');
 
-    const submitted = submitMusicQuestionnaire(EVENT_ID, {
+    const submitted = await submitMusicQuestionnaire(EVENT_ID, {
       genreMix: {
         bhangraNewer: 20,
         bhangraOldSchool: 10,
@@ -64,7 +56,7 @@ describe('couple domains music contract', () => {
     expect(submitted.profile?.title).toBe('Music Experience Profile');
     expect(submitted.profile?.otherNotes).toContain('Afrobeats');
 
-    const checklist = getChecklistState(EVENT_ID);
+    const checklist = await getChecklistState(EVENT_ID);
     expect(checklist.summary.musicStatus).toBe('completed');
     expect(checklist.checklist.find((item) => item.id === 'todo-music-questionnaire')).toMatchObject({
       status: 'completed',
@@ -72,9 +64,9 @@ describe('couple domains music contract', () => {
     });
   });
 
-  it('projects completed music profile into planner and dj_mc roles automatically', () => {
-    markPaymentMilestoneComplete(EVENT_ID, 'pay-deposit', '2026-06-03');
-    submitMusicQuestionnaire(EVENT_ID, {
+  it('projects completed music profile into planner and dj_mc roles automatically', async () => {
+    await markPaymentMilestoneComplete(EVENT_ID, 'pay-deposit', '2026-06-03');
+    await submitMusicQuestionnaire(EVENT_ID, {
       genreMix: {
         bhangraNewer: 25,
         bhangraOldSchool: 10,
@@ -91,9 +83,9 @@ describe('couple domains music contract', () => {
       additionalNotes: 'Keep transitions clean between cultural sets and open format.'
     });
 
-    const plannerProjection = getMusicProjectionForActor({ eventId: EVENT_ID, actorRole: 'planner' });
-    const djProjection = getMusicProjectionForActor({ eventId: EVENT_ID, actorRole: 'dj_mc' });
-    const approvalsProjection = getApprovalProjectionForActor({ eventId: EVENT_ID, actorRole: 'planner' });
+    const plannerProjection = await getMusicProjectionForActor({ eventId: EVENT_ID, actorRole: 'planner' });
+    const djProjection = await getMusicProjectionForActor({ eventId: EVENT_ID, actorRole: 'dj_mc' });
+    const approvalsProjection = await getApprovalProjectionForActor({ eventId: EVENT_ID, actorRole: 'planner' });
 
     expect(plannerProjection.domainScope).toEqual({ access: 'read_write', projection: 'full' });
     expect(plannerProjection.music?.status).toBe('completed');

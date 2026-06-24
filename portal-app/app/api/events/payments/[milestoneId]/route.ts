@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { getChecklistState, markPaymentMilestoneComplete } from '@/lib/couple-domains';
+import { getChecklistState, getCouplePersistenceMode, markPaymentMilestoneComplete } from '@/lib/couple-domains';
 import { requireEventRoleContext } from '@/lib/event-context';
 
 export async function PATCH(_request: Request, { params }: { params: Promise<{ milestoneId: string }> }) {
@@ -11,15 +11,17 @@ export async function PATCH(_request: Request, { params }: { params: Promise<{ m
   }
 
   const { milestoneId } = await params;
-  const updated = markPaymentMilestoneComplete(context.eventId, milestoneId);
+  const updated = await markPaymentMilestoneComplete(context.eventId, milestoneId);
 
   if (!updated) {
     return NextResponse.json({ error: 'milestone_not_found' }, { status: 404 });
   }
 
+  const checklist = await getChecklistState(context.eventId);
+
   return NextResponse.json({
-    mode: 'simulation',
+    mode: getCouplePersistenceMode(),
     updatedMilestone: updated,
-    summary: getChecklistState(context.eventId).summary
+    summary: checklist.summary
   });
 }

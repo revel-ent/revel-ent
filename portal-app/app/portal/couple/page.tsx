@@ -108,9 +108,9 @@ export default async function CouplePortalPage() {
 
   const event = session.eventId ? await getEventRecord(session.eventId) : undefined;
   const plan = session.eventId ? getClientPlanForEvent(session.eventId) : undefined;
-  const checklist = session.eventId ? getChecklistState(session.eventId) : null;
-  const musicProjection = session.eventId ? getMusicProjectionForActor({ eventId: session.eventId, actorRole: session.role }) : null;
-  const approvalsProjection = session.eventId ? getApprovalProjectionForActor({ eventId: session.eventId, actorRole: session.role }) : null;
+  const checklist = session.eventId ? await getChecklistState(session.eventId) : null;
+  const musicProjection = session.eventId ? await getMusicProjectionForActor({ eventId: session.eventId, actorRole: session.role }) : null;
+  const approvalsProjection = session.eventId ? await getApprovalProjectionForActor({ eventId: session.eventId, actorRole: session.role }) : null;
 
   const primaryDate = plan?.primaryDates[0];
   const dayCount = primaryDate ? getDaysUntil(primaryDate) : null;

@@ -8,7 +8,7 @@ export default async function DjMusicProfilePanel() {
     return null;
   }
 
-  const projection = getMusicProjectionForActor({ eventId: session.eventId, actorRole: session.role });
+  const projection = await getMusicProjectionForActor({ eventId: session.eventId, actorRole: session.role });
   const music = projection.music;
 
   return (

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { getChecklistState, toggleChecklistItem } from '@/lib/couple-domains';
+import { getChecklistState, getCouplePersistenceMode, toggleChecklistItem } from '@/lib/couple-domains';
 import { requireEventRoleContext } from '@/lib/event-context';
 
 export async function PATCH(_request: Request, { params }: { params: Promise<{ itemId: string }> }) {
@@ -11,15 +11,17 @@ export async function PATCH(_request: Request, { params }: { params: Promise<{ i
   }
 
   const { itemId } = await params;
-  const updated = toggleChecklistItem(context.eventId, itemId);
+  const updated = await toggleChecklistItem(context.eventId, itemId);
 
   if (!updated) {
     return NextResponse.json({ error: 'item_not_updatable' }, { status: 400 });
   }
 
+  const checklist = await getChecklistState(context.eventId);
+
   return NextResponse.json({
-    mode: 'simulation',
+    mode: getCouplePersistenceMode(),
     updatedItem: updated,
-    summary: getChecklistState(context.eventId).summary
+    summary: checklist.summary
   });
 }
