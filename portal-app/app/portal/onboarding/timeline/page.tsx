@@ -11,6 +11,19 @@ interface TimelineItem {
   escalationHint: string | null;
 }
 
+interface TimelineValidationFinding {
+  checkKey: string;
+  status: 'active' | 'needs_review' | 'suppressed';
+  severity: 'info' | 'warning' | 'critical';
+  confidence: number;
+  fired: boolean;
+  title: string;
+  message: string;
+  cta: string;
+  missingFields: string[];
+  relatedPhaseCodes: string[];
+}
+
 interface GenerateResponse {
   venue: {
     name: string;
@@ -29,6 +42,7 @@ interface GenerateResponse {
   weddingDate: string;
   items: TimelineItem[];
   warnings: string[];
+  validationFindings?: TimelineValidationFinding[];
   templateSource: 'database' | 'fallback';
   persistenceMode: 'supabase_configured' | 'simulated';
 }
@@ -255,6 +269,29 @@ export default function OnboardingTimelinePage() {
                   ))}
                 </ul>
               </article>
+            ) : null}
+
+            {result.validationFindings && result.validationFindings.some((finding) => finding.status !== 'suppressed') ? (
+              <div className="stack">
+                {result.validationFindings
+                  .filter((finding) => finding.status !== 'suppressed')
+                  .map((finding) => (
+                    <article className="card" key={finding.checkKey}>
+                      <div className="card-header">
+                        <h3>{finding.title}</h3>
+                        <span className={`status-chip ${finding.severity}`}>{finding.severity}</span>
+                      </div>
+                      <p>{finding.message}</p>
+                      <p className="card-muted">
+                        Recommendation: <strong>{finding.cta}</strong>
+                      </p>
+                      <p className="item-note">Confidence: {Math.round(finding.confidence * 100)}%</p>
+                      {finding.missingFields.length > 0 ? (
+                        <p className="item-note">Needs confirmation: {finding.missingFields.join(', ')}</p>
+                      ) : null}
+                    </article>
+                  ))}
+              </div>
             ) : null}
 
             <div className="stack">

@@ -48,3 +48,20 @@ export {
   type ConfidenceResult,
   type TrustTier
 } from './confidence';
+
+export {
+  assessRoomFlipRisk,
+  measureTimeline,
+  validateTimeline,
+  type RoomFlipRiskInput,
+  type RoomFlipRiskResult,
+  type TimelineMeasurements,
+  type TimelineValidationCheckKey,
+  type TimelineValidationFinding,
+  type TimelineValidationInput,
+  type TimelineValidationItem,
+  type TimelineValidationResult,
+  type TimelineValidationSeverity,
+  type TimelineValidationStatus,
+  type VenueTimelineConstraints
+} from './timeline-validation';

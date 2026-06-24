@@ -1,4 +1,10 @@
-import { getAtlasVenueDetail, type AtlasVenueConstraint, type AtlasVenueSeed } from '@/lib/atlas-venues';
+import {
+  evaluateTimelineFeasibility,
+  getAtlasVenueDetail,
+  type AtlasVenueConstraint,
+  type AtlasVenueSeed,
+  type TimelineValidationFinding
+} from '@/lib/atlas-venues';
 
 export interface TimelineTemplateRow {
   phase_code: string;
@@ -37,6 +43,7 @@ export interface TimelineGenerationResult {
   weddingDate: string;
   items: GeneratedTimelineItem[];
   warnings: string[];
+  validationFindings: TimelineValidationFinding[];
   templateSource: 'database' | 'fallback';
 }
 
@@ -125,9 +132,13 @@ export function buildGeneratedTimeline(params: {
   venue: AtlasVenueSeed;
   weddingDate?: string;
   templates: TimelineTemplateRow[];
-}): Omit<TimelineGenerationResult, 'venueIntelligence'> {
+}): Omit<TimelineGenerationResult, 'venueIntelligence' | 'validationFindings'> {
   const { venue, weddingDate, templates } = params;
   const anchorDate = parseWeddingDate(weddingDate);
+
+  // Structured curfew/flip/load-in checks are produced by the operational-truth
+  // timeline validator (see generateTimelineFromVenue); `warnings` is reserved
+  // for template-level notes that are not venue-feasibility findings.
   const warnings: string[] = [];
 
   const items = templates
@@ -136,17 +147,6 @@ export function buildGeneratedTimeline(params: {
       const start = minutesFromDate(anchorDate, template.offset_minutes);
       const duration = template.default_duration_minutes ?? 30;
       const end = minutesFromDate(start, duration);
-
-      if (template.phase_code === 'reception' && venue.noiseCurfewHour) {
-        const curfew = new Date(start);
-        curfew.setHours(venue.noiseCurfewHour, 0, 0, 0);
-
-        if (end.getTime() > curfew.getTime()) {
-          warnings.push(
-            `Reception block overlaps ${venue.noiseCurfewHour}:00 venue noise curfew. Advance high-volume segments earlier.`
-          );
-        }
-      }
 
       return {
         phaseCode: template.phase_code,
@@ -205,6 +205,10 @@ export async function generateTimelineFromVenue(params: {
 
   const sourceLinks = Array.isArray(venue.sourceLinks) ? venue.sourceLinks.slice(0, 3) : [];
 
+  // Validate the generated schedule against venue feasibility (curfew vs.
+  // reception end, ceremony->reception flip, load-in window).
+  const validation = evaluateTimelineFeasibility(venue, generated.items);
+
   return {
     ...generated,
     venueIntelligence: {
@@ -212,6 +216,7 @@ export async function generateTimelineFromVenue(params: {
       topConstraints: topRiskConstraints(venue.constraints ?? []),
       sourceLinks
     },
+    validationFindings: validation.findings,
     templateSource: loaded.source
   };
 }

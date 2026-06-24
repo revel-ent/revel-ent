@@ -7,12 +7,17 @@ import {
   type CapacityInput
 } from '@/lib/atlas-operational-truth/capacity-math';
 import {
+  assessRoomFlipRisk,
   computeConfidence,
   computeDataSufficiency,
   countDetections,
   detectFields,
+  validateTimeline,
   type RequiredFieldDescriptor,
   type SufficiencyResult,
+  type TimelineValidationFinding,
+  type TimelineValidationItem,
+  type TimelineValidationResult,
   type VenueTrustSignal
 } from '@/lib/atlas-operational-truth';
 
@@ -740,17 +745,15 @@ export function evaluateTightRoomFlip(params: {
       'Atlas has only part of the turnaround picture. Confirm both the room-flip time and the ceremony-to-reception window before lock.';
     cta = 'Confirm with Venue';
   } else {
-    fired =
-      ceremonyToReceptionMin !== null &&
-      roomFlipMin !== null &&
-      ceremonyToReceptionMin < roomFlipMin &&
-      preSetSupported !== true;
+    // Shared canonical rule (also used by timeline validation) so both surfaces
+    // agree on what counts as a tight flip.
+    const risk = assessRoomFlipRisk({ ceremonyToReceptionMin, roomFlipMin, preSetSupported });
+    fired = risk.fired;
 
     if (fired && ceremonyToReceptionMin !== null && roomFlipMin !== null) {
-      const critical = ceremonyToReceptionMin < 0.5 * roomFlipMin || preSetSupported === false;
       status = 'active';
-      severity = critical ? 'critical' : 'warning';
-      confidence01 = clampConfidence(confidence01 + (critical ? 0.1 : 0.05));
+      severity = risk.critical ? 'critical' : 'warning';
+      confidence01 = clampConfidence(confidence01 + (risk.critical ? 0.1 : 0.05));
       title = 'Tight Room Flip Risk';
       message = `The ${ceremonyToReceptionMin}-minute ceremony-to-reception window is shorter than the venue's ${roomFlipMin}-minute room-flip time. Plan a mitigation (pre-set, second space, or extended cocktail hour).`;
       cta = 'Explore Flip Mitigations';
@@ -923,6 +926,150 @@ export function evaluateRiggingOrCeilingConstraint(params: {
     fingerprint
   };
 }
+
+// =============================================================================
+// timeline validation — measure a generated timeline against venue feasibility.
+// =============================================================================
+
+const LOAD_IN_CONSTRAINT_KEYS = ['load_in_window', 'load_in', 'loadin', 'loading_dock', 'load_in_close'];
+
+/**
+ * Parse a clock hour (0-24) from a free-text time. To avoid matching stray
+ * numbers, a bare integer is only accepted when accompanied by a meridiem or an
+ * explicit HH:MM. "5:00 PM" -> 17, "17:00" -> 17, "5 PM" -> 17.
+ */
+function parseClockHour(text: string | null | undefined): number | null {
+  if (!text) {
+    return null;
+  }
+
+  const match = text.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b|(\d{1,2}):(\d{2})/i);
+
+  if (!match) {
+    return null;
+  }
+
+  const meridiem = match[3]?.toLowerCase();
+  const rawHour = match[1] ?? match[4];
+  let hour = Number.parseInt(rawHour ?? '', 10);
+
+  if (!Number.isFinite(hour) || hour < 0 || hour > 24) {
+    return null;
+  }
+
+  if (meridiem === 'pm' && hour < 12) {
+    hour += 12;
+  }
+
+  if (meridiem === 'am' && hour === 12) {
+    hour = 0;
+  }
+
+  return hour;
+}
+
+/**
+ * Best-effort resolution of the venue load-in close hour from the (unstructured)
+ * constraint rows and notes. There is no structured load-in field in the
+ * constraint profile yet, so this scans load-in-related constraints first, then
+ * any note mentioning "load". Returns null when nothing parses, which the
+ * validator surfaces as needs_review rather than a fabricated default.
+ */
+function resolveLoadInClosesHour(detail: AtlasVenueDetail): number | null {
+  for (const constraint of detail.constraints) {
+    if (!LOAD_IN_CONSTRAINT_KEYS.includes(constraint.key)) {
+      continue;
+    }
+
+    if (typeof constraint.valueNumber === 'number' && constraint.valueNumber >= 0 && constraint.valueNumber <= 24) {
+      return constraint.valueNumber;
+    }
+
+    const fromValue = parseClockHour(constraint.valueText);
+    if (fromValue !== null) {
+      return fromValue;
+    }
+
+    const fromNotes = parseClockHour(constraint.notes);
+    if (fromNotes !== null) {
+      return fromNotes;
+    }
+  }
+
+  for (const note of detail.notes) {
+    if (/load[\s-]?in/i.test(note)) {
+      const parsed = parseClockHour(note);
+      if (parsed !== null) {
+        return parsed;
+      }
+    }
+  }
+
+  return null;
+}
+
+function buildTimelineValidationDescriptors(detail: AtlasVenueDetail): RequiredFieldDescriptor[] {
+  const sound = detail.constraintProfile?.operational.sound;
+  const timeline = detail.constraintProfile?.operational.timeline;
+
+  return [
+    {
+      key: 'operational.sound.curfew.localTime',
+      category: 'Operational',
+      pillar: 'PolicyCompliance',
+      operationallyMaterial: true,
+      value: sound?.curfew.localTime ?? (typeof detail.noiseCurfewHour === 'number' ? String(detail.noiseCurfewHour) : null)
+    },
+    {
+      key: 'operational.timeline.roomFlipMin',
+      category: 'Operational',
+      pillar: 'LoadInLogistics',
+      operationallyMaterial: true,
+      value: timeline?.roomFlipMin ?? null,
+      validate: isPositiveNumber
+    },
+    {
+      key: 'operational.timeline.preSetSupported',
+      category: 'Operational',
+      pillar: 'LoadInLogistics',
+      operationallyMaterial: false,
+      value: timeline?.preSetSupported ?? null
+    }
+  ];
+}
+
+/**
+ * Adapter: resolve the venue-feasibility primitives from a venue detail and run
+ * the pure timeline validator against a set of generated timeline items. Folds
+ * the trust-weighted framework confidence into each finding's base confidence.
+ */
+export function evaluateTimelineFeasibility(
+  detail: AtlasVenueDetail,
+  items: TimelineValidationItem[]
+): TimelineValidationResult {
+  const sound = detail.constraintProfile?.operational.sound;
+  const timeline = detail.constraintProfile?.operational.timeline;
+
+  const curfewHour =
+    parseCurfewHour(sound?.curfew.localTime ?? null) ??
+    (typeof detail.noiseCurfewHour === 'number' ? detail.noiseCurfewHour : null);
+
+  const framework = frameworkConfidence(detail, buildTimelineValidationDescriptors(detail));
+
+  return validateTimeline({
+    items,
+    baseConfidence: framework.confidence01,
+    venue: {
+      curfewType: sound?.curfew.type ?? null,
+      curfewHour,
+      roomFlipMin: timeline?.roomFlipMin ?? null,
+      preSetSupported: timeline?.preSetSupported ?? null,
+      loadInClosesHour: resolveLoadInClosesHour(detail)
+    }
+  });
+}
+
+export type { TimelineValidationFinding, TimelineValidationResult };
 
 export const ATLAS_VENUE_SEEDS: AtlasVenueSeed[] = [
   {
