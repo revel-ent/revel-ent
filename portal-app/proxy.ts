@@ -38,7 +38,7 @@ export async function proxy(request: NextRequest) {
 
   const role = roleCookie as Role;
 
-  let resolvedEventId = eventId;
+  let resolvedEventId: string | null = eventId ?? null;
   let resolvedOrganizationId = session.organizationId ?? null;
 
   if (role !== 'admin') {

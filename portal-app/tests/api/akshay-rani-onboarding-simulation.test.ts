@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { canAccessRoute } from '@/lib/auth';
+import { canAccessRoute, type Role } from '@/lib/auth';
 
 const getSessionMock = vi.fn();
 const getSupabaseAdminClientMock = vi.fn();
@@ -316,7 +316,7 @@ describe('Akshay & Rani onboarding simulation', () => {
       userId: 'usr-admin-jigar',
       email: 'jigar@revel-ent.com',
       displayName: 'Jigar',
-      role: 'admin' as const,
+      role: 'admin' as Role,
       organizationId,
       eventId
     };
