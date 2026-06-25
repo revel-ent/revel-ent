@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing event context' }, { status: 400 });
   }
 
-  const result = buildFusionFlowPlan({
+  const result = await buildFusionFlowPlan({
     eventId: session.eventId,
     cultureBlend: String(body.cultureBlend || 'South Asian + Fusion'),
     vibeGoal: String(body.vibeGoal || 'High energy, premium flow'),

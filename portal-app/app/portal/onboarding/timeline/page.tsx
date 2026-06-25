@@ -3,12 +3,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+import { getPhaseLabel } from '@/lib/wedding-traditions';
+
 interface TimelineItem {
   phaseCode: string;
   title: string;
   scheduledStartIso: string;
   scheduledEndIso: string;
   escalationHint: string | null;
+}
+
+interface TimelineValidationFinding {
+  checkKey: string;
+  status: 'active' | 'needs_review' | 'suppressed';
+  severity: 'info' | 'warning' | 'critical';
+  confidence: number;
+  fired: boolean;
+  title: string;
+  message: string;
+  cta: string;
+  missingFields: string[];
+  relatedPhaseCodes: string[];
 }
 
 interface GenerateResponse {
@@ -29,7 +44,10 @@ interface GenerateResponse {
   weddingDate: string;
   items: TimelineItem[];
   warnings: string[];
+  validationFindings?: TimelineValidationFinding[];
   templateSource: 'database' | 'fallback';
+  tradition?: string;
+  traditionLabel?: string;
   persistenceMode: 'supabase_configured' | 'simulated';
 }
 
@@ -45,16 +63,7 @@ function formatTime(iso: string): string {
 }
 
 function phaseLabel(code: string): string {
-  const map: Record<string, string> = {
-    mehndi: 'Mehndi',
-    haldi: 'Haldi',
-    sangeet: 'Sangeet',
-    baraat: 'Baraat',
-    ceremony: 'Ceremony',
-    reception: 'Reception'
-  };
-
-  return map[code] ?? code;
+  return getPhaseLabel(code);
 }
 
 function confidenceLabel(value: GenerateResponse['venueIntelligence']['sourceConfidence']): string {
@@ -68,6 +77,7 @@ export default function OnboardingTimelinePage() {
   const venueId = params.get('venueId') ?? '';
   const guestCount = params.get('guestCount') ?? '300';
   const weddingDate = params.get('weddingDate') ?? '';
+  const tradition = params.get('tradition') ?? '';
 
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState(false);
@@ -92,7 +102,7 @@ export default function OnboardingTimelinePage() {
         const response = await fetch('/api/onboarding/timeline/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ venueId, weddingDate })
+          body: JSON.stringify({ venueId, weddingDate, tradition })
         });
 
         if (!response.ok) {
@@ -120,7 +130,7 @@ export default function OnboardingTimelinePage() {
     return () => {
       cancelled = true;
     };
-  }, [venueId, weddingDate]);
+  }, [venueId, weddingDate, tradition]);
 
   const grouped = useMemo(() => {
     if (!result) {
@@ -208,6 +218,11 @@ export default function OnboardingTimelinePage() {
                 <span className="chip">Venue Baseline</span>
               </div>
               <p>{result.venue.city}</p>
+              {result.traditionLabel ? (
+                <p className="card-muted">
+                  Tradition: <strong>{result.traditionLabel}</strong>
+                </p>
+              ) : null}
               <p className="card-muted">
                 Template source: {result.templateSource === 'database' ? 'Supabase templates' : 'Fallback baseline'}
               </p>
@@ -255,6 +270,29 @@ export default function OnboardingTimelinePage() {
                   ))}
                 </ul>
               </article>
+            ) : null}
+
+            {result.validationFindings && result.validationFindings.some((finding) => finding.status !== 'suppressed') ? (
+              <div className="stack">
+                {result.validationFindings
+                  .filter((finding) => finding.status !== 'suppressed')
+                  .map((finding) => (
+                    <article className="card" key={finding.checkKey}>
+                      <div className="card-header">
+                        <h3>{finding.title}</h3>
+                        <span className={`status-chip ${finding.severity}`}>{finding.severity}</span>
+                      </div>
+                      <p>{finding.message}</p>
+                      <p className="card-muted">
+                        Recommendation: <strong>{finding.cta}</strong>
+                      </p>
+                      <p className="item-note">Confidence: {Math.round(finding.confidence * 100)}%</p>
+                      {finding.missingFields.length > 0 ? (
+                        <p className="item-note">Needs confirmation: {finding.missingFields.join(', ')}</p>
+                      ) : null}
+                    </article>
+                  ))}
+              </div>
             ) : null}
 
             <div className="stack">

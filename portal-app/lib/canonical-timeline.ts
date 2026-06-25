@@ -264,7 +264,7 @@ const projectTimeline = createRoleScopedAdapter<CanonicalTimelineItem[], Timelin
         .map((item) => toProjectionItem(item, true)),
     assigned: (items) =>
       items
-        .filter((item) => item.visibility !== 'client' || item.visibility === 'public')
+        .filter((item) => item.visibility !== 'client')
         .map((item) => toProjectionItem(item, true)),
     venue: (items) =>
       items

@@ -1,5 +1,25 @@
 import { getSupabaseAdminClient } from '@/lib/supabase-server';
 import type { AtlasSeverity, AtlasStatus, AtlasTriggerKey, VenueConstraintProfile } from '@/lib/atlas-types';
+import {
+  computeCapacity,
+  type CapacityDanceFloorSize,
+  type CapacityEventMode,
+  type CapacityInput
+} from '@/lib/atlas-operational-truth/capacity-math';
+import {
+  assessRoomFlipRisk,
+  computeConfidence,
+  computeDataSufficiency,
+  countDetections,
+  detectFields,
+  validateTimeline,
+  type RequiredFieldDescriptor,
+  type SufficiencyResult,
+  type TimelineValidationFinding,
+  type TimelineValidationItem,
+  type TimelineValidationResult,
+  type VenueTrustSignal
+} from '@/lib/atlas-operational-truth';
 
 export interface AtlasVenueSeed {
   id: string;
@@ -58,6 +78,39 @@ export interface OutdoorPowerCurfewRecommendation {
   evidence: Record<string, unknown>;
   missingFields: string[];
   fingerprint: string | null;
+}
+
+/**
+ * Every Atlas venue-feasibility trigger emits the same 12-field recommendation
+ * shape. Reuse the outdoor-power-curfew shape as the canonical contract so the
+ * persistence layer and consumers stay uniform across triggers.
+ */
+export type AtlasTriggerRecommendation = OutdoorPowerCurfewRecommendation;
+
+export interface CapacitySqueezeInput {
+  venueId: string;
+  eventId: string | null;
+  desiredGuests: number;
+  eventMode?: CapacityEventMode;
+  serviceLossPct?: number;
+  sqFtPerTable?: number;
+  hasDanceFloor?: boolean;
+  danceFloorSize?: CapacityDanceFloorSize;
+  hasDjPit?: boolean;
+  hasBand?: boolean;
+  hasAisleRiser?: boolean;
+}
+
+export interface TightRoomFlipInput {
+  venueId: string;
+  eventId: string | null;
+  ceremonyToReceptionMin?: number;
+}
+
+export interface RiggingOrCeilingConstraintInput {
+  venueId: string;
+  eventId: string | null;
+  riggingPlanned?: boolean;
 }
 
 export interface CapacityCheckInput {
@@ -132,6 +185,52 @@ function resolveComfortableRange(params: {
   }
 
   return estimateComfortableRange(params.marketedCapacity);
+}
+
+/**
+ * Map a venue detail's source-confidence tier onto the operational-truth trust
+ * signal. `vendor_verified` is a vendor walking the room (highest trust);
+ * `partially_verified` maps to the partner/verified source; anything else is
+ * left as the default MarketingData tier (least trusted).
+ */
+export function toVenueTrustSignal(detail: AtlasVenueDetail): VenueTrustSignal {
+  if (detail.sourceConfidence === 'vendor_verified') {
+    return { venueVerification: 'vendor_verified' };
+  }
+
+  if (detail.sourceConfidence === 'partially_verified') {
+    return { source: 'partially_verified' };
+  }
+
+  return {};
+}
+
+/**
+ * Run the three orthogonal operational-truth layers (detection ->
+ * data-sufficiency + confidence) for a venue detail against a descriptor set.
+ * Returns a trust-weighted confidence in [0,1], the missing/invalid field keys,
+ * and the full sufficiency breakdown so callers can fold them into a
+ * recommendation.
+ */
+export function frameworkConfidence(
+  detail: AtlasVenueDetail,
+  descriptors: RequiredFieldDescriptor[]
+): { confidence01: number; missingFields: string[]; sufficiency: SufficiencyResult } {
+  const trust = toVenueTrustSignal(detail);
+  const detection = detectFields(descriptors, trust);
+  const counts = countDetections(detection.fields);
+  const confidence = computeConfidence({ ...trust, counts });
+  const sufficiency = computeDataSufficiency(detection.fields);
+
+  const missingFields = detection.fields
+    .filter((field) => field.status === 'MISSING' || field.status === 'INVALID')
+    .map((field) => field.key);
+
+  return {
+    confidence01: clampConfidence(confidence.score / 100),
+    missingFields,
+    sufficiency
+  };
 }
 
 function buildOutdoorPowerCurfewFingerprint(params: {
@@ -276,8 +375,14 @@ function evaluateOutdoorPowerCurfew(params: {
   };
 }
 
-async function persistOutdoorPowerCurfewEvaluation(params: {
-  recommendation: OutdoorPowerCurfewRecommendation;
+/**
+ * Generalized persistence for any Atlas trigger evaluation. Gates on
+ * eventId/venueUuid/fingerprint, then upserts onto the `fingerprint` conflict
+ * target. Confidence is already in [0,1] (clampConfidence rounds/clamps for the
+ * numeric(5,4) column).
+ */
+async function persistAtlasEvaluation(params: {
+  recommendation: AtlasTriggerRecommendation;
   detail: AtlasVenueDetail;
   eventId: string | null;
 }): Promise<'persisted' | 'skipped'> {
@@ -320,6 +425,16 @@ async function persistOutdoorPowerCurfewEvaluation(params: {
   return 'persisted';
 }
 
+async function persistOutdoorPowerCurfewEvaluation(params: {
+  recommendation: OutdoorPowerCurfewRecommendation;
+  detail: AtlasVenueDetail;
+  eventId: string | null;
+}): Promise<'persisted' | 'skipped'> {
+  return persistAtlasEvaluation(params);
+}
+
+// Legacy `evaluateCapacity` (onboarding quick-check, comfortable-range based) and the new
+// `capacity_squeeze` evaluator (dimension-driven operational-truth) intentionally coexist for different surfaces.
 function evaluateCapacity(venue: AtlasVenueSeed, guestCount: number): CapacityCheckResult {
   const guests = Math.max(0, Math.floor(guestCount));
   const comfortableRange = resolveComfortableRange({
@@ -350,6 +465,611 @@ function evaluateCapacity(venue: AtlasVenueSeed, guestCount: number): CapacityCh
     message: `At ${guests} guests this plan exceeds the typical comfortable range. You should review contingencies before proceeding.`
   };
 }
+
+const isPositiveNumber = (value: unknown): boolean => typeof value === 'number' && Number.isFinite(value) && value > 0;
+
+// =============================================================================
+// capacity_squeeze — dimension-driven operational-truth seating check.
+// =============================================================================
+
+function buildCapacitySqueezeDescriptors(detail: AtlasVenueDetail): RequiredFieldDescriptor[] {
+  return [
+    {
+      key: 'venue.lengthFt',
+      category: 'Physical',
+      pillar: 'SpatialCapacity',
+      operationallyMaterial: true,
+      value: detail.lengthFt,
+      validate: isPositiveNumber
+    },
+    {
+      key: 'venue.widthFt',
+      category: 'Physical',
+      pillar: 'SpatialCapacity',
+      operationallyMaterial: true,
+      value: detail.widthFt,
+      validate: isPositiveNumber
+    },
+    {
+      key: 'operational.capacity.comfortableAcousticMax',
+      category: 'Operational',
+      pillar: 'SpatialCapacity',
+      operationallyMaterial: false,
+      value: detail.constraintProfile?.operational.capacity.comfortableAcousticMax ?? null
+    }
+  ];
+}
+
+function buildCapacitySqueezeFingerprint(params: {
+  eventId: string | null;
+  venueStableId: string;
+  desiredGuests: number;
+  eventMode: CapacityEventMode;
+  maxCapacity: number;
+  capacityStatus: string;
+}): string | null {
+  if (!params.eventId) {
+    return null;
+  }
+
+  return [
+    params.eventId,
+    params.venueStableId,
+    'capacity_squeeze',
+    params.eventMode,
+    params.desiredGuests,
+    params.maxCapacity,
+    params.capacityStatus
+  ].join(':');
+}
+
+export function evaluateCapacitySqueeze(params: {
+  detail: AtlasVenueDetail;
+  eventId: string | null;
+  desiredGuests: number;
+  eventMode?: CapacityEventMode;
+  serviceLossPct?: number;
+  sqFtPerTable?: number;
+  hasDanceFloor?: boolean;
+  danceFloorSize?: CapacityDanceFloorSize;
+  hasDjPit?: boolean;
+  hasBand?: boolean;
+  hasAisleRiser?: boolean;
+}): AtlasTriggerRecommendation {
+  const desiredGuests = params.desiredGuests;
+  const eventMode: CapacityEventMode = params.eventMode ?? 'reception';
+  const serviceLossPct = params.serviceLossPct ?? 15;
+  const sqFtPerTable = params.sqFtPerTable ?? 72;
+  const hasDanceFloor = params.hasDanceFloor ?? true;
+  const danceFloorSize: CapacityDanceFloorSize = params.danceFloorSize ?? 'medium';
+  const hasDjPit = params.hasDjPit ?? false;
+  const hasBand = params.hasBand ?? false;
+  const hasAisleRiser = params.hasAisleRiser ?? false;
+
+  const hasDimensions = isPositiveNumber(params.detail.lengthFt) && isPositiveNumber(params.detail.widthFt);
+
+  const framework = frameworkConfidence(params.detail, buildCapacitySqueezeDescriptors(params.detail));
+  const missingFields = [...framework.missingFields];
+
+  const capacityInput: CapacityInput = {
+    lengthFt: params.detail.lengthFt ?? 0,
+    widthFt: params.detail.widthFt ?? 0,
+    serviceLossPct,
+    eventMode,
+    hasDanceFloor,
+    danceFloorSize,
+    hasDjPit,
+    hasBand,
+    hasAisleRiser,
+    sqFtPerTable,
+    desiredGuests: hasDimensions ? desiredGuests : null
+  };
+
+  const capacity = computeCapacity(capacityInput);
+  const capacityStatus = capacity.status;
+
+  let status: AtlasStatus = 'suppressed';
+  let severity: AtlasSeverity = 'info';
+  let fired = false;
+  let title = 'Capacity check looks stable';
+  let message = `Room comfortably seats up to ${capacity.maxCapacity} guests against the planned ${desiredGuests}.`;
+  let cta = 'Continue Planning';
+  let confidence01 = framework.confidence01;
+
+  if (!hasDimensions) {
+    status = 'needs_review';
+    severity = 'warning';
+    fired = false;
+    title = 'Confirm room dimensions to run a capacity check';
+    message = 'Atlas needs verified room length and width to model seated capacity. Confirm dimensions with the venue before lock.';
+    cta = 'Confirm with Venue';
+    confidence01 = clampConfidence(confidence01 - 0.05);
+
+    if (!missingFields.includes('venue.lengthFt')) {
+      missingFields.push('venue.lengthFt');
+    }
+    if (!missingFields.includes('venue.widthFt')) {
+      missingFields.push('venue.widthFt');
+    }
+
+    return finalizeCapacitySqueeze();
+  }
+
+  fired = desiredGuests > 0 && (capacityStatus === 'tight' || capacityStatus === 'unsafe');
+
+  if (fired) {
+    status = 'active';
+    severity = capacityStatus === 'unsafe' ? 'critical' : 'warning';
+    confidence01 = clampConfidence(confidence01 + (capacityStatus === 'unsafe' ? 0.1 : 0.05));
+    title = capacityStatus === 'unsafe' ? 'Capacity Risk: Plan Exceeds Room' : 'Capacity Squeeze: Room Runs Tight';
+    message =
+      capacityStatus === 'unsafe'
+        ? `This room models a max of ${capacity.maxCapacity} seated guests, below the planned ${desiredGuests}. Revisit layout, production load, or guest count before locking.`
+        : `This room models a max of ${capacity.maxCapacity} seated guests against the planned ${desiredGuests}. It is possible but tight — review layout and guest flow.`;
+    cta = 'Explore Capacity Optimization';
+  }
+
+  return finalizeCapacitySqueeze();
+
+  function finalizeCapacitySqueeze(): AtlasTriggerRecommendation {
+    if (capacity.isDanceClamped) {
+      message += ' Note: the dance floor was clamped to fit the room, which limited the requested footprint.';
+    }
+
+    const fingerprint = buildCapacitySqueezeFingerprint({
+      eventId: params.eventId,
+      venueStableId: params.detail.venueUuid ?? params.detail.id,
+      desiredGuests,
+      eventMode,
+      maxCapacity: capacity.maxCapacity,
+      capacityStatus
+    });
+
+    return {
+      triggerKey: 'capacity_squeeze',
+      groupedRecommendationKey: 'capacity_optimization',
+      status,
+      severity,
+      confidence: clampConfidence(confidence01),
+      fired,
+      title,
+      message,
+      cta,
+      evidence: {
+        desiredGuests,
+        eventMode,
+        totalArea: capacity.totalArea,
+        serviceLossArea: capacity.serviceLossArea,
+        usableArea: capacity.usableArea,
+        danceArea: capacity.danceArea,
+        isDanceClamped: capacity.isDanceClamped,
+        productionDeductions: capacity.productionDeductions,
+        seatingArea: capacity.seatingArea,
+        maxTables: capacity.maxTables,
+        maxCapacity: capacity.maxCapacity,
+        capacityStatus
+      },
+      missingFields,
+      fingerprint
+    };
+  }
+}
+
+// =============================================================================
+// tight_room_flip — ceremony->reception turnaround vs. room-flip time.
+// =============================================================================
+
+function buildTightRoomFlipDescriptors(detail: AtlasVenueDetail): RequiredFieldDescriptor[] {
+  const timeline = detail.constraintProfile?.operational.timeline;
+
+  return [
+    {
+      key: 'operational.timeline.roomFlipMin',
+      category: 'Operational',
+      pillar: 'LoadInLogistics',
+      operationallyMaterial: true,
+      value: timeline?.roomFlipMin ?? null,
+      validate: isPositiveNumber
+    },
+    {
+      key: 'operational.timeline.ceremonyToReceptionMin',
+      category: 'Operational',
+      pillar: 'LoadInLogistics',
+      operationallyMaterial: true,
+      value: timeline?.ceremonyToReceptionMin ?? null,
+      validate: isPositiveNumber
+    },
+    {
+      key: 'operational.timeline.preSetSupported',
+      category: 'Operational',
+      pillar: 'LoadInLogistics',
+      operationallyMaterial: false,
+      value: timeline?.preSetSupported ?? null
+    }
+  ];
+}
+
+function buildTightRoomFlipFingerprint(params: {
+  eventId: string | null;
+  venueStableId: string;
+  ceremonyToReceptionMin: number | null;
+  roomFlipMin: number | null;
+  preSetSupported: boolean | null;
+}): string | null {
+  if (!params.eventId) {
+    return null;
+  }
+
+  return [
+    params.eventId,
+    params.venueStableId,
+    'tight_room_flip',
+    params.ceremonyToReceptionMin ?? 'na',
+    params.roomFlipMin ?? 'na',
+    params.preSetSupported === null ? 'na' : Number(params.preSetSupported)
+  ].join(':');
+}
+
+export function evaluateTightRoomFlip(params: {
+  detail: AtlasVenueDetail;
+  eventId: string | null;
+  ceremonyToReceptionMin?: number;
+}): AtlasTriggerRecommendation {
+  const timeline = params.detail.constraintProfile?.operational.timeline;
+  const roomFlipMin = timeline?.roomFlipMin ?? null;
+  const ceremonyToReceptionMin = timeline?.ceremonyToReceptionMin ?? params.ceremonyToReceptionMin ?? null;
+  const preSetSupported = timeline?.preSetSupported ?? null;
+
+  const framework = frameworkConfidence(params.detail, buildTightRoomFlipDescriptors(params.detail));
+  const missingFields = [...framework.missingFields];
+
+  // The driver fields are the flip time and the available turnaround window. If one is
+  // present but the other is missing, we cannot decide — surface needs_review instead.
+  const driverMissing =
+    (ceremonyToReceptionMin === null) !== (roomFlipMin === null);
+
+  let status: AtlasStatus = 'suppressed';
+  let severity: AtlasSeverity = 'info';
+  let fired = false;
+  let title = 'Room flip timeline looks workable';
+  let message = 'No room-flip turnaround risk detected from current venue intelligence.';
+  let cta = 'Continue Planning';
+  let confidence01 = framework.confidence01;
+
+  if (driverMissing) {
+    status = 'needs_review';
+    severity = 'warning';
+    confidence01 = clampConfidence(confidence01 - 0.05);
+    title = 'Confirm room flip timing with venue';
+    message =
+      'Atlas has only part of the turnaround picture. Confirm both the room-flip time and the ceremony-to-reception window before lock.';
+    cta = 'Confirm with Venue';
+  } else {
+    // Shared canonical rule (also used by timeline validation) so both surfaces
+    // agree on what counts as a tight flip.
+    const risk = assessRoomFlipRisk({ ceremonyToReceptionMin, roomFlipMin, preSetSupported });
+    fired = risk.fired;
+
+    if (fired && ceremonyToReceptionMin !== null && roomFlipMin !== null) {
+      status = 'active';
+      severity = risk.critical ? 'critical' : 'warning';
+      confidence01 = clampConfidence(confidence01 + (risk.critical ? 0.1 : 0.05));
+      title = 'Tight Room Flip Risk';
+      message = `The ${ceremonyToReceptionMin}-minute ceremony-to-reception window is shorter than the venue's ${roomFlipMin}-minute room-flip time. Plan a mitigation (pre-set, second space, or extended cocktail hour).`;
+      cta = 'Explore Flip Mitigations';
+    }
+  }
+
+  const fingerprint = buildTightRoomFlipFingerprint({
+    eventId: params.eventId,
+    venueStableId: params.detail.venueUuid ?? params.detail.id,
+    ceremonyToReceptionMin,
+    roomFlipMin,
+    preSetSupported
+  });
+
+  return {
+    triggerKey: 'tight_room_flip',
+    groupedRecommendationKey: 'timeline_flip_mitigation',
+    status,
+    severity,
+    confidence: clampConfidence(confidence01),
+    fired,
+    title,
+    message,
+    cta,
+    evidence: {
+      ceremonyToReceptionMin,
+      roomFlipMin,
+      preSetSupported
+    },
+    missingFields,
+    fingerprint
+  };
+}
+
+// =============================================================================
+// rigging_or_ceiling_constraint — rigging policy and low-ceiling clearance.
+// =============================================================================
+
+const DEFAULT_LOW_CEILING_THRESHOLD_FT = 14;
+
+function buildRiggingOrCeilingDescriptors(detail: AtlasVenueDetail): RequiredFieldDescriptor[] {
+  const rigging = detail.constraintProfile?.operational.rigging;
+  const ceiling = detail.constraintProfile?.operational.ceiling;
+  const effectiveCeiling = ceiling?.clearanceFt ?? detail.heightFt ?? null;
+
+  return [
+    {
+      key: 'operational.rigging.allowed',
+      category: 'Policy',
+      pillar: 'RiggingHeight',
+      operationallyMaterial: false,
+      value: rigging?.allowed ?? null
+    },
+    {
+      key: 'operational.ceiling.clearanceFt',
+      category: 'Physical',
+      pillar: 'RiggingHeight',
+      operationallyMaterial: true,
+      value: effectiveCeiling,
+      validate: isPositiveNumber
+    }
+  ];
+}
+
+function buildRiggingOrCeilingFingerprint(params: {
+  eventId: string | null;
+  venueStableId: string;
+  riggingAllowed: boolean | null;
+  effectiveCeiling: number | null;
+  lowCeilingThresholdFt: number;
+}): string | null {
+  if (!params.eventId) {
+    return null;
+  }
+
+  return [
+    params.eventId,
+    params.venueStableId,
+    'rigging_or_ceiling_constraint',
+    params.riggingAllowed === null ? 'na' : Number(params.riggingAllowed),
+    params.effectiveCeiling ?? 'na',
+    params.lowCeilingThresholdFt
+  ].join(':');
+}
+
+export function evaluateRiggingOrCeilingConstraint(params: {
+  detail: AtlasVenueDetail;
+  eventId: string | null;
+  riggingPlanned?: boolean;
+}): AtlasTriggerRecommendation {
+  const rigging = params.detail.constraintProfile?.operational.rigging;
+  const ceiling = params.detail.constraintProfile?.operational.ceiling;
+  const riggingAllowed = rigging?.allowed ?? null;
+  const lowCeilingThresholdFt = ceiling?.lowCeilingThresholdFt ?? DEFAULT_LOW_CEILING_THRESHOLD_FT;
+  const effectiveCeiling = ceiling?.clearanceFt ?? params.detail.heightFt ?? null;
+
+  const framework = frameworkConfidence(params.detail, buildRiggingOrCeilingDescriptors(params.detail));
+  const missingFields = [...framework.missingFields];
+
+  // Soft gate: only suppress when rigging is explicitly NOT planned.
+  const riggingRelevant = params.riggingPlanned !== false;
+
+  // Missing both clearance signals (no profile clearance, no heightFt) AND no rigging policy
+  // leaves nothing to evaluate -> needs_review.
+  const noClearanceSignal = effectiveCeiling === null;
+  const noRiggingSignal = riggingAllowed === null;
+
+  let status: AtlasStatus = 'suppressed';
+  let severity: AtlasSeverity = 'info';
+  let fired = false;
+  let title = 'Rigging and ceiling clearance look workable';
+  let message = 'No rigging policy or low-ceiling clearance risk detected from current venue intelligence.';
+  let cta = 'Continue Planning';
+  let confidence01 = framework.confidence01;
+
+  if (noClearanceSignal && noRiggingSignal) {
+    status = 'needs_review';
+    severity = 'warning';
+    confidence01 = clampConfidence(confidence01 - 0.05);
+    title = 'Confirm rigging policy and ceiling clearance';
+    message =
+      'Atlas is missing both ceiling clearance and rigging policy for this room. Confirm with the venue before planning hung production elements.';
+    cta = 'Confirm with Venue';
+  } else if (riggingRelevant) {
+    const lowCeiling = effectiveCeiling !== null && effectiveCeiling < lowCeilingThresholdFt;
+    fired = riggingAllowed === false || lowCeiling;
+
+    if (fired) {
+      const critical = riggingAllowed === false || (effectiveCeiling !== null && effectiveCeiling < lowCeilingThresholdFt - 2);
+      status = 'active';
+      severity = critical ? 'critical' : 'warning';
+      confidence01 = clampConfidence(confidence01 + (critical ? 0.1 : 0.05));
+      title = riggingAllowed === false ? 'Rigging Not Permitted' : 'Low Ceiling Clearance';
+      message =
+        riggingAllowed === false
+          ? 'This venue does not permit rigging. Plan ground-supported production (towers, uplighting) instead of hung elements.'
+          : `Ceiling clearance of ${effectiveCeiling} ft is below the ${lowCeilingThresholdFt} ft low-ceiling threshold. Reconsider hung lighting, drape height, and tall production elements.`;
+      cta = 'Explore Rigging & Ceiling Mitigations';
+    }
+  }
+
+  const fingerprint = buildRiggingOrCeilingFingerprint({
+    eventId: params.eventId,
+    venueStableId: params.detail.venueUuid ?? params.detail.id,
+    riggingAllowed,
+    effectiveCeiling,
+    lowCeilingThresholdFt
+  });
+
+  return {
+    triggerKey: 'rigging_or_ceiling_constraint',
+    groupedRecommendationKey: 'rigging_ceiling_mitigation',
+    status,
+    severity,
+    confidence: clampConfidence(confidence01),
+    fired,
+    title,
+    message,
+    cta,
+    evidence: {
+      riggingPlanned: params.riggingPlanned ?? null,
+      riggingAllowed,
+      maxClearanceFt: rigging?.maxClearanceFt ?? null,
+      ceilingClearanceFt: ceiling?.clearanceFt ?? null,
+      heightFt: params.detail.heightFt ?? null,
+      effectiveCeiling,
+      lowCeilingThresholdFt
+    },
+    missingFields,
+    fingerprint
+  };
+}
+
+// =============================================================================
+// timeline validation — measure a generated timeline against venue feasibility.
+// =============================================================================
+
+const LOAD_IN_CONSTRAINT_KEYS = ['load_in_window', 'load_in', 'loadin', 'loading_dock', 'load_in_close'];
+
+/**
+ * Parse a clock hour (0-24) from a free-text time. To avoid matching stray
+ * numbers, a bare integer is only accepted when accompanied by a meridiem or an
+ * explicit HH:MM. "5:00 PM" -> 17, "17:00" -> 17, "5 PM" -> 17.
+ */
+function parseClockHour(text: string | null | undefined): number | null {
+  if (!text) {
+    return null;
+  }
+
+  const match = text.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b|(\d{1,2}):(\d{2})/i);
+
+  if (!match) {
+    return null;
+  }
+
+  const meridiem = match[3]?.toLowerCase();
+  const rawHour = match[1] ?? match[4];
+  let hour = Number.parseInt(rawHour ?? '', 10);
+
+  if (!Number.isFinite(hour) || hour < 0 || hour > 24) {
+    return null;
+  }
+
+  if (meridiem === 'pm' && hour < 12) {
+    hour += 12;
+  }
+
+  if (meridiem === 'am' && hour === 12) {
+    hour = 0;
+  }
+
+  return hour;
+}
+
+/**
+ * Best-effort resolution of the venue load-in close hour from the (unstructured)
+ * constraint rows and notes. There is no structured load-in field in the
+ * constraint profile yet, so this scans load-in-related constraints first, then
+ * any note mentioning "load". Returns null when nothing parses, which the
+ * validator surfaces as needs_review rather than a fabricated default.
+ */
+function resolveLoadInClosesHour(detail: AtlasVenueDetail): number | null {
+  for (const constraint of detail.constraints) {
+    if (!LOAD_IN_CONSTRAINT_KEYS.includes(constraint.key)) {
+      continue;
+    }
+
+    if (typeof constraint.valueNumber === 'number' && constraint.valueNumber >= 0 && constraint.valueNumber <= 24) {
+      return constraint.valueNumber;
+    }
+
+    const fromValue = parseClockHour(constraint.valueText);
+    if (fromValue !== null) {
+      return fromValue;
+    }
+
+    const fromNotes = parseClockHour(constraint.notes);
+    if (fromNotes !== null) {
+      return fromNotes;
+    }
+  }
+
+  for (const note of detail.notes) {
+    if (/load[\s-]?in/i.test(note)) {
+      const parsed = parseClockHour(note);
+      if (parsed !== null) {
+        return parsed;
+      }
+    }
+  }
+
+  return null;
+}
+
+function buildTimelineValidationDescriptors(detail: AtlasVenueDetail): RequiredFieldDescriptor[] {
+  const sound = detail.constraintProfile?.operational.sound;
+  const timeline = detail.constraintProfile?.operational.timeline;
+
+  return [
+    {
+      key: 'operational.sound.curfew.localTime',
+      category: 'Operational',
+      pillar: 'PolicyCompliance',
+      operationallyMaterial: true,
+      value: sound?.curfew.localTime ?? (typeof detail.noiseCurfewHour === 'number' ? String(detail.noiseCurfewHour) : null)
+    },
+    {
+      key: 'operational.timeline.roomFlipMin',
+      category: 'Operational',
+      pillar: 'LoadInLogistics',
+      operationallyMaterial: true,
+      value: timeline?.roomFlipMin ?? null,
+      validate: isPositiveNumber
+    },
+    {
+      key: 'operational.timeline.preSetSupported',
+      category: 'Operational',
+      pillar: 'LoadInLogistics',
+      operationallyMaterial: false,
+      value: timeline?.preSetSupported ?? null
+    }
+  ];
+}
+
+/**
+ * Adapter: resolve the venue-feasibility primitives from a venue detail and run
+ * the pure timeline validator against a set of generated timeline items. Folds
+ * the trust-weighted framework confidence into each finding's base confidence.
+ */
+export function evaluateTimelineFeasibility(
+  detail: AtlasVenueDetail,
+  items: TimelineValidationItem[]
+): TimelineValidationResult {
+  const sound = detail.constraintProfile?.operational.sound;
+  const timeline = detail.constraintProfile?.operational.timeline;
+
+  const curfewHour =
+    parseCurfewHour(sound?.curfew.localTime ?? null) ??
+    (typeof detail.noiseCurfewHour === 'number' ? detail.noiseCurfewHour : null);
+
+  const framework = frameworkConfidence(detail, buildTimelineValidationDescriptors(detail));
+
+  return validateTimeline({
+    items,
+    baseConfidence: framework.confidence01,
+    venue: {
+      curfewType: sound?.curfew.type ?? null,
+      curfewHour,
+      roomFlipMin: timeline?.roomFlipMin ?? null,
+      preSetSupported: timeline?.preSetSupported ?? null,
+      loadInClosesHour: resolveLoadInClosesHour(detail)
+    }
+  });
+}
+
+export type { TimelineValidationFinding, TimelineValidationResult };
 
 export const ATLAS_VENUE_SEEDS: AtlasVenueSeed[] = [
   {
@@ -616,5 +1336,148 @@ export async function runOutdoorPowerCurfewLive(
     venue: detail,
     recommendation,
     persistenceMode
+  };
+}
+
+export async function runCapacitySqueezeLive(
+  input: CapacitySqueezeInput
+): Promise<{ venue: AtlasVenueSeed; recommendation: AtlasTriggerRecommendation; persistenceMode: 'persisted' | 'skipped' } | null> {
+  const detail = await getAtlasVenueDetail(input.venueId);
+
+  if (!detail) {
+    return null;
+  }
+
+  const recommendation = evaluateCapacitySqueeze({
+    detail,
+    eventId: input.eventId,
+    desiredGuests: input.desiredGuests,
+    eventMode: input.eventMode,
+    serviceLossPct: input.serviceLossPct,
+    sqFtPerTable: input.sqFtPerTable,
+    hasDanceFloor: input.hasDanceFloor,
+    danceFloorSize: input.danceFloorSize,
+    hasDjPit: input.hasDjPit,
+    hasBand: input.hasBand,
+    hasAisleRiser: input.hasAisleRiser
+  });
+
+  const persistenceMode = await persistAtlasEvaluation({
+    recommendation,
+    detail,
+    eventId: input.eventId
+  });
+
+  return {
+    venue: detail,
+    recommendation,
+    persistenceMode
+  };
+}
+
+export async function runTightRoomFlipLive(
+  input: TightRoomFlipInput
+): Promise<{ venue: AtlasVenueSeed; recommendation: AtlasTriggerRecommendation; persistenceMode: 'persisted' | 'skipped' } | null> {
+  const detail = await getAtlasVenueDetail(input.venueId);
+
+  if (!detail) {
+    return null;
+  }
+
+  const recommendation = evaluateTightRoomFlip({
+    detail,
+    eventId: input.eventId,
+    ceremonyToReceptionMin: input.ceremonyToReceptionMin
+  });
+
+  const persistenceMode = await persistAtlasEvaluation({
+    recommendation,
+    detail,
+    eventId: input.eventId
+  });
+
+  return {
+    venue: detail,
+    recommendation,
+    persistenceMode
+  };
+}
+
+export async function runRiggingOrCeilingConstraintLive(
+  input: RiggingOrCeilingConstraintInput
+): Promise<{ venue: AtlasVenueSeed; recommendation: AtlasTriggerRecommendation; persistenceMode: 'persisted' | 'skipped' } | null> {
+  const detail = await getAtlasVenueDetail(input.venueId);
+
+  if (!detail) {
+    return null;
+  }
+
+  const recommendation = evaluateRiggingOrCeilingConstraint({
+    detail,
+    eventId: input.eventId,
+    riggingPlanned: input.riggingPlanned
+  });
+
+  const persistenceMode = await persistAtlasEvaluation({
+    recommendation,
+    detail,
+    eventId: input.eventId
+  });
+
+  return {
+    venue: detail,
+    recommendation,
+    persistenceMode
+  };
+}
+
+export interface VenueFeasibilityInput {
+  venueId: string;
+  eventId: string | null;
+  desiredGuests: number;
+  eventMode?: CapacityEventMode;
+}
+
+export interface VenueFeasibilityResult {
+  venue: AtlasVenueSeed;
+  atlasOutdoorPowerCurfew: OutdoorPowerCurfewRecommendation;
+  recommendations: AtlasTriggerRecommendation[];
+  atlasEvaluationPersistenceMode: 'persisted' | 'skipped';
+}
+
+// Invocation seam: runs the full venue-feasibility trigger set (outdoor power/curfew + the three
+// operational-truth triggers) in a single detail load, persisting each evaluation when an event
+// context is present. This is what turns the dormant evaluators into live recommendations on the
+// venue-check surface.
+export async function runVenueFeasibilityLive(input: VenueFeasibilityInput): Promise<VenueFeasibilityResult | null> {
+  const detail = await getAtlasVenueDetail(input.venueId);
+
+  if (!detail) {
+    return null;
+  }
+
+  const atlasOutdoorPowerCurfew = evaluateOutdoorPowerCurfew({ detail, eventId: input.eventId });
+  const capacitySqueeze = evaluateCapacitySqueeze({
+    detail,
+    eventId: input.eventId,
+    desiredGuests: input.desiredGuests,
+    eventMode: input.eventMode
+  });
+  const tightRoomFlip = evaluateTightRoomFlip({ detail, eventId: input.eventId });
+  const riggingOrCeiling = evaluateRiggingOrCeilingConstraint({ detail, eventId: input.eventId });
+
+  const recommendations = [capacitySqueeze, tightRoomFlip, riggingOrCeiling];
+
+  const persistenceModes = await Promise.all(
+    [atlasOutdoorPowerCurfew, ...recommendations].map((recommendation) =>
+      persistAtlasEvaluation({ recommendation, detail, eventId: input.eventId })
+    )
+  );
+
+  return {
+    venue: detail,
+    atlasOutdoorPowerCurfew,
+    recommendations,
+    atlasEvaluationPersistenceMode: persistenceModes.includes('persisted') ? 'persisted' : 'skipped'
   };
 }

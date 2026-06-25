@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import {
   MUSIC_GENRE_KEYS,
+  getCouplePersistenceMode,
   getMusicProjectionForActor,
   submitMusicQuestionnaire,
   type MusicQuestionnaireInput
@@ -49,11 +50,11 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const projection = getMusicProjectionForActor({ eventId: context.eventId, actorRole: context.role });
+  const projection = await getMusicProjectionForActor({ eventId: context.eventId, actorRole: context.role });
   return NextResponse.json({
     eventId: context.eventId,
     role: context.role,
-    source: 'simulation',
+    source: getCouplePersistenceMode(),
     domainScope: projection.domainScope,
     music: projection.music
   });
@@ -79,8 +80,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const music = submitMusicQuestionnaire(context.eventId, input);
-    return NextResponse.json({ mode: 'simulation', music }, { status: 201 });
+    const music = await submitMusicQuestionnaire(context.eventId, input);
+    return NextResponse.json({ mode: getCouplePersistenceMode(), music }, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message === 'music_locked') {
       return NextResponse.json({ error: 'music_locked' }, { status: 409 });

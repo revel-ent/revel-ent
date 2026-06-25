@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import {
-  formatDate
+  formatDate,
+  type MilestoneStatus
 } from '@/lib/mock-client-milestones';
 import { type ChecklistProjection } from '@/lib/couple-domains';
 

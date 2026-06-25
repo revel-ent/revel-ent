@@ -4,7 +4,7 @@ import type Stripe from 'stripe';
 import { getStripeServerClient, getStripeWebhookSecret } from '@/lib/atlas-stripe';
 import { isUuid, parseWorkspacePlan } from '@/lib/atlas-commercial';
 import { markPaymentMilestoneComplete } from '@/lib/couple-domains';
-import { getClientPlanForEvent } from '@/lib/mock-client-milestones';
+import { getClientPlanForEvent } from '@/lib/client-plans';
 import { dispatchMessageToRecipients } from '@/lib/notifications';
 import { getEventStakeholderEmails } from '@/lib/event-stakeholders';
 import { getSupabaseAdminClient } from '@/lib/supabase-server';
@@ -143,7 +143,7 @@ async function sendDepositQuestionnaireReminder(params: {
   eventTitle?: string;
   amountCents?: number;
 }) {
-  const plan = getClientPlanForEvent(params.eventId);
+  const plan = await getClientPlanForEvent(params.eventId);
   if (!plan) {
     return;
   }
@@ -283,7 +283,7 @@ export async function POST(request: Request) {
           .update({ status: 'paid', payment_status: 'paid', updated_at: new Date().toISOString() })
           .eq('stripe_payment_intent_id', paymentIntent.id);
 
-        markPaymentMilestoneComplete(relatedEventId, 'pay-deposit');
+        await markPaymentMilestoneComplete(relatedEventId, 'pay-deposit');
 
         await sendDepositQuestionnaireReminder({
           eventId: relatedEventId,

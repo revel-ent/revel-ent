@@ -356,7 +356,10 @@ const JAYATI_UPPAL_PLAN: ClientEventPlan = {
 
 const PLANS: ClientEventPlan[] = [JAYATI_UPPAL_PLAN, AKSHAY_RANI_PLAN];
 
-export function getClientPlanForEvent(eventId: string): ClientEventPlan | undefined {
+// Seed / fallback source for client plans. The durable, data-driven getter lives in
+// lib/client-plans.ts and reads event_client_plans + children, falling back to this when
+// Supabase is unconfigured or the event has no persisted plan yet.
+export function getSeedClientPlanForEvent(eventId: string): ClientEventPlan | undefined {
   return PLANS.find((plan) => plan.eventId === eventId);
 }
 

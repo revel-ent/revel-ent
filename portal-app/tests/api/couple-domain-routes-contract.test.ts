@@ -14,7 +14,7 @@ describe('couple domain routes contract', () => {
     __resetCoupleDomainsForTests();
   });
 
-  it('checklist route exposes locked music workflow until deposit is confirmed', async () => {
+  it('checklist route exposes the confirmed deposit and an unlocked music workflow', async () => {
     getSessionMock.mockResolvedValue({
       userId: 'usr-couple-akshay-patel',
       email: 'akshay.rani1128@gmail.com',
@@ -29,10 +29,10 @@ describe('couple domain routes contract', () => {
     const payload = await response.json();
 
     expect(response.status).toBe(200);
-    expect(payload.summary.depositConfirmed).toBe(false);
+    expect(payload.summary.depositConfirmed).toBe(true);
     expect(payload.checklist.find((item: { id: string }) => item.id === 'todo-music-questionnaire')).toMatchObject({
       title: 'Complete Music Questionnaire',
-      locked: true
+      locked: false
     });
   });
 

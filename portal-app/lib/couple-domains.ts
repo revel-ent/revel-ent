@@ -1,6 +1,8 @@
-import { type PaymentMilestone, type PlanningTodo, getClientPlanForEvent } from '@/lib/mock-client-milestones';
+import { type ClientEventPlan, type PaymentMilestone, type PlanningTodo } from '@/lib/mock-client-milestones';
+import { getClientPlanForEvent } from '@/lib/client-plans';
 import { createRoleScopedAdapter, getDomainScope } from '@/lib/role-scoped-adapters';
 import { type Role } from '@/lib/auth';
+import { getSupabaseAdminClient } from '@/lib/supabase-server';
 
 export const MUSIC_GENRE_KEYS = [
   'bhangraNewer',
@@ -85,30 +87,165 @@ export interface ApprovalProjection {
   };
 }
 
+interface MusicSubmissionState {
+  questionnaire: MusicQuestionnaireInput;
+  profile: MusicProfileCard;
+  submittedAt: string;
+}
+
 interface DomainRuntimeState {
   paymentOverrides: Record<string, Pick<PaymentMilestone, 'status' | 'completedAt'>>;
   todoOverrides: Record<string, Pick<PlanningTodo, 'status' | 'completedAt' | 'badgeLabel'>>;
-  musicSubmission: {
-    questionnaire: MusicQuestionnaireInput;
-    profile: MusicProfileCard;
-    submittedAt: string;
-  } | null;
+  musicSubmission: MusicSubmissionState | null;
 }
 
+// In-memory cache of the per-event override state. When Supabase is configured it is hydrated from
+// atlas_couple_workspace_state on every read and written through on every mutation; without Supabase
+// (local dev, tests) it behaves as a process-lifetime store, matching prior behavior exactly.
 const runtimeState = new Map<string, DomainRuntimeState>();
+
+function createEmptyRuntimeState(): DomainRuntimeState {
+  return { paymentOverrides: {}, todoOverrides: {}, musicSubmission: null };
+}
 
 function getOrCreateRuntimeState(eventId: string): DomainRuntimeState {
   let state = runtimeState.get(eventId);
   if (!state) {
-    state = {
-      paymentOverrides: {},
-      todoOverrides: {},
-      musicSubmission: null
-    };
+    state = createEmptyRuntimeState();
     runtimeState.set(eventId, state);
   }
 
   return state;
+}
+
+function normalizeRuntimeState(input: {
+  paymentOverrides?: unknown;
+  todoOverrides?: unknown;
+  musicSubmission?: unknown;
+}): DomainRuntimeState {
+  const paymentOverrides =
+    input.paymentOverrides && typeof input.paymentOverrides === 'object'
+      ? (input.paymentOverrides as DomainRuntimeState['paymentOverrides'])
+      : {};
+  const todoOverrides =
+    input.todoOverrides && typeof input.todoOverrides === 'object'
+      ? (input.todoOverrides as DomainRuntimeState['todoOverrides'])
+      : {};
+  const musicSubmission =
+    input.musicSubmission && typeof input.musicSubmission === 'object'
+      ? (input.musicSubmission as MusicSubmissionState)
+      : null;
+
+  return { paymentOverrides, todoOverrides, musicSubmission };
+}
+
+export function getCouplePersistenceMode(): 'durable' | 'degraded' {
+  return getSupabaseAdminClient() ? 'durable' : 'degraded';
+}
+
+// Hydrate the in-memory cache for an event from Supabase. Falls back to the in-memory store when
+// Supabase is unavailable or the row does not exist yet.
+async function loadRuntimeState(eventId: string): Promise<DomainRuntimeState> {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return getOrCreateRuntimeState(eventId);
+  }
+
+  const { data, error } = await supabase
+    .from('atlas_couple_workspace_state')
+    .select('payment_overrides,todo_overrides,music_submission')
+    .eq('event_id', eventId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return getOrCreateRuntimeState(eventId);
+  }
+
+  const state = normalizeRuntimeState({
+    paymentOverrides: data.payment_overrides,
+    todoOverrides: data.todo_overrides,
+    musicSubmission: data.music_submission
+  });
+
+  runtimeState.set(eventId, state);
+  return state;
+}
+
+async function requirePlan(eventId: string): Promise<ClientEventPlan> {
+  const plan = await getClientPlanForEvent(eventId);
+  if (!plan) {
+    throw new Error(`Missing client plan for event ${eventId}`);
+  }
+
+  return plan;
+}
+
+// Hydrate both the durable plan and the override state for an event.
+async function loadCouple(eventId: string): Promise<{ plan: ClientEventPlan; state: DomainRuntimeState }> {
+  const [plan, state] = await Promise.all([requirePlan(eventId), loadRuntimeState(eventId)]);
+  return { plan, state };
+}
+
+async function persistPaymentOverride(
+  eventId: string,
+  milestoneId: string,
+  override: DomainRuntimeState['paymentOverrides'][string]
+): Promise<void> {
+  const state = getOrCreateRuntimeState(eventId);
+  state.paymentOverrides[milestoneId] = override;
+  runtimeState.set(eventId, state);
+
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return;
+  }
+
+  await supabase.rpc('atlas_couple_workspace_state_merge', {
+    p_event_id: eventId,
+    p_domain: 'payment',
+    p_override_key: milestoneId,
+    p_override_value: override
+  });
+}
+
+async function persistTodoOverride(
+  eventId: string,
+  itemId: string,
+  override: DomainRuntimeState['todoOverrides'][string]
+): Promise<void> {
+  const state = getOrCreateRuntimeState(eventId);
+  state.todoOverrides[itemId] = override;
+  runtimeState.set(eventId, state);
+
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return;
+  }
+
+  await supabase.rpc('atlas_couple_workspace_state_merge', {
+    p_event_id: eventId,
+    p_domain: 'todo',
+    p_override_key: itemId,
+    p_override_value: override
+  });
+}
+
+async function persistMusicSubmission(eventId: string, submission: MusicSubmissionState): Promise<void> {
+  const state = getOrCreateRuntimeState(eventId);
+  state.musicSubmission = submission;
+  runtimeState.set(eventId, state);
+
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return;
+  }
+
+  await supabase.rpc('atlas_couple_workspace_state_merge', {
+    p_event_id: eventId,
+    p_domain: 'music',
+    p_override_key: 'submission',
+    p_override_value: submission as unknown as Record<string, unknown>
+  });
 }
 
 function cloneMilestone(base: PaymentMilestone, override?: Pick<PaymentMilestone, 'status' | 'completedAt'>): PaymentMilestone {
@@ -125,25 +262,14 @@ function cloneTodo(base: PlanningTodo, override?: Pick<PlanningTodo, 'status' | 
   };
 }
 
-function getPlan(eventId: string) {
-  const plan = getClientPlanForEvent(eventId);
-  if (!plan) {
-    throw new Error(`Missing client plan for event ${eventId}`);
-  }
-
-  return plan;
-}
-
-export function getChecklistState(eventId: string): ChecklistProjection {
-  const plan = getPlan(eventId);
-  const state = getOrCreateRuntimeState(eventId);
-
+// Sync builder over an already-resolved plan + hydrated override state.
+function buildChecklistState(plan: ClientEventPlan, state: DomainRuntimeState): ChecklistProjection {
   const payments = plan.paymentMilestones.map((item) => cloneMilestone(item, state.paymentOverrides[item.id]));
   const paidAmount = payments.filter((item) => item.status === 'completed').reduce((sum, item) => sum + item.amount, 0);
   const remainingAmount = plan.totalContractValue - paidAmount;
   const depositConfirmed = payments.some((item) => item.percent === 30 && item.status === 'completed');
 
-  const musicState = getMusicState(eventId);
+  const musicState = buildMusicState(plan, state);
   const checklist = plan.planningTodos.map((item) => {
     const override = state.todoOverrides[item.id];
     const todo = cloneTodo(item, override);
@@ -191,6 +317,12 @@ export function getChecklistState(eventId: string): ChecklistProjection {
   };
 }
 
+// Public read: hydrate plan + override state from Supabase (if configured), then project.
+export async function getChecklistState(eventId: string): Promise<ChecklistProjection> {
+  const { plan, state } = await loadCouple(eventId);
+  return buildChecklistState(plan, state);
+}
+
 function topGenres(genreMix: Record<MusicGenreKey, number>) {
   return Object.entries(genreMix)
     .sort((a, b) => b[1] - a[1])
@@ -230,11 +362,11 @@ export function generateMusicProfile(input: MusicQuestionnaireInput): MusicProfi
   };
 }
 
-export function getMusicState(eventId: string): MusicDomainRecord {
-  const state = getOrCreateRuntimeState(eventId);
-  const checklist = getPlan(eventId);
-  const payments = checklist.paymentMilestones.map((item) => cloneMilestone(item, state.paymentOverrides[item.id]));
+// Sync builder over an already-resolved plan + hydrated override state.
+function buildMusicState(plan: ClientEventPlan, state: DomainRuntimeState): MusicDomainRecord {
+  const payments = plan.paymentMilestones.map((item) => cloneMilestone(item, state.paymentOverrides[item.id]));
   const unlockedByDeposit = payments.some((item) => item.percent === 30 && item.status === 'completed');
+  const eventId = plan.eventId;
 
   if (state.musicSubmission) {
     return {
@@ -283,17 +415,19 @@ const projectApprovals = createRoleScopedAdapter<ApprovalProjection, ApprovalPro
   }
 });
 
-export function getMusicProjectionForActor(params: { eventId: string; actorRole: Role }) {
-  const record = getMusicState(params.eventId);
+export async function getMusicProjectionForActor(params: { eventId: string; actorRole: Role }) {
+  const { plan, state } = await loadCouple(params.eventId);
+  const record = buildMusicState(plan, state);
   return {
     domainScope: getDomainScope('music', params.actorRole),
     music: projectMusic(params.actorRole, record)
   };
 }
 
-export function getApprovalProjectionForActor(params: { eventId: string; actorRole: Role }): ApprovalProjection & { domainScope: ReturnType<typeof getDomainScope> } {
-  const checklist = getChecklistState(params.eventId);
-  const music = getMusicState(params.eventId);
+export async function getApprovalProjectionForActor(params: { eventId: string; actorRole: Role }): Promise<ApprovalProjection & { domainScope: ReturnType<typeof getDomainScope> }> {
+  const { plan, state } = await loadCouple(params.eventId);
+  const checklist = buildChecklistState(plan, state);
+  const music = buildMusicState(plan, state);
   const approvalState: ApprovalProjection = {
     approvals: [
       {
@@ -339,26 +473,22 @@ export function getApprovalProjectionForActor(params: { eventId: string; actorRo
   };
 }
 
-export function markPaymentMilestoneComplete(eventId: string, milestoneId: string, completedAt = new Date().toISOString().slice(0, 10)) {
-  const state = getOrCreateRuntimeState(eventId);
-  const plan = getPlan(eventId);
+export async function markPaymentMilestoneComplete(eventId: string, milestoneId: string, completedAt = new Date().toISOString().slice(0, 10)) {
+  const { plan } = await loadCouple(eventId);
   const milestone = plan.paymentMilestones.find((item) => item.id === milestoneId);
 
   if (!milestone) {
     return null;
   }
 
-  state.paymentOverrides[milestoneId] = {
-    status: 'completed',
-    completedAt
-  };
+  const override = { status: 'completed' as const, completedAt };
+  await persistPaymentOverride(eventId, milestoneId, override);
 
-  return cloneMilestone(milestone, state.paymentOverrides[milestoneId]);
+  return cloneMilestone(milestone, override);
 }
 
-export function toggleChecklistItem(eventId: string, itemId: string) {
-  const state = getOrCreateRuntimeState(eventId);
-  const plan = getPlan(eventId);
+export async function toggleChecklistItem(eventId: string, itemId: string) {
+  const { plan, state } = await loadCouple(eventId);
   const item = plan.planningTodos.find((todo) => todo.id === itemId);
 
   if (!item || !item.clientCompletable || item.id === 'todo-music-questionnaire') {
@@ -366,21 +496,23 @@ export function toggleChecklistItem(eventId: string, itemId: string) {
   }
 
   const current = state.todoOverrides[itemId]?.status ?? item.status;
-  state.todoOverrides[itemId] = current === 'completed'
-    ? { status: 'pending', completedAt: undefined, badgeLabel: item.badgeLabel }
-    : { status: 'completed', completedAt: new Date().toISOString().slice(0, 10), badgeLabel: 'Done' };
+  const override = current === 'completed'
+    ? { status: 'pending' as const, completedAt: undefined, badgeLabel: item.badgeLabel }
+    : { status: 'completed' as const, completedAt: new Date().toISOString().slice(0, 10), badgeLabel: 'Done' };
 
-  return cloneTodo(item, state.todoOverrides[itemId]);
+  await persistTodoOverride(eventId, itemId, override);
+
+  return cloneTodo(item, override);
 }
 
-export function submitMusicQuestionnaire(eventId: string, input: MusicQuestionnaireInput) {
+export async function submitMusicQuestionnaire(eventId: string, input: MusicQuestionnaireInput) {
   const total = MUSIC_GENRE_KEYS.reduce((sum, key) => sum + (input.genreMix[key] ?? 0), 0);
   if (total !== 100) {
     throw new Error('genre_mix_total_invalid');
   }
 
-  const state = getOrCreateRuntimeState(eventId);
-  const musicState = getMusicState(eventId);
+  const { plan, state } = await loadCouple(eventId);
+  const musicState = buildMusicState(plan, state);
   if (musicState.status === 'locked') {
     throw new Error('music_locked');
   }
@@ -394,18 +526,15 @@ export function submitMusicQuestionnaire(eventId: string, input: MusicQuestionna
 
   const profile = generateMusicProfile(normalized);
   const submittedAt = new Date().toISOString();
-  state.musicSubmission = {
-    questionnaire: normalized,
-    profile,
-    submittedAt
-  };
-  state.todoOverrides['todo-music-questionnaire'] = {
+
+  await persistMusicSubmission(eventId, { questionnaire: normalized, profile, submittedAt });
+  await persistTodoOverride(eventId, 'todo-music-questionnaire', {
     status: 'completed',
     completedAt: submittedAt.slice(0, 10),
     badgeLabel: 'Done'
-  };
+  });
 
-  return getMusicState(eventId);
+  return buildMusicState(plan, getOrCreateRuntimeState(eventId));
 }
 
 export function __resetCoupleDomainsForTests() {

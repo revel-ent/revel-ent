@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session';
 import { getEventRecord } from '@/lib/event-context';
 import { getCoordinationFeedByEvent } from '@/lib/mock-ops';
-import { getClientPlanForEvent, formatDate, getDaysUntil } from '@/lib/mock-client-milestones';
+import { formatDate, getDaysUntil } from '@/lib/mock-client-milestones';
+import { getClientPlanForEvent } from '@/lib/client-plans';
 import { type ChecklistProjection, getApprovalProjectionForActor, getChecklistState, getMusicProjectionForActor } from '@/lib/couple-domains';
 import ClientPaymentPanel from '@/app/portal/couple/components/ClientPaymentPanel';
 import ClientContactsPanel from '@/app/portal/couple/components/ClientContactsPanel';
@@ -107,10 +108,10 @@ export default async function CouplePortalPage() {
   if (!session) redirect('/login');
 
   const event = session.eventId ? await getEventRecord(session.eventId) : undefined;
-  const plan = session.eventId ? getClientPlanForEvent(session.eventId) : undefined;
-  const checklist = session.eventId ? getChecklistState(session.eventId) : null;
-  const musicProjection = session.eventId ? getMusicProjectionForActor({ eventId: session.eventId, actorRole: session.role }) : null;
-  const approvalsProjection = session.eventId ? getApprovalProjectionForActor({ eventId: session.eventId, actorRole: session.role }) : null;
+  const plan = session.eventId ? await getClientPlanForEvent(session.eventId) : undefined;
+  const checklist = session.eventId ? await getChecklistState(session.eventId) : null;
+  const musicProjection = session.eventId ? await getMusicProjectionForActor({ eventId: session.eventId, actorRole: session.role }) : null;
+  const approvalsProjection = session.eventId ? await getApprovalProjectionForActor({ eventId: session.eventId, actorRole: session.role }) : null;
 
   const primaryDate = plan?.primaryDates[0];
   const dayCount = primaryDate ? getDaysUntil(primaryDate) : null;

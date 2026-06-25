@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { getApprovalProjectionForActor } from '@/lib/couple-domains';
+import { getApprovalProjectionForActor, getCouplePersistenceMode } from '@/lib/couple-domains';
 import { requireEventRoleContext } from '@/lib/event-context';
 import { canAccessDomain } from '@/lib/role-scoped-adapters';
 
@@ -15,11 +15,11 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const projection = getApprovalProjectionForActor({ eventId: context.eventId, actorRole: context.role });
+  const projection = await getApprovalProjectionForActor({ eventId: context.eventId, actorRole: context.role });
   return NextResponse.json({
     eventId: context.eventId,
     role: context.role,
-    source: 'simulation',
+    source: getCouplePersistenceMode(),
     domainScope: projection.domainScope,
     approvals: projection.approvals,
     summary: projection.summary

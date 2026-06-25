@@ -17,6 +17,7 @@
     "atlas:import:apply": "tsx scripts/import-atlas-venues.ts --apply"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.106.2",
     "jose": "^5.9.6",
     "next": "^16.2.6",

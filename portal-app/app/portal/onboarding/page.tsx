@@ -3,7 +3,24 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { DEFAULT_TRADITION_KEY, listWeddingTraditions } from '@/lib/wedding-traditions';
+
 type CapacityStatus = 'safe' | 'tight' | 'unsafe';
+
+interface AtlasRecommendationView {
+  triggerKey: string;
+  groupedRecommendationKey: string;
+  status: 'active' | 'needs_review' | 'suppressed';
+  severity: 'info' | 'warning' | 'critical';
+  confidence: number;
+  fired: boolean;
+  title: string;
+  message: string;
+  cta: string;
+  evidence: Record<string, unknown>;
+  missingFields: string[];
+  fingerprint: string | null;
+}
 
 interface CapacityCheckResponse {
   status: CapacityStatus;
@@ -18,21 +35,9 @@ interface CapacityCheckResponse {
     constraintsSummary: string;
     sourceConfidence: 'vendor_verified' | 'partially_verified' | 'unverified';
   };
-  atlasOutdoorPowerCurfew?: {
-    triggerKey: string;
-    groupedRecommendationKey: string;
-    status: 'active' | 'needs_review' | 'suppressed';
-    severity: 'info' | 'warning' | 'critical';
-    confidence: number;
-    fired: boolean;
-    title: string;
-    message: string;
-    cta: string;
-    evidence: Record<string, unknown>;
-    missingFields: string[];
-    fingerprint: string | null;
-  } | null;
+  atlasOutdoorPowerCurfew?: AtlasRecommendationView | null;
   atlasEvaluationPersistenceMode?: 'persisted' | 'skipped';
+  recommendations?: AtlasRecommendationView[];
 }
 
 interface OnboardingVenue {
@@ -51,6 +56,8 @@ interface OnboardingVenueListResponse {
   venues: OnboardingVenue[];
   source: 'database' | 'fallback';
 }
+
+const WEDDING_TRADITIONS = listWeddingTraditions();
 
 const ONBOARDING_ROLE_OPTIONS = [
   { value: 'couple', label: 'Client (Couple)' },
@@ -96,6 +103,7 @@ export default function ConciergeOnboardingPage() {
   const [venuesLoading, setVenuesLoading] = useState(true);
   const [guestCount, setGuestCount] = useState('300');
   const [weddingDate, setWeddingDate] = useState('');
+  const [tradition, setTradition] = useState<string>(DEFAULT_TRADITION_KEY);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CapacityCheckResponse | null>(null);
@@ -253,6 +261,19 @@ export default function ConciergeOnboardingPage() {
             onChange={(event) => setWeddingDate(event.target.value)}
           />
 
+          <label htmlFor="tradition">Wedding Tradition</label>
+          <select id="tradition" value={tradition} onChange={(event) => setTradition(event.target.value)}>
+            {WEDDING_TRADITIONS.map((option) => (
+              <option key={option.key} value={option.key}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p className="item-note">
+            {WEDDING_TRADITIONS.find((option) => option.key === tradition)?.description ??
+              'We tailor the generated functions to this tradition.'}
+          </p>
+
           <button className="btn primary" type="submit" disabled={loading || venuesLoading || !venueId}>
             {loading ? 'Validating...' : 'Verify and Continue'}
           </button>
@@ -293,6 +314,25 @@ export default function ConciergeOnboardingPage() {
           </article>
         ) : null}
 
+        {result?.recommendations
+          ?.filter((rec) => rec.status !== 'suppressed')
+          .map((rec) => (
+            <article className="card" key={rec.triggerKey}>
+              <div className="card-header">
+                <h3>{rec.title}</h3>
+                <span className={`status-chip ${rec.severity}`}>{rec.severity}</span>
+              </div>
+              <p>{rec.message}</p>
+              <p className="card-muted">
+                Recommendation: <strong>{rec.cta}</strong>
+              </p>
+              <p className="item-note">Confidence: {Math.round(rec.confidence * 100)}%</p>
+              {rec.missingFields.length > 0 ? (
+                <p className="item-note">Needs confirmation: {rec.missingFields.join(', ')}</p>
+              ) : null}
+            </article>
+          ))}
+
         {error ? (
           <div className="alert error">
             <strong>{error}</strong>
@@ -317,6 +357,8 @@ export default function ConciergeOnboardingPage() {
                 if (weddingDate) {
                   query.set('weddingDate', weddingDate);
                 }
+
+                query.set('tradition', tradition);
 
                 router.push(`/portal/onboarding/timeline?${query.toString()}`);
               }}
