@@ -25,6 +25,7 @@ export interface CanonicalTimelineItem {
 
 export interface TimelineProjectionItem {
   id: string;
+  eventId: string;
   phase: string;
   title: string;
   startsAtIso: string;
@@ -237,6 +238,7 @@ export function mapPersistedTimelineRows(eventId: string, rows: PersistedTimelin
 function toProjectionItem(item: CanonicalTimelineItem, readOnly: boolean): TimelineProjectionItem {
   return {
     id: item.id,
+    eventId: item.eventId,
     phase: item.phase,
     title: item.title,
     startsAtIso: item.scheduledStartIso,
