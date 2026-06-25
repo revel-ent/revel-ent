@@ -75,6 +75,9 @@ export default async function PortalLayout({ children }: { children: React.React
                 ) : null}
               </>
             )}
+            <Link className="portal-nav-link" href="/portal/assistant">
+              Assistant
+            </Link>
             <form action="/api/auth/logout" method="POST">
               <button className="portal-nav-link" type="submit">
                 Logout
