@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing event context' }, { status: 400 });
   }
 
-  const result = buildVenueAnalyzerReport({
+  const result = await buildVenueAnalyzerReport({
     eventId: session.eventId,
     venueName: String(body.venueName || 'Unknown Venue'),
     roomType: String(body.roomType || 'Ballroom'),

@@ -27,7 +27,43 @@ export interface IntakeExtraction {
   confidence: number;
 }
 
-export function buildFusionFlowPlan(input: FusionFlowInput) {
+export interface FusionFlowMoment {
+  phase: string;
+  musicDirection: string;
+  lightingState: string;
+}
+
+export interface FusionFlowPlan {
+  event: string;
+  assumptions: string[];
+  timelineMoments: FusionFlowMoment[];
+  nextBestAction: string;
+  confidence: number;
+}
+
+export interface VenueAnalyzerReport {
+  event: string;
+  venue: string;
+  roomType: string;
+  required: string[];
+  riskFlags: string[];
+  trustMetadata: {
+    sourceType: string;
+    reviewedBy: string;
+    reviewedOn: string;
+    confidenceScore: number;
+  };
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+}
+
+function heuristicFusionFlowPlan(input: FusionFlowInput): FusionFlowPlan {
   const event = findEventById(input.eventId);
   const crowdScale = input.guestCount >= 300 ? 'high-density crowd' : 'mid-density crowd';
 
@@ -60,7 +96,80 @@ export function buildFusionFlowPlan(input: FusionFlowInput) {
   };
 }
 
-export function buildVenueAnalyzerReport(input: VenueAnalyzerInput) {
+async function geminiFusionFlowPlan(input: FusionFlowInput): Promise<FusionFlowPlan | null> {
+  if (!isGeminiConfigured()) {
+    return null;
+  }
+
+  const system =
+    'You are a wedding music and experience director. You design how music and lighting evolve across an event\'s key moments, honoring the couple\'s specific cultural blend. You work with every culture and tradition — weave the traditions actually named in the blend and never default to one. Return only valid JSON.';
+
+  const prompt = `Design the music and lighting arc for this wedding. Return JSON with exactly these fields:
+{
+  "assumptions": string[],
+  "timelineMoments": [{ "phase": string, "musicDirection": string, "lightingState": string }],
+  "nextBestAction": string
+}
+
+Rules:
+- assumptions: 3-4 short planning assumptions you are making.
+- timelineMoments: 3-5 moments in chronological order. musicDirection and lightingState are one concise sentence each.
+- Honor the cultural blend and the must-play seeds; scale energy to the guest count and the stated vibe goal.
+- nextBestAction: one concrete next step for the planner.
+
+Cultural blend: ${input.cultureBlend}
+Vibe goal: ${input.vibeGoal}
+Must-play seeds: ${input.mustPlayTracks}
+Guest count: ${input.guestCount}`;
+
+  try {
+    const raw = await geminiGenerateJson<{ assumptions?: unknown; timelineMoments?: unknown; nextBestAction?: unknown }>(
+      prompt,
+      system
+    );
+
+    if (!raw) {
+      return null;
+    }
+
+    const assumptions = toStringArray(raw.assumptions).slice(0, 6);
+    const timelineMoments = (Array.isArray(raw.timelineMoments) ? raw.timelineMoments : [])
+      .map((entry) => {
+        const moment = entry as { phase?: unknown; musicDirection?: unknown; lightingState?: unknown };
+        return {
+          phase: typeof moment.phase === 'string' ? moment.phase : '',
+          musicDirection: typeof moment.musicDirection === 'string' ? moment.musicDirection : '',
+          lightingState: typeof moment.lightingState === 'string' ? moment.lightingState : ''
+        };
+      })
+      .filter((moment) => moment.phase && moment.musicDirection)
+      .slice(0, 6);
+    const nextBestAction = typeof raw.nextBestAction === 'string' && raw.nextBestAction ? raw.nextBestAction : '';
+
+    if (assumptions.length === 0 || timelineMoments.length === 0 || !nextBestAction) {
+      return null;
+    }
+
+    const event = findEventById(input.eventId);
+
+    return {
+      event: event?.title || 'Unknown Event',
+      assumptions,
+      timelineMoments,
+      nextBestAction,
+      confidence: 0.88
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function buildFusionFlowPlan(input: FusionFlowInput): Promise<FusionFlowPlan> {
+  const aiPlan = await geminiFusionFlowPlan(input);
+  return aiPlan ?? heuristicFusionFlowPlan(input);
+}
+
+function heuristicVenueAnalyzerReport(input: VenueAnalyzerInput): VenueAnalyzerReport {
   const event = findEventById(input.eventId);
   const verticalCoverageRisk = input.ceilingHeightFt >= 20;
   const crowdRisk = input.guestCount >= 320;
@@ -94,6 +203,69 @@ export function buildVenueAnalyzerReport(input: VenueAnalyzerInput) {
       confidenceScore: 0.8
     }
   };
+}
+
+async function geminiVenueAnalyzerReport(input: VenueAnalyzerInput): Promise<VenueAnalyzerReport | null> {
+  if (!isGeminiConfigured()) {
+    return null;
+  }
+
+  const system =
+    'You are a live-event production advisor for weddings of every culture. Given a room\'s basic specs you recommend the production elements the event will need and flag logistical risks. Base everything on the specs provided; never invent specific venue facts you were not given. Return only valid JSON.';
+
+  const prompt = `Analyze this venue room for a wedding. Return JSON with exactly these fields:
+{
+  "required": string[],
+  "riskFlags": string[]
+}
+
+Rules:
+- required: 4-7 production elements this room and guest count will need (audio coverage, power, rigging, staging, etc.).
+- riskFlags: 2-5 logistical risks given the specs; if a dimension looks fine, say so plainly rather than inventing a risk.
+- Be specific to the numbers given. Do not assume a culture or invent facts not provided.
+
+Venue: ${input.venueName}
+Room type: ${input.roomType}
+Guest count: ${input.guestCount}
+Ceiling height (ft): ${input.ceilingHeightFt}`;
+
+  try {
+    const raw = await geminiGenerateJson<{ required?: unknown; riskFlags?: unknown }>(prompt, system);
+
+    if (!raw) {
+      return null;
+    }
+
+    const required = toStringArray(raw.required).slice(0, 8);
+    const riskFlags = toStringArray(raw.riskFlags).slice(0, 6);
+
+    if (required.length === 0) {
+      return null;
+    }
+
+    const event = findEventById(input.eventId);
+
+    return {
+      event: event?.title || 'Unknown Event',
+      venue: input.venueName,
+      roomType: input.roomType,
+      required,
+      riskFlags,
+      trustMetadata: {
+        sourceType: 'atlas-ai-v1',
+        reviewedBy: 'Atlas AI (model-generated draft)',
+        reviewedOn: new Date().toISOString().slice(0, 10),
+        confidenceScore: 0.84
+      }
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function buildVenueAnalyzerReport(input: VenueAnalyzerInput): Promise<VenueAnalyzerReport> {
+  const aiReport = await geminiVenueAnalyzerReport(input);
+  return aiReport ?? heuristicVenueAnalyzerReport(input);
 }
 
 // Universal contract / logistics terms — material to a wedding of ANY culture.
