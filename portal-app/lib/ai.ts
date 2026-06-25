@@ -96,21 +96,60 @@ export function buildVenueAnalyzerReport(input: VenueAnalyzerInput) {
   };
 }
 
-const SIGNAL_KEYWORDS = [
+// Universal contract / logistics terms — material to a wedding of ANY culture.
+const UNIVERSAL_CONTRACT_KEYWORDS = [
   'wire',
   'deposit',
   'balance due',
+  'payment terms',
+  'gratuity',
+  'service charge',
+  'cancellation',
+  'force majeure',
+  'certificate of insurance',
   'guest count',
   'timeline',
+  'load-in',
+  'curfew',
+  'overtime',
   'dietary',
   'attire',
-  'baraat',
-  'sangeet',
-  'ceremony',
   'upgrade',
-  'payment terms',
   'vendor'
 ];
+
+// Representative wedding-function / ritual names across traditions. These seed
+// the AI extractor and back the regex fallback. This is deliberately NOT an
+// allowlist — the AI path surfaces any function or ritual it identifies in the
+// document's own vocabulary, including traditions not enumerated here.
+const MULTI_TRADITION_FUNCTION_KEYWORDS = [
+  // South Asian
+  'mehndi',
+  'haldi',
+  'sangeet',
+  'baraat',
+  'ceremony',
+  'reception',
+  'vidaai',
+  // Jewish
+  'hora',
+  'ketubah',
+  'chuppah',
+  'bedeken',
+  // Christian / Western
+  'processional',
+  'recessional',
+  'rehearsal dinner',
+  'first look',
+  'cocktail hour',
+  // East Asian
+  'tea ceremony',
+  // West African
+  'traditional ceremony',
+  'white wedding'
+];
+
+const SIGNAL_KEYWORDS = [...UNIVERSAL_CONTRACT_KEYWORDS, ...MULTI_TRADITION_FUNCTION_KEYWORDS];
 
 interface GeminiExtractionShape {
   extractedDates: string[];
@@ -122,7 +161,7 @@ interface GeminiExtractionShape {
 
 function regexExtractSignals(sourceType: string, content: string): IntakeExtraction {
   const amountMatches = content.match(/\$\s?\d[\d,]*(?:\.\d{2})?/g) || [];
-  const percentageMatches = content.match(/\b\d{1,3}%\b/g) || [];
+  const percentageMatches = content.match(/\b\d{1,3}(?:\.\d+)?\s?%/g) || [];
 
   const monthDateMatches =
     content.match(
@@ -170,7 +209,7 @@ async function geminiExtractSignals(sourceType: string, content: string): Promis
   }
 
   const system =
-    'You are a document analyst for a South Asian wedding planning platform. Extract structured data from contracts, proposals, and event documents. Return only valid JSON.';
+    'You are a document analyst for a wedding planning platform that serves couples of every culture and tradition — South Asian, Jewish, Christian, East Asian, African, Latin, Middle Eastern, secular, interfaith, and beyond. Read each contract, proposal, or event document on its own terms. Never assume a single culture; use the vocabulary the document itself uses. Return only valid JSON.';
 
   const prompt = `Extract structured data from this ${sourceType} document and return JSON with exactly these fields:
 {
@@ -185,8 +224,8 @@ Rules:
 - extractedDates: date references found, max 16 items (e.g. "March 14, 2026", "2026-03-14")
 - extractedAmounts: monetary amounts, max 16 items (e.g. "$5,000.00", "$1,500")
 - extractedPercentages: percentage values, max 10 items (e.g. "25%", "10%")
-- keywordSignals: only include terms from this list IF they appear in the document: ${SIGNAL_KEYWORDS.join(', ')}
-- summary: 1-2 sentences describing what this document covers and its key obligations
+- keywordSignals: the wedding functions, rituals, and material contract obligations this document actually references, in the document's own words and culture. Examples spanning traditions: ${SIGNAL_KEYWORDS.join(', ')}. This list is illustrative, NOT exhaustive — include ANY culturally specific function or obligation you identify even if it is absent from the examples. Max 24 items.
+- summary: 1-2 sentences describing what this document covers, the tradition(s) it appears to serve, and its key obligations
 
 Document:
 ${content.slice(0, 60_000)}`;
@@ -201,7 +240,7 @@ ${content.slice(0, 60_000)}`;
     const dates = Array.isArray(raw.extractedDates) ? raw.extractedDates.slice(0, 16) : [];
     const amounts = Array.isArray(raw.extractedAmounts) ? raw.extractedAmounts.slice(0, 16) : [];
     const percentages = Array.isArray(raw.extractedPercentages) ? raw.extractedPercentages.slice(0, 10) : [];
-    const keywords = Array.isArray(raw.keywordSignals) ? raw.keywordSignals : [];
+    const keywords = Array.isArray(raw.keywordSignals) ? raw.keywordSignals.slice(0, 24) : [];
     const summary = typeof raw.summary === 'string' && raw.summary ? raw.summary : `Extracted from ${sourceType}.`;
 
     const confidenceBase = 0.62;

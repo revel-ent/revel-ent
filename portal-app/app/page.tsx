@@ -88,7 +88,7 @@ export default function HomePage() {
           <p className="atlas-home-kicker">Atlas Platform</p>
           <h1>One Plan For Every Function</h1>
           <p>
-            Mehndi, sangeet, baraat, ceremony, reception — Atlas runs every function of a multi-day wedding from one
+            Mehndi, haldi, sangeet, baraat, ceremony, reception — Atlas runs every function of a multi-day wedding from one
             live plan that couples, planners, vendors, venues, and family all follow.
           </p>
           <p>
