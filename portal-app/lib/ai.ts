@@ -1,4 +1,5 @@
 import { findEventById } from '@/lib/mock-data';
+import { geminiGenerateJson, isGeminiConfigured } from '@/lib/gemini';
 
 export interface FusionFlowInput {
   eventId: string;
@@ -95,13 +96,31 @@ export function buildVenueAnalyzerReport(input: VenueAnalyzerInput) {
   };
 }
 
-export function extractAtlasSignalsFromDocument(params: {
-  sourceType: string;
-  content: string;
-}): IntakeExtraction {
-  const raw = params.content || '';
-  const content = raw.slice(0, 120_000);
+const SIGNAL_KEYWORDS = [
+  'wire',
+  'deposit',
+  'balance due',
+  'guest count',
+  'timeline',
+  'dietary',
+  'attire',
+  'baraat',
+  'sangeet',
+  'ceremony',
+  'upgrade',
+  'payment terms',
+  'vendor'
+];
 
+interface GeminiExtractionShape {
+  extractedDates: string[];
+  extractedAmounts: string[];
+  extractedPercentages: string[];
+  keywordSignals: string[];
+  summary: string;
+}
+
+function regexExtractSignals(sourceType: string, content: string): IntakeExtraction {
   const amountMatches = content.match(/\$\s?\d[\d,]*(?:\.\d{2})?/g) || [];
   const percentageMatches = content.match(/\b\d{1,3}%\b/g) || [];
 
@@ -112,24 +131,8 @@ export function extractAtlasSignalsFromDocument(params: {
 
   const isoDateMatches = content.match(/\b\d{4}-\d{2}-\d{2}\b/g) || [];
 
-  const signalKeywords = [
-    'wire',
-    'deposit',
-    'balance due',
-    'guest count',
-    'timeline',
-    'dietary',
-    'attire',
-    'baraat',
-    'sangeet',
-    'ceremony',
-    'upgrade',
-    'payment terms',
-    'vendor'
-  ];
-
   const lowered = content.toLowerCase();
-  const keywordSignals = signalKeywords.filter((keyword) => lowered.includes(keyword));
+  const keywordSignals = SIGNAL_KEYWORDS.filter((keyword) => lowered.includes(keyword));
 
   const extractedDates = Array.from(new Set([...monthDateMatches, ...isoDateMatches])).slice(0, 16);
   const extractedAmounts = Array.from(new Set(amountMatches)).slice(0, 16);
@@ -147,11 +150,11 @@ export function extractAtlasSignalsFromDocument(params: {
 
   const summary =
     extractedAmounts.length || extractedDates.length
-      ? `Extracted ${extractedDates.length} date signals, ${extractedAmounts.length} amount signals, and ${keywordSignals.length} workflow keywords from ${params.sourceType}.`
-      : `No strong structured signals detected from ${params.sourceType}. Keep file for retrieval and manual review.`;
+      ? `Extracted ${extractedDates.length} date signals, ${extractedAmounts.length} amount signals, and ${keywordSignals.length} workflow keywords from ${sourceType}.`
+      : `No strong structured signals detected from ${sourceType}. Keep file for retrieval and manual review.`;
 
   return {
-    sourceType: params.sourceType,
+    sourceType,
     extractedDates,
     extractedAmounts,
     extractedPercentages,
@@ -159,4 +162,83 @@ export function extractAtlasSignalsFromDocument(params: {
     summary,
     confidence: Number(confidence.toFixed(2))
   };
+}
+
+async function geminiExtractSignals(sourceType: string, content: string): Promise<IntakeExtraction | null> {
+  if (!isGeminiConfigured() || !content.trim()) {
+    return null;
+  }
+
+  const system =
+    'You are a document analyst for a South Asian wedding planning platform. Extract structured data from contracts, proposals, and event documents. Return only valid JSON.';
+
+  const prompt = `Extract structured data from this ${sourceType} document and return JSON with exactly these fields:
+{
+  "extractedDates": string[],
+  "extractedAmounts": string[],
+  "extractedPercentages": string[],
+  "keywordSignals": string[],
+  "summary": string
+}
+
+Rules:
+- extractedDates: date references found, max 16 items (e.g. "March 14, 2026", "2026-03-14")
+- extractedAmounts: monetary amounts, max 16 items (e.g. "$5,000.00", "$1,500")
+- extractedPercentages: percentage values, max 10 items (e.g. "25%", "10%")
+- keywordSignals: only include terms from this list IF they appear in the document: ${SIGNAL_KEYWORDS.join(', ')}
+- summary: 1-2 sentences describing what this document covers and its key obligations
+
+Document:
+${content.slice(0, 60_000)}`;
+
+  try {
+    const raw = await geminiGenerateJson<GeminiExtractionShape>(prompt, system);
+
+    if (!raw) {
+      return null;
+    }
+
+    const dates = Array.isArray(raw.extractedDates) ? raw.extractedDates.slice(0, 16) : [];
+    const amounts = Array.isArray(raw.extractedAmounts) ? raw.extractedAmounts.slice(0, 16) : [];
+    const percentages = Array.isArray(raw.extractedPercentages) ? raw.extractedPercentages.slice(0, 10) : [];
+    const keywords = Array.isArray(raw.keywordSignals) ? raw.keywordSignals : [];
+    const summary = typeof raw.summary === 'string' && raw.summary ? raw.summary : `Extracted from ${sourceType}.`;
+
+    const confidenceBase = 0.62;
+    const confidence = Math.min(
+      0.97,
+      confidenceBase +
+        Math.min(0.15, dates.length * 0.02) +
+        Math.min(0.15, amounts.length * 0.03) +
+        Math.min(0.05, percentages.length * 0.01) +
+        Math.min(0.05, keywords.length * 0.005)
+    );
+
+    return {
+      sourceType,
+      extractedDates: dates,
+      extractedAmounts: amounts,
+      extractedPercentages: percentages,
+      keywordSignals: keywords,
+      summary,
+      confidence: Number(confidence.toFixed(2))
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function extractAtlasSignalsFromDocument(params: {
+  sourceType: string;
+  content: string;
+}): Promise<IntakeExtraction> {
+  const content = (params.content || '').slice(0, 120_000);
+
+  const geminiResult = await geminiExtractSignals(params.sourceType, content);
+
+  if (geminiResult) {
+    return geminiResult;
+  }
+
+  return regexExtractSignals(params.sourceType, content);
 }

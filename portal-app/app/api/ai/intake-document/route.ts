@@ -91,15 +91,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'signed_url_failed', details: signedUrlError.message }, { status: 500 });
   }
 
-  const extracted = isTextLikeFile(fileValue)
-    ? extractAtlasSignalsFromDocument({
-        sourceType: domain,
-        content: buffer.toString('utf8')
-      })
-    : extractAtlasSignalsFromDocument({
-        sourceType: domain,
-        content: ''
-      });
+  const extracted = await extractAtlasSignalsFromDocument({
+    sourceType: domain,
+    content: isTextLikeFile(fileValue) ? buffer.toString('utf8') : ''
+  });
 
   const actorUserId = resolveSessionUserUuid({ userId: session.userId, email: session.email });
   const now = new Date().toISOString();
