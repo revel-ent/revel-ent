@@ -5,6 +5,7 @@ import {
   type AtlasVenueSeed,
   type TimelineValidationFinding
 } from '@/lib/atlas-venues';
+import { getWeddingTradition } from '@/lib/wedding-traditions';
 
 export interface TimelineTemplateRow {
   phase_code: string;
@@ -45,16 +46,19 @@ export interface TimelineGenerationResult {
   warnings: string[];
   validationFindings: TimelineValidationFinding[];
   templateSource: 'database' | 'fallback';
+  tradition: string;
+  traditionLabel: string;
 }
 
-const FALLBACK_TEMPLATE: TimelineTemplateRow[] = [
-  { phase_code: 'mehndi', title: 'Mehndi Setup Complete', offset_minutes: -1560, default_duration_minutes: 60, requires_venue_check: false },
-  { phase_code: 'haldi', title: 'Haldi Family Assembly', offset_minutes: -840, default_duration_minutes: 45, requires_venue_check: false },
-  { phase_code: 'sangeet', title: 'Sangeet Production Check', offset_minutes: -300, default_duration_minutes: 30, requires_venue_check: true },
-  { phase_code: 'baraat', title: 'Baraat Staging Ready', offset_minutes: -90, default_duration_minutes: 20, requires_venue_check: true },
-  { phase_code: 'ceremony', title: 'Ceremony Guest Seating Open', offset_minutes: -45, default_duration_minutes: 30, requires_venue_check: false },
-  { phase_code: 'reception', title: 'Reception Room Reset Complete', offset_minutes: 90, default_duration_minutes: 45, requires_venue_check: true }
-];
+export function buildTemplateRowsForTradition(traditionKey?: string | null): TimelineTemplateRow[] {
+  return getWeddingTradition(traditionKey).functions.map((fn) => ({
+    phase_code: fn.phaseCode,
+    title: fn.title,
+    offset_minutes: fn.offsetMinutes,
+    default_duration_minutes: fn.defaultDurationMinutes,
+    requires_venue_check: fn.requiresVenueCheck
+  }));
+}
 
 function parseWeddingDate(dateInput?: string): Date {
   if (!dateInput) {
@@ -132,6 +136,9 @@ export function buildGeneratedTimeline(params: {
   venue: AtlasVenueSeed;
   weddingDate?: string;
   templates: TimelineTemplateRow[];
+  templateSource: 'database' | 'fallback';
+  tradition: string;
+  traditionLabel: string;
 }): Omit<TimelineGenerationResult, 'venueIntelligence' | 'validationFindings'> {
   const { venue, weddingDate, templates } = params;
   const anchorDate = parseWeddingDate(weddingDate);
@@ -168,11 +175,16 @@ export function buildGeneratedTimeline(params: {
     weddingDate: anchorDate.toISOString(),
     items,
     warnings,
-    templateSource: templates === FALLBACK_TEMPLATE ? 'fallback' : 'database'
+    templateSource: params.templateSource,
+    tradition: params.tradition,
+    traditionLabel: params.traditionLabel
   };
 }
 
-export async function loadTimelineTemplates(fetcher: () => Promise<TimelineTemplateRow[] | null>): Promise<{
+export async function loadTimelineTemplates(
+  fetcher: () => Promise<TimelineTemplateRow[] | null>,
+  traditionKey?: string | null
+): Promise<{
   templates: TimelineTemplateRow[];
   source: 'database' | 'fallback';
 }> {
@@ -182,12 +194,13 @@ export async function loadTimelineTemplates(fetcher: () => Promise<TimelineTempl
     return { templates: fromDb, source: 'database' };
   }
 
-  return { templates: FALLBACK_TEMPLATE, source: 'fallback' };
+  return { templates: buildTemplateRowsForTradition(traditionKey), source: 'fallback' };
 }
 
 export async function generateTimelineFromVenue(params: {
   venueId: string;
   weddingDate?: string;
+  tradition?: string;
   fetchTemplates: () => Promise<TimelineTemplateRow[] | null>;
 }): Promise<TimelineGenerationResult | null> {
   const venue = await getAtlasVenueDetail(params.venueId);
@@ -196,11 +209,15 @@ export async function generateTimelineFromVenue(params: {
     return null;
   }
 
-  const loaded = await loadTimelineTemplates(params.fetchTemplates);
+  const tradition = getWeddingTradition(params.tradition);
+  const loaded = await loadTimelineTemplates(params.fetchTemplates, tradition.key);
   const generated = buildGeneratedTimeline({
     venue,
     weddingDate: params.weddingDate,
-    templates: loaded.templates
+    templates: loaded.templates,
+    templateSource: loaded.source,
+    tradition: tradition.key,
+    traditionLabel: tradition.label
   });
 
   const sourceLinks = Array.isArray(venue.sourceLinks) ? venue.sourceLinks.slice(0, 3) : [];

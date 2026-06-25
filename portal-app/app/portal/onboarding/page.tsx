@@ -3,6 +3,8 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { DEFAULT_TRADITION_KEY, listWeddingTraditions } from '@/lib/wedding-traditions';
+
 type CapacityStatus = 'safe' | 'tight' | 'unsafe';
 
 interface AtlasRecommendationView {
@@ -55,6 +57,8 @@ interface OnboardingVenueListResponse {
   source: 'database' | 'fallback';
 }
 
+const WEDDING_TRADITIONS = listWeddingTraditions();
+
 const ONBOARDING_ROLE_OPTIONS = [
   { value: 'couple', label: 'Client (Couple)' },
   { value: 'planner', label: 'Planner' },
@@ -99,6 +103,7 @@ export default function ConciergeOnboardingPage() {
   const [venuesLoading, setVenuesLoading] = useState(true);
   const [guestCount, setGuestCount] = useState('300');
   const [weddingDate, setWeddingDate] = useState('');
+  const [tradition, setTradition] = useState<string>(DEFAULT_TRADITION_KEY);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CapacityCheckResponse | null>(null);
@@ -256,6 +261,19 @@ export default function ConciergeOnboardingPage() {
             onChange={(event) => setWeddingDate(event.target.value)}
           />
 
+          <label htmlFor="tradition">Wedding Tradition</label>
+          <select id="tradition" value={tradition} onChange={(event) => setTradition(event.target.value)}>
+            {WEDDING_TRADITIONS.map((option) => (
+              <option key={option.key} value={option.key}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p className="item-note">
+            {WEDDING_TRADITIONS.find((option) => option.key === tradition)?.description ??
+              'We tailor the generated functions to this tradition.'}
+          </p>
+
           <button className="btn primary" type="submit" disabled={loading || venuesLoading || !venueId}>
             {loading ? 'Validating...' : 'Verify and Continue'}
           </button>
@@ -339,6 +357,8 @@ export default function ConciergeOnboardingPage() {
                 if (weddingDate) {
                   query.set('weddingDate', weddingDate);
                 }
+
+                query.set('tradition', tradition);
 
                 router.push(`/portal/onboarding/timeline?${query.toString()}`);
               }}

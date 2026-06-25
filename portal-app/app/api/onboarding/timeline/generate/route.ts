@@ -4,10 +4,12 @@ import { canUseOnboardingApi } from '@/lib/auth';
 import { generateTimelineFromVenue } from '@/lib/onboarding-timeline';
 import { getSession } from '@/lib/session';
 import { getSupabaseAdminClient, isSupabaseConfigured } from '@/lib/supabase-server';
+import { getWeddingTradition } from '@/lib/wedding-traditions';
 
 interface GenerateBody {
   venueId?: unknown;
   weddingDate?: unknown;
+  tradition?: unknown;
 }
 
 export async function POST(request: Request) {
@@ -31,6 +33,7 @@ export async function POST(request: Request) {
 
   const venueId = typeof body.venueId === 'string' ? body.venueId.trim() : '';
   const weddingDate = typeof body.weddingDate === 'string' ? body.weddingDate.trim() : undefined;
+  const tradition = getWeddingTradition(typeof body.tradition === 'string' ? body.tradition.trim() : undefined);
 
   if (!venueId) {
     return NextResponse.json({ error: 'invalid_input' }, { status: 400 });
@@ -41,6 +44,7 @@ export async function POST(request: Request) {
   const generation = await generateTimelineFromVenue({
     venueId,
     weddingDate,
+    tradition: tradition.key,
     fetchTemplates: async () => {
       if (!supabase) {
         return null;
@@ -49,7 +53,7 @@ export async function POST(request: Request) {
       const { data, error } = await supabase
         .from('timeline_templates')
         .select('phase_code,title,offset_minutes,default_duration_minutes,requires_venue_check')
-        .eq('template_key', 'south_asian_weekend_v1')
+        .eq('template_key', `${tradition.key}_weekend_v1`)
         .eq('active', true);
 
       if (error || !data) {

@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+import { getPhaseLabel } from '@/lib/wedding-traditions';
+
 interface TimelineItem {
   phaseCode: string;
   title: string;
@@ -44,6 +46,8 @@ interface GenerateResponse {
   warnings: string[];
   validationFindings?: TimelineValidationFinding[];
   templateSource: 'database' | 'fallback';
+  tradition?: string;
+  traditionLabel?: string;
   persistenceMode: 'supabase_configured' | 'simulated';
 }
 
@@ -59,16 +63,7 @@ function formatTime(iso: string): string {
 }
 
 function phaseLabel(code: string): string {
-  const map: Record<string, string> = {
-    mehndi: 'Mehndi',
-    haldi: 'Haldi',
-    sangeet: 'Sangeet',
-    baraat: 'Baraat',
-    ceremony: 'Ceremony',
-    reception: 'Reception'
-  };
-
-  return map[code] ?? code;
+  return getPhaseLabel(code);
 }
 
 function confidenceLabel(value: GenerateResponse['venueIntelligence']['sourceConfidence']): string {
@@ -82,6 +77,7 @@ export default function OnboardingTimelinePage() {
   const venueId = params.get('venueId') ?? '';
   const guestCount = params.get('guestCount') ?? '300';
   const weddingDate = params.get('weddingDate') ?? '';
+  const tradition = params.get('tradition') ?? '';
 
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState(false);
@@ -106,7 +102,7 @@ export default function OnboardingTimelinePage() {
         const response = await fetch('/api/onboarding/timeline/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ venueId, weddingDate })
+          body: JSON.stringify({ venueId, weddingDate, tradition })
         });
 
         if (!response.ok) {
@@ -134,7 +130,7 @@ export default function OnboardingTimelinePage() {
     return () => {
       cancelled = true;
     };
-  }, [venueId, weddingDate]);
+  }, [venueId, weddingDate, tradition]);
 
   const grouped = useMemo(() => {
     if (!result) {
@@ -222,6 +218,11 @@ export default function OnboardingTimelinePage() {
                 <span className="chip">Venue Baseline</span>
               </div>
               <p>{result.venue.city}</p>
+              {result.traditionLabel ? (
+                <p className="card-muted">
+                  Tradition: <strong>{result.traditionLabel}</strong>
+                </p>
+              ) : null}
               <p className="card-muted">
                 Template source: {result.templateSource === 'database' ? 'Supabase templates' : 'Fallback baseline'}
               </p>
