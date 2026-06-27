@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { canUpdateLiveTimeline, requiresBoundedDayOfWindowForLiveUpdates } from '@/lib/auth';
-import { buildBaseCanonicalTimeline, getTimelineProjectionForRole } from '@/lib/canonical-timeline';
+import { buildBaseCanonicalTimeline } from '@/lib/canonical-timeline';
 import { getSession } from '@/lib/session';
 import { getSupabaseAdminClient } from '@/lib/supabase-server';
 
@@ -117,9 +117,9 @@ export async function POST(request: Request) {
   }
 
   if (requiresBoundedDayOfWindowForLiveUpdates(session.role)) {
-    const step = getTimelineProjectionForRole(buildBaseCanonicalTimeline(session.eventId), session.role).find((item) => item.id === stepId);
+    const canonical = buildBaseCanonicalTimeline(session.eventId).find((item) => item.id === stepId);
 
-    if (!step || !isWithinBoundedUpdateWindow(step.startsAtIso, step.endsAtIso)) {
+    if (!canonical || !isWithinBoundedUpdateWindow(canonical.scheduledStartIso, canonical.scheduledEndIso)) {
       return NextResponse.json({ error: 'update_outside_delegate_window' }, { status: 403 });
     }
   }

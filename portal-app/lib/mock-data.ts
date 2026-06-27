@@ -160,10 +160,10 @@ const MEMBERS: MemberRecord[] = [
     inviteCode: 'ATLAS-PLN-AMTOPM-2026'
   },
   {
-    userId: 'usr-decorator-dcevents',
+    userId: 'usr-vendor-dreamcatchers',
     email: 'dcevents.us@gmail.com',
-    displayName: 'DC Events (The Dreamcatchers)',
-    role: 'decorator',
+    displayName: 'The Dreamcatchers Events LLC',
+    role: 'vendor',
     organizationId: 'org-revel-ent',
     eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
     inviteCode: 'ATLAS-DEC-DCEVENTS-2026'
@@ -194,6 +194,15 @@ const MEMBERS: MemberRecord[] = [
     organizationId: 'org-revel-ent',
     eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
     inviteCode: 'ATLAS-PROD-AKRN-2026'
+  },
+  {
+    userId: 'usr-venue-akshay-rani',
+    email: 'venue.akshayrani@example.com',
+    displayName: 'Venue Coordinator (Akshay-Rani)',
+    role: 'venue_coordinator',
+    organizationId: 'org-revel-ent',
+    eventId: 'b3c9e1f2-4a7d-4e8b-a1c2-d5e6f7a8b9c0',
+    inviteCode: 'ATLAS-VEN-AKRN-2026'
   }
 ];
 

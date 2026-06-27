@@ -139,7 +139,7 @@ function getTaskTemplates(eventId: string): TaskTemplate[] {
       status: 'pending',
       priority: 'high',
       ownerRole: 'planner',
-      assigneeRole: 'decorator',
+      assigneeRole: 'vendor',
       vendorProfile: 'decorator',
       linkedTimelineItemIds: ['step-loadin'],
       dueAtIso: inDays(3),

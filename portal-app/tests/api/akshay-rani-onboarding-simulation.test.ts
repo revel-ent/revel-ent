@@ -22,6 +22,17 @@ vi.mock('@/lib/session-token', async () => {
   };
 });
 
+vi.mock('@/lib/invite-delivery', async () => {
+  const actual = await vi.importActual('@/lib/invite-delivery');
+  return {
+    ...actual,
+    deliverInviteEmail: vi.fn().mockResolvedValue({
+      delivered: true,
+      provider: 'manual_fallback'
+    })
+  };
+});
+
 type EventRow = {
   event_id: string;
   organization_id: string;
