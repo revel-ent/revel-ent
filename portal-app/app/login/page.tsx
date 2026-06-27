@@ -1,4 +1,4 @@
-import { isDemoAuthEnabled, isLocalDevelopmentEnvironment } from '@/lib/runtime-flags';
+import { isLocalDevelopmentEnvironment } from '@/lib/runtime-flags';
 import { isSupabaseConfigured } from '@/lib/supabase-server';
 
 const ERROR_MAP: Record<string, string> = {
@@ -28,7 +28,6 @@ export default async function LoginPage({
   const emailFromUrl = resolvedSearchParams?.email || '';
   const supabaseConfigured = isSupabaseConfigured();
   const localDev = isLocalDevelopmentEnvironment();
-  const demoAuth = isDemoAuthEnabled();
 
   const hasPrefilledInvite = Boolean(tokenFromUrl && emailFromUrl);
 
@@ -106,8 +105,7 @@ export default async function LoginPage({
           </p>
         </article>
 
-        {demoAuth ? (
-          <details className="card login-dev-details">
+        <details className="card login-dev-details">
             <summary>
               <span>Revel Team Access</span>
             </summary>
@@ -150,8 +148,7 @@ export default async function LoginPage({
                 </p>
               </div>
             ) : null}
-          </details>
-        ) : null}
+        </details>
       </section>
     </main>
   );
