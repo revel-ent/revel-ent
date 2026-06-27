@@ -17,9 +17,28 @@ interface VenueResult {
 const QUICK_PROMPTS = [
   'Ballroom for 300 guests in Atlanta',
   'Outdoor ceremony space, 150 guests',
-  'Modern venue near Buckhead',
-  'Large reception hall, 500+ guests',
+  'Indian wedding, 500+ guests near Buckhead',
+  'Intimate venue for 120 guests',
 ];
+
+const COVERS = ['cover-a', 'cover-b', 'cover-c', 'cover-d', 'cover-e', 'cover-f'];
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('');
+}
+
+function tagFor(v: VenueResult): string {
+  if (v.matchScore >= 80) return 'Strong Fit';
+  if (v.capacityMax >= 500) return 'Large Capacity';
+  if (v.capacityMax <= 150) return 'Intimate Setting';
+  if (v.verified) return 'Verified Venue';
+  return 'Worth a Look';
+}
 
 export default function VenueMatchmaker() {
   const [prompt, setPrompt] = useState('');
@@ -40,7 +59,7 @@ export default function VenueMatchmaker() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: trimmed }),
       });
-      const data = await res.json() as { results?: VenueResult[]; error?: string };
+      const data = (await res.json()) as { results?: VenueResult[]; error?: string };
       if (!res.ok) throw new Error(data.error || 'Search failed');
       setResults(data.results ?? []);
     } catch (err) {
@@ -61,70 +80,70 @@ export default function VenueMatchmaker() {
   }
 
   const scoreClass = (score: number) =>
-    score >= 70 ? 'venue-card__score--high' : score >= 45 ? 'venue-card__score--mid' : 'venue-card__score--low';
+    score >= 75 ? 'vm-badge--high' : score >= 50 ? 'vm-badge--mid' : 'vm-badge--low';
 
   return (
-    <div className="venue-matchmaker">
-      <form className="venue-matchmaker__form" onSubmit={handleSubmit}>
-        <div className="venue-matchmaker__input-row">
+    <div className="vm">
+      <form className="vm-search" onSubmit={handleSubmit}>
+        <div className="vm-input-row">
+          <span className="vm-input-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4-4" />
+            </svg>
+          </span>
           <input
-            className="venue-matchmaker__input"
+            className="vm-input"
             type="text"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder='Describe what you need — "ballroom for 300 guests near Buckhead"'
+            placeholder='Describe your event — "ballroom for 300 guests near Buckhead"'
             maxLength={500}
             disabled={loading}
           />
-          <button
-            className="btn primary venue-matchmaker__btn"
-            type="submit"
-            disabled={loading || !prompt.trim()}
-          >
-            {loading ? 'Searching…' : 'Find Venues'}
+          <button className="btn primary vm-btn" type="submit" disabled={loading || !prompt.trim()}>
+            {loading ? 'Matching…' : 'Find Matches'}
           </button>
         </div>
 
-        <div className="venue-matchmaker__chips" aria-label="Quick search starters">
+        <div className="vm-chips" aria-label="Quick searches">
           {QUICK_PROMPTS.map((chip) => (
-            <button
-              key={chip}
-              type="button"
-              className="venue-matchmaker__chip"
-              onClick={() => handleChip(chip)}
-              disabled={loading}
-            >
+            <button key={chip} type="button" className="vm-chip" onClick={() => handleChip(chip)} disabled={loading}>
               {chip}
             </button>
           ))}
         </div>
       </form>
 
-      {error ? <p className="venue-matchmaker__error">{error}</p> : null}
+      {error ? <p className="vm-error">{error}</p> : null}
 
       {results !== null && results.length === 0 ? (
-        <p className="venue-matchmaker__empty">No venues matched that search. Try a broader description.</p>
+        <p className="vm-empty">No venues matched that search yet. Try a broader description.</p>
       ) : null}
 
       {results && results.length > 0 ? (
-        <div className="venue-matchmaker__grid">
-          {results.map((venue) => (
-            <article key={venue.id} className="venue-card">
-              <div className="venue-card__header">
-                <h3 className="venue-card__name">{venue.name}</h3>
-                {venue.verified ? <span className="venue-card__verified">Verified</span> : null}
+        <div className="vm-grid">
+          {results.map((venue, index) => (
+            <article key={venue.id} className="vm-card">
+              <div className={`vm-card-cover ${COVERS[index % COVERS.length]}`}>
+                <span className={`vm-badge ${scoreClass(venue.matchScore)}`}>{venue.matchScore}% Match</span>
+                <span className="vm-card-initials" aria-hidden="true">
+                  {initials(venue.name)}
+                </span>
+                {venue.verified ? <span className="vm-verified">Verified</span> : null}
               </div>
-              {venue.roomName ? <p className="venue-card__room">{venue.roomName}</p> : null}
-              <p className="venue-card__location">
-                {venue.city}, {venue.state}
-              </p>
-              <div className="venue-card__meta">
-                <span className="venue-card__capacity">
-                  {venue.capacityMin}–{venue.capacityMax} guests
-                </span>
-                <span className={`venue-card__score ${scoreClass(venue.matchScore)}`}>
-                  {venue.matchScore}% match
-                </span>
+              <div className="vm-card-body">
+                <h3 className="vm-card-name">{venue.name}</h3>
+                <p className="vm-card-loc">
+                  {venue.roomName ? `${venue.roomName} · ` : ''}
+                  {venue.city}, {venue.state}
+                </p>
+                <div className="vm-card-meta">
+                  <span className="vm-card-cap">
+                    {venue.capacityMin}–{venue.capacityMax} guests
+                  </span>
+                  <span className="vm-tag">{tagFor(venue)}</span>
+                </div>
               </div>
             </article>
           ))}
