@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import VenueMatchmaker from '@/app/components/VenueMatchmaker';
 
 const audiences = ['Couples', 'Planners', 'Vendors', 'Venues', 'Family Coordinators'];
 
@@ -169,6 +170,18 @@ export default function HomePage() {
             <p>{layer.body}</p>
           </article>
         ))}
+      </section>
+
+      <section id="atlas-venues" className="atlas-home-venues container">
+        <header className="atlas-home-venues__header">
+          <p className="atlas-home-kicker">Venue Intelligence</p>
+          <h2>Find venues that actually fit your vision</h2>
+          <p className="atlas-home-venues__sub">
+            Tell us what you need in plain language. Atlas reads verified venue data — real capacity, noise curfews,
+            flip windows — and surfaces the rooms that actually work for your event.
+          </p>
+        </header>
+        <VenueMatchmaker />
       </section>
 
       <section id="atlas-flow" className="atlas-home-flow container">
