@@ -268,3 +268,13 @@ export function listMembershipsByUserId(userId: string): MemberRecord[] {
 export function listMembersByEvent(eventId: string): MemberRecord[] {
   return MEMBERS.filter((member) => member.eventId === eventId);
 }
+
+export function listEventsForUser(userId: string, role: Role, organizationId: string): EventRecord[] {
+  if (role === 'admin') {
+    return EVENTS.filter((e) => e.organizationId === organizationId);
+  }
+
+  const memberships = MEMBERS.filter((m) => m.userId === userId && m.organizationId === organizationId);
+  const eventIds = new Set(memberships.map((m) => m.eventId));
+  return EVENTS.filter((e) => eventIds.has(e.id));
+}

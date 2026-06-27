@@ -5,7 +5,8 @@ import { canAccessModule } from '@/lib/auth';
 import { getSession } from '@/lib/session';
 import RoleOrientationPanel from '@/app/portal/components/RoleOrientationPanel';
 import DevRoleSwitcher from '@/app/portal/components/DevRoleSwitcher';
-import { findEventById, listDemoEvents } from '@/lib/mock-data';
+import EventSwitcher from '@/app/portal/components/EventSwitcher';
+import { findEventById, listDemoEvents, listEventsForUser } from '@/lib/mock-data';
 import { isDevRoleSwitchEnabled } from '@/lib/runtime-flags';
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +20,10 @@ export default async function PortalLayout({ children }: { children: React.React
   const eventLabel = eventRecord?.title || 'No active event';
   const demoEvents = listDemoEvents();
   const isCoupleView = session.role === 'couple';
+  const canSwitchEvents = session.role === 'admin' || session.role === 'planner';
+  const switchableEvents = canSwitchEvents
+    ? listEventsForUser(session.userId, session.role, session.organizationId || '')
+    : [];
 
   return (
     <div className="portal-shell">
@@ -35,6 +40,9 @@ export default async function PortalLayout({ children }: { children: React.React
             ) : null}
           </div>
           <nav className="portal-nav-links">
+            {canSwitchEvents && switchableEvents.length > 1 ? (
+              <EventSwitcher currentEventId={session.eventId} events={switchableEvents} />
+            ) : null}
             {isDevRoleSwitchEnabled() && !isCoupleView ? (
               <DevRoleSwitcher currentRole={session.role} currentEventId={session.eventId} events={demoEvents} />
             ) : null}

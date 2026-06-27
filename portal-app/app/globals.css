@@ -1206,6 +1206,36 @@ label,
   flex-wrap: wrap;
 }
 
+.event-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(236, 162, 155, 0.52);
+  background: rgba(255, 221, 218, 0.12);
+}
+
+.event-switcher-label {
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 238, 232, 0.8);
+}
+
+.event-switcher-select {
+  width: auto;
+  min-width: 9rem;
+  padding: 0.32rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(236, 162, 155, 0.52);
+  background: rgba(43, 12, 20, 0.85);
+  color: #fff4f1;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .dev-role-switcher {
   display: flex;
   align-items: center;
@@ -2545,6 +2575,17 @@ textarea:focus {
 
   .portal-route-links form {
     flex: 0 0 auto;
+  }
+
+  .event-switcher {
+    width: 100%;
+    flex-wrap: wrap;
+    border-radius: 0.8rem;
+  }
+
+  .event-switcher-select {
+    flex: 1;
+    min-width: 8rem;
   }
 
   .dev-role-switcher {

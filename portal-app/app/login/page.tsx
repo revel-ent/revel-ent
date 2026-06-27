@@ -1,4 +1,4 @@
-import { isLocalDevelopmentEnvironment } from '@/lib/runtime-flags';
+import { isDemoAuthEnabled, isLocalDevelopmentEnvironment } from '@/lib/runtime-flags';
 import { isSupabaseConfigured } from '@/lib/supabase-server';
 
 const ERROR_MAP: Record<string, string> = {
@@ -28,6 +28,7 @@ export default async function LoginPage({
   const emailFromUrl = resolvedSearchParams?.email || '';
   const supabaseConfigured = isSupabaseConfigured();
   const localDev = isLocalDevelopmentEnvironment();
+  const demoAuth = isDemoAuthEnabled();
 
   const hasPrefilledInvite = Boolean(tokenFromUrl && emailFromUrl);
 
@@ -105,38 +106,50 @@ export default async function LoginPage({
           </p>
         </article>
 
-        {localDev ? (
+        {demoAuth ? (
           <details className="card login-dev-details">
             <summary>
-              <span>Local Access Profiles</span>
-              <span className="chip">Development</span>
+              <span>Revel Team Access</span>
             </summary>
-            <div className="demo-credential-list">
-              <p>
-                <strong>Admin:</strong> jigar@revel-ent.com
-              </p>
-              <p>
-                <strong>Planner:</strong> maulin@revel-ent.com
-              </p>
-              <p>
-                <strong>Couple (Jayati & Uppal):</strong> jayati@example.com
-              </p>
-              <p>
-                <strong>Vendor:</strong> heckno@revel-ent.com
-              </p>
-              <p>
-                <strong>Guest:</strong> guestfamily@example.com
-              </p>
-              <p>
-                <strong>Family Coordinator:</strong> priya@example.com
-              </p>
-              <p>
-                <strong>Venue Coordinator:</strong> anita.venue@example.com
-              </p>
-              <p>
-                Use invite token from invite creation/resend response or invite link query param.
-              </p>
-            </div>
+            <form className="form-grid" action="/api/auth/mock-login" method="POST">
+              <input type="hidden" name="next" value={nextPath} />
+              <div>
+                <label htmlFor="staffEmail">Email</label>
+                <input id="staffEmail" name="email" type="email" placeholder="you@revel-ent.com" required />
+              </div>
+              <div>
+                <label htmlFor="staffCode">Access Code</label>
+                <input id="staffCode" name="inviteCode" type="text" placeholder="ATLAS-..." required />
+              </div>
+              <button className="btn primary" type="submit">
+                Staff Login
+              </button>
+            </form>
+            {localDev ? (
+              <div className="demo-credential-list">
+                <p>
+                  <strong>Admin:</strong> jigar@revel-ent.com / ATLAS-ADM-JIGAR-2026
+                </p>
+                <p>
+                  <strong>Planner:</strong> maulin@revel-ent.com / ATLAS-PLN-MAULIN-2026
+                </p>
+                <p>
+                  <strong>Couple (Jayati):</strong> jayati@example.com / ATLAS-CPL-JAYATI-2026
+                </p>
+                <p>
+                  <strong>Couple (Akshay):</strong> akshay.rani1128@gmail.com / ATLAS-CPL-AKSHAY-2026
+                </p>
+                <p>
+                  <strong>DJ/MC:</strong> djmc@revel-ent.com / ATLAS-DJ-HECKNO-2026
+                </p>
+                <p>
+                  <strong>Vendor (Decorator):</strong> dcevents.us@gmail.com / ATLAS-DEC-DCEVENTS-2026
+                </p>
+                <p>
+                  <strong>Venue Coordinator:</strong> anita.venue@example.com / ATLAS-VEN-ANITA-2026
+                </p>
+              </div>
+            ) : null}
           </details>
         ) : null}
       </section>
