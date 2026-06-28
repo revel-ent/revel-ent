@@ -4,26 +4,22 @@ import VenueMatchmaker from '@/app/components/VenueMatchmaker';
 
 const navLinks = [
   { href: '#how', label: 'How It Works' },
+  { href: '#planners', label: 'For Planners' },
+  { href: '#couples', label: 'For Couples' },
   { href: '#venues', label: 'Venue Matchmaker' },
-  { href: '#advantage', label: 'Why Atlas' },
 ];
 
 const trustBadges = [
-  { title: 'AI-Verified Venue Data', detail: 'Researched and validated — not brochure numbers.' },
-  { title: 'Risk Detection', detail: 'Surfaced before you sign or lock the timeline.' },
-  { title: 'One Plan, Every Role', detail: 'Couples, planners, vendors, and venues in step.' },
+  { title: 'AI-Verified Venue Data', detail: 'Continuously researched and validated — not brochure numbers.' },
+  { title: 'Risk Detection Before You Book', detail: 'We surface issues others miss — before you sign or pay.' },
+  { title: 'Trusted by Event Professionals', detail: 'Planners, vendors & venues across Georgia.' },
 ];
 
-const planCheckRows = [
-  { label: 'Venue & Capacity', score: 88, state: 'Good Fit', tone: 'good' },
-  { label: 'Timeline', score: 64, state: 'At Risk', tone: 'risk' },
-  { label: 'Budget', score: 71, state: 'Watch', tone: 'watch' },
-  { label: 'Traditions', score: 90, state: 'Good Fit', tone: 'good' },
-];
-
-const planCheckRisks = [
-  'Reception runs ~20 min past venue curfew',
-  'Baraat arrival window is tight for setup',
+const venueRisks = [
+  { label: 'Stage blocks emergency exit', sev: 'High', cls: 'high' },
+  { label: 'Ceiling height limits rigging', sev: 'Medium', cls: 'med' },
+  { label: 'Load-in window is tight', sev: 'High', cls: 'high' },
+  { label: 'Outside catering restricted', sev: 'Medium', cls: 'med' },
 ];
 
 const features = [
@@ -60,11 +56,11 @@ const features = [
 ];
 
 const advantages = [
-  { icon: 'doc', title: 'AI Analysis', detail: 'Extracts the details and hidden clauses others skim past.' },
-  { icon: 'building', title: 'Venue Intelligence', detail: 'Verified capacity, policies, and logistics for each room.' },
-  { icon: 'shield', title: 'Risk Detection', detail: 'Flags issues early to avoid costly day-of problems.' },
-  { icon: 'clock', title: 'Timeline Confidence', detail: 'Checks for gaps, conflicts, and unrealistic transitions.' },
-  { icon: 'globe', title: 'Georgia → National', detail: 'Starting with 55 verified Georgia venues. Expanding fast.' },
+  { icon: 'doc', title: 'AI Contract Analysis', detail: 'Extracts key details & hidden clauses in seconds.' },
+  { icon: 'building', title: 'Venue Intelligence', detail: 'Verified capacity, policies, diagrams & logistics.' },
+  { icon: 'shield', title: 'Risk Detection', detail: 'Flag issues early & avoid costly day-of problems.' },
+  { icon: 'clock', title: 'Timeline Confidence', detail: 'AI checks for gaps, conflicts & unrealistic transitions.' },
+  { icon: 'globe', title: 'Global Coverage', detail: 'Starting with 55 Georgia venues. Expanding fast.' },
 ];
 
 const flowSteps = [
@@ -79,6 +75,13 @@ const stats = [
   { value: 'Multi-day', label: 'Mehndi through vidaai' },
   { value: '10', label: 'Coordinated roles' },
   { value: 'Nationwide', label: 'Coverage, expanding' },
+];
+
+const viControls: [string, boolean][] = [
+  ['Seating', true],
+  ['Measurements', true],
+  ['Pathways', true],
+  ['Utilities', false],
 ];
 
 function Icon({ name }: { name: string }) {
@@ -152,8 +155,8 @@ export default function HomePage() {
             <Link className="atlas-nav-login" href="/login">
               Log in
             </Link>
-            <Link className="btn primary" href="/login">
-              Enter Atlas
+            <Link className="btn gold" href="/login">
+              Get Early Access
             </Link>
           </div>
         </div>
@@ -162,24 +165,23 @@ export default function HomePage() {
       <section className="atlas-hero">
         <div className="atlas-hero-inner container">
           <div className="atlas-hero-copy">
-            <span className="atlas-pill">Georgia Wedding &amp; Event Intelligence</span>
+            <span className="atlas-pill">Global Wedding &amp; Event Intelligence</span>
             <h1>
               Plan with certainty.
               <br />
               Protect every moment.
             </h1>
             <p>
-              Atlas is the intelligence layer for weddings and events. We analyze venues, timelines, and logistics —
-              surfacing the risks others miss — so couples, planners, and vendors plan with confidence and avoid costly
-              surprises.
+              Atlas analyzes venues, contracts, and logistics to reveal the truth behind the numbers — so you can
+              plan with confidence and avoid costly surprises.
             </p>
             <div className="atlas-hero-actions">
-              <a className="btn gold" href="#venues">
-                Find Your Venue
+              <a className="btn primary" href="#venues">
+                Find Your Perfect Venue →
               </a>
-              <Link className="btn secondary atlas-hero-secondary" href="/login">
-                Enter Atlas
-              </Link>
+              <a className="btn secondary atlas-hero-secondary" href="#how">
+                See How It Works
+              </a>
             </div>
             <ul className="atlas-trust-row">
               {trustBadges.map((badge) => (
@@ -194,35 +196,95 @@ export default function HomePage() {
             </ul>
           </div>
 
-          <aside className="atlas-plancheck" aria-label="Atlas Plan Check preview">
-            <div className="atlas-plancheck-head">
-              <span className="atlas-plancheck-title">Atlas Plan Check</span>
-              <span className="atlas-plancheck-sample">Preview</span>
-            </div>
-            <div className="atlas-plancheck-score">
-              <div>
-                <span className="atlas-plancheck-num">82</span>
-                <span className="atlas-plancheck-den">/100</span>
+          <aside className="atlas-venueintel" aria-label="Atlas Venue Intelligence preview">
+            <div className="atlas-vi-header">
+              <div className="atlas-vi-title">
+                <span className="atlas-vi-vname">InterContinental Buckhead</span>
+                <span className="atlas-vi-badge">✓ Verified</span>
               </div>
-              <span className="atlas-plancheck-verdict">Likely Feasible</span>
+              <div className="atlas-vi-meta">
+                <span className="atlas-vi-updated">Updated Apr 24, 2025</span>
+                <span className="atlas-vi-share">Share Report</span>
+              </div>
             </div>
-            <div className="atlas-plancheck-rows">
-              {planCheckRows.map((row) => (
-                <div className="atlas-plancheck-row" key={row.label}>
-                  <span className="atlas-plancheck-label">{row.label}</span>
-                  <span className={`atlas-plancheck-state atlas-plancheck-state--${row.tone}`}>{row.state}</span>
-                  <span className="atlas-plancheck-rowscore">{row.score}</span>
+
+            <div className="atlas-vi-body">
+              <nav className="atlas-vi-sidenav" aria-hidden="true">
+                {['Overview', 'Venue Details', 'Diagrams', 'Policies', 'Capacity', 'Risks', 'Reviews', 'Similar Venues'].map((item, i) => (
+                  <span
+                    key={item}
+                    className={`atlas-vi-snitem${i === 0 ? ' atlas-vi-snitem--active' : i === 5 ? ' atlas-vi-snitem--risk' : ''}`}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </nav>
+              <div className="atlas-vi-content">
+                <div className="atlas-vi-floorplan">
+                  <div className="atlas-vi-fp-room atlas-vi-fp-room--stage">
+                    <span>Stage</span>
+                    <span className="atlas-vi-fp-dim">24&prime;×30&prime;</span>
+                  </div>
+                  <div className="atlas-vi-fp-room atlas-vi-fp-room--dance">
+                    <span>Dance Floor</span>
+                    <span className="atlas-vi-fp-dim">24&prime;×32&prime;</span>
+                  </div>
+                  <div className="atlas-vi-fp-room atlas-vi-fp-room--head">Head Table</div>
+                  <div className="atlas-vi-fp-corridor">Service Corridor</div>
                 </div>
-              ))}
+                <div className="atlas-vi-controls">
+                  <div className="atlas-vi-ctrl-label">Floor</div>
+                  <div className="atlas-vi-ctrl-val">Grand Ballroom</div>
+                  {viControls.map(([label, on]) => (
+                    <div key={label} className="atlas-vi-ctrl-row">
+                      <span>{label}</span>
+                      <span className={`atlas-vi-toggle${on ? ' atlas-vi-toggle--on' : ''}`} />
+                    </div>
+                  ))}
+                  <span className="atlas-vi-3d-btn">3D View</span>
+                </div>
+              </div>
             </div>
-            <div className="atlas-plancheck-risks">
-              <span className="atlas-plancheck-risks-label">Top Risks Detected</span>
-              {planCheckRisks.map((risk) => (
-                <p key={risk}>
-                  <span className="atlas-plancheck-dot" aria-hidden="true" />
-                  {risk}
-                </p>
-              ))}
+
+            <div className="atlas-vi-stats">
+              <div className="atlas-vi-stat atlas-vi-stat--green">
+                <span className="atlas-vi-stat-num">612</span>
+                <span className="atlas-vi-stat-label">Atlas Capacity</span>
+                <span className="atlas-vi-stat-sub">Comfortable</span>
+              </div>
+              <div className="atlas-vi-stat">
+                <span className="atlas-vi-stat-num">850</span>
+                <span className="atlas-vi-stat-label">Marketing Capacity</span>
+              </div>
+              <div className="atlas-vi-stat atlas-vi-stat--red">
+                <span className="atlas-vi-stat-num">238</span>
+                <span className="atlas-vi-stat-label">Difference</span>
+                <span className="atlas-vi-stat-sub">Guests</span>
+              </div>
+              <div className="atlas-vi-conf">
+                <div className="atlas-vi-conf-ring">
+                  <span className="atlas-vi-conf-num">93</span>
+                </div>
+                <div>
+                  <div className="atlas-vi-conf-title">Confidence Score</div>
+                  <div className="atlas-vi-conf-sub">High Confidence</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="atlas-vi-risks-section">
+              <div className="atlas-vi-risks-head">
+                <span className="atlas-vi-risks-title">Top Risks Detected</span>
+                <span className="atlas-vi-risks-link">View Full Report →</span>
+              </div>
+              <div className="atlas-vi-risks-grid">
+                {venueRisks.map((risk) => (
+                  <div key={risk.label} className={`atlas-vi-risk atlas-vi-risk--${risk.cls}`}>
+                    <span className="atlas-vi-risk-label">{risk.label}</span>
+                    <span className="atlas-vi-risk-sev">{risk.sev}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </aside>
         </div>
@@ -269,12 +331,11 @@ export default function HomePage() {
       <section id="venues" className="atlas-matchmaker-section">
         <div className="container">
           <header className="atlas-section-head">
-            <p className="eyebrow">The Atlas Venue Matchmaker</p>
+            <p className="eyebrow">The Atlas Venue Matchmaker™</p>
             <h2>Find venues that actually fit your vision.</h2>
             <p className="atlas-section-sub">
               Not just by location or price — by real capacity, policies, and what matters most to you. Describe your
-              event in plain language and Atlas matches it against verified venue data, starting with 55 venues across
-              Georgia.
+              event and Atlas matches it against verified venue data, starting with 55 venues across Georgia.
             </p>
           </header>
           <VenueMatchmaker />
@@ -302,7 +363,7 @@ export default function HomePage() {
       <section id="advantage" className="atlas-advantage container">
         <header className="atlas-section-head atlas-section-head--center">
           <p className="eyebrow">More Than Software. Real Intelligence.</p>
-          <h2>Atlas is your unfair advantage.</h2>
+          <h2>Atlas gives you the unfair advantage.</h2>
         </header>
         <div className="atlas-advantage-grid">
           {advantages.map((item) => (
@@ -346,10 +407,10 @@ export default function HomePage() {
           </div>
           <div className="atlas-cta-actions">
             <a className="btn gold" href="#venues">
-              Find Your Venue
+              Find Your Perfect Venue
             </a>
             <Link className="btn secondary atlas-hero-secondary" href="/login">
-              Enter Atlas
+              Get Early Access
             </Link>
           </div>
         </div>
