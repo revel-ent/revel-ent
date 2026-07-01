@@ -154,7 +154,7 @@ export default async function CouplePortalPage() {
 
       {event?.couplePhotoUrl ? (
         <div className="couple-hero-photo">
-          <img src={event.couplePhotoUrl} alt="Akshay & Rani" className="couple-hero-photo__img" />
+          <img src={event.couplePhotoUrl} alt={event.title ?? 'Couple photo'} className="couple-hero-photo__img" />
         </div>
       ) : null}
 

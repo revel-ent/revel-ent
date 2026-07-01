@@ -42,7 +42,8 @@ export async function getEventRecord(eventId: string): Promise<EventRecord | nul
 
   const snapshot = (event.atlas_entitlement_snapshot as Record<string, unknown> | null) ?? {};
   const moodBoardUrl = typeof snapshot.mood_board_url === 'string' ? snapshot.mood_board_url : null;
-  const couplePhotoUrl = typeof snapshot.couple_photo_url === 'string' ? snapshot.couple_photo_url : null;
+  const rawCouplePhoto = snapshot.couple_photo_url;
+  const couplePhotoUrl = typeof rawCouplePhoto === 'string' && /^https?:\/\//.test(rawCouplePhoto) ? rawCouplePhoto : null;
 
   return {
     id: event.event_id as string,
