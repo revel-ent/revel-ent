@@ -64,6 +64,9 @@ export default function AtlasRecommendationCard() {
 
   const topRecommendation = result?.items[0] ?? null;
 
+  // Don't render the card at all if loading finished and there's nothing to show.
+  if (!loading && !topRecommendation) return null;
+
   return (
     <article className="card">
       <div className="card-header">
