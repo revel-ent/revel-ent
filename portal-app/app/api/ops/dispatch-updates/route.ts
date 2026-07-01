@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { dispatchMessageToRecipients } from '@/lib/notifications';
-import { getCoordinationFeedByEvent } from '@/lib/mock-ops';
+import { getCoordinationFeed, postCoordinationUpdate } from '@/lib/coordination';
 import { buildCoordinationSummary } from '@/lib/ops-summary';
 import { getSession } from '@/lib/session';
 
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'At least one recipient is required' }, { status: 400 });
   }
 
-  const items = getCoordinationFeedByEvent(session.eventId);
+  const { items } = await getCoordinationFeed(session.eventId);
   const summaryText = buildCoordinationSummary({
     eventId: session.eventId,
     actorName: session.displayName,
@@ -136,6 +136,17 @@ export async function POST(request: Request) {
       })
     }))
   );
+
+  // Write the dispatched summary to the coordination feed so couples see it
+  // in their portal's "Recent Updates" section automatically.
+  await postCoordinationUpdate({
+    eventId: session.eventId,
+    authorName: session.displayName,
+    authorRole: (session.role === 'admin' ? 'ops' : session.role) as 'planner' | 'ops',
+    message: body.customIntro?.trim()
+      ? body.customIntro.trim()
+      : `Operations update dispatched to ${recipients.length} recipient${recipients.length === 1 ? '' : 's'}.`,
+  });
 
   return NextResponse.json({
     mode: 'dispatch',

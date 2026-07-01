@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session';
 import { getEventRecord } from '@/lib/event-context';
-import { getCoordinationFeedByEvent } from '@/lib/mock-ops';
+import { getCoordinationFeed } from '@/lib/coordination';
 import { formatDate, getDaysUntil } from '@/lib/mock-client-milestones';
 import { getClientPlanForEvent } from '@/lib/client-plans';
 import { type ChecklistProjection, getApprovalProjectionForActor, getChecklistState, getMusicProjectionForActor } from '@/lib/couple-domains';
@@ -12,6 +12,7 @@ import MusicExperienceWorkflowPanel from '@/app/portal/couple/components/MusicEx
 import CollapsibleSection from '@/app/portal/couple/components/CollapsibleSection';
 import CoupleTimelinePanel from '@/app/portal/couple/components/CoupleTimelinePanel';
 import InviteManagementPanel from '@/app/portal/components/InviteManagementPanel';
+import AtlasRecommendationCard from '@/app/portal/couple/components/AtlasRecommendationCard';
 
 type HeroAction = {
   title: string;
@@ -118,7 +119,10 @@ export default async function CouplePortalPage() {
   const approvalsComplete = Boolean(approvalsProjection && approvalsProjection.summary.completeCount === approvalsProjection.summary.totalCount);
   const heroAction = getNextHeroAction({ checklist, approvalsComplete });
 
-  const activityFeed = session.eventId ? getCoordinationFeedByEvent(session.eventId).slice(0, 3) : [];
+  const { items: activityFeedRaw } = session.eventId
+    ? await getCoordinationFeed(session.eventId)
+    : { items: [] };
+  const activityFeed = activityFeedRaw.slice(0, 3);
   const signedTodo = checklist ? findTodoByHint(checklist.checklist, ['todo-contract']) : undefined;
   const depositMilestone = checklist ? checklist.payments.find((item) => item.percent === 30 || item.id.includes('deposit')) : undefined;
   const musicTodo = checklist ? findTodoByHint(checklist.checklist, ['music-questionnaire']) : undefined;
@@ -206,6 +210,8 @@ export default async function CouplePortalPage() {
               </a>
             </div>
           </section>
+
+          <AtlasRecommendationCard />
 
           <CollapsibleSection id="quick-music" title="Music Questionnaire" hint="Shape your dance floor" badge={musicTodo?.status === 'completed' ? 'Complete' : 'Ready for you'} defaultOpen={musicIsNextAction}>
             {musicProjection?.music ? <MusicExperienceWorkflowPanel initialMusic={musicProjection.music} /> : null}

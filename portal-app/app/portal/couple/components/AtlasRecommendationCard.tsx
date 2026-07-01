@@ -68,7 +68,7 @@ export default function AtlasRecommendationCard() {
     <article className="card">
       <div className="card-header">
         <h3>Atlas Recommendation</h3>
-        <span className="chip">Premium Upsell</span>
+        <span className="chip">Atlas Intelligence</span>
       </div>
       <p>Venue-driven guidance and upgrade prompts tied to your current event context.</p>
 
