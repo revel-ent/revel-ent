@@ -22,6 +22,11 @@ const EVENT_STAKEHOLDERS: Record<string, EventStakeholder[]> = {
       role: 'decorator',
       label: 'The Dreamcatchers Events LLC',
       email: 'dcevents.us@gmail.com'
+    },
+    {
+      role: 'vendor',
+      label: 'Revel Entertainment (DJ / MC)',
+      email: 'info@revel-ent.com'
     }
   ]
 };
