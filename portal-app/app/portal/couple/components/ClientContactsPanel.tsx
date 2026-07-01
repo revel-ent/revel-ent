@@ -67,7 +67,7 @@ export default async function ClientContactsPanel({ eventId }: Props) {
   const members = await loadContacts(eventId);
 
   // Fall back to the stakeholder list when no accepted invites exist yet.
-  let contacts: { label: string; name: string; email: string }[];
+  let contacts: { label: string; name: string; email: string; phone?: string }[];
   if (members.length > 0) {
     contacts = CONTACT_PRIORITY.flatMap((role) =>
       members
@@ -80,6 +80,7 @@ export default async function ClientContactsPanel({ eventId }: Props) {
       label: STAKEHOLDER_ROLE_LABEL[s.role] ?? s.role,
       name: s.label,
       email: s.email,
+      phone: s.phone,
     }));
   }
 
@@ -101,6 +102,7 @@ export default async function ClientContactsPanel({ eventId }: Props) {
                 <span className="item-meta">{contact.name}</span>
               </div>
               <p className="item-note">{contact.email}</p>
+              {contact.phone ? <p className="item-note">{contact.phone}</p> : null}
             </li>
           ))}
         </ul>

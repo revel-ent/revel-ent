@@ -1,9 +1,10 @@
-export type EventStakeholderRole = 'couple' | 'planner' | 'decorator' | 'vendor' | 'other';
+export type EventStakeholderRole = 'couple' | 'planner' | 'venue_coordinator' | 'decorator' | 'vendor' | 'other';
 
 export interface EventStakeholder {
   role: EventStakeholderRole;
   label: string;
   email: string;
+  phone?: string;
 }
 
 const EVENT_STAKEHOLDERS: Record<string, EventStakeholder[]> = {
@@ -22,6 +23,12 @@ const EVENT_STAKEHOLDERS: Record<string, EventStakeholder[]> = {
       role: 'decorator',
       label: 'The Dreamcatchers Events LLC',
       email: 'dcevents.us@gmail.com'
+    },
+    {
+      role: 'venue_coordinator',
+      label: 'Mishaela Freeman — Crowne Plaza Peachtree City',
+      email: 'mishaela.freeman@crowneplazaptc.com',
+      phone: '770-487-3056'
     },
     {
       role: 'vendor',
