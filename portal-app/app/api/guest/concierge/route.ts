@@ -23,10 +23,9 @@ export async function POST(request: Request) {
 
     const eventContext = event
       ? [
-          event.eventLabel ? `Event: ${event.eventLabel}` : null,
+          event.title ? `Event: ${event.title}` : null,
           event.venueName ? `Venue: ${event.venueName}` : null,
           event.city ? `Location: ${event.city}` : null,
-          event.startDate ? `Date: ${new Date(event.startDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}` : null,
         ].filter(Boolean).join('\n')
       : 'A multi-day South Asian wedding celebration.';
 

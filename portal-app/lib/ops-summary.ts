@@ -1,4 +1,4 @@
-import type { CoordinationItem } from '@/lib/mock-ops';
+import type { CoordinationItem } from '@/lib/coordination';
 
 export interface CoordinationSummaryInput {
   eventId: string;
