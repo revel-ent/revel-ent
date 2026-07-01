@@ -32,8 +32,18 @@ const EVENT_STAKEHOLDERS: Record<string, EventStakeholder[]> = {
     },
     {
       role: 'vendor',
-      label: 'Revel Entertainment (DJ / MC)',
-      email: 'info@revel-ent.com'
+      label: 'DJ Heckno',
+      email: 'hecknobeats@gmail.com'
+    },
+    {
+      role: 'vendor',
+      label: 'DJ Aladdinn',
+      email: 'djaladdinnbookings@gmail.com'
+    },
+    {
+      role: 'vendor',
+      label: 'Jigar Mody (MC)',
+      email: 'jigarmody24@gmail.com'
     }
   ]
 };
