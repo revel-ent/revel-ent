@@ -152,6 +152,12 @@ export default async function CouplePortalPage() {
         </div>
       </header>
 
+      {event?.couplePhotoUrl ? (
+        <div className="couple-hero-photo">
+          <img src={event.couplePhotoUrl} alt="Akshay & Rani" className="couple-hero-photo__img" />
+        </div>
+      ) : null}
+
       {!plan ? (
         <div className="portal-notice">
           <strong>Your event plan is being prepared.</strong> Your planning team will have your full experience ready within 24 hours of contract signing.
