@@ -12,6 +12,8 @@ interface VenueResult {
   capacityMax: number;
   verified: boolean;
   matchScore: number;
+  /** Licensed/owned photo URL, when available. Falls back to the gradient + monogram cover. */
+  photoUrl?: string;
 }
 
 const QUICK_PROMPTS = [
@@ -45,6 +47,8 @@ export default function VenueMatchmaker() {
   const [location, setLocation] = useState('');
   const [eventType, setEventType] = useState('');
   const [guestCount, setGuestCount] = useState('');
+  const [budget, setBudget] = useState('');
+  const [sortBy, setSortBy] = useState('best');
   const [results, setResults] = useState<VenueResult[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -55,6 +59,7 @@ export default function VenueMatchmaker() {
       location && `Location: ${location}`,
       eventType && `Event type: ${eventType}`,
       guestCount && `Guest count: ${guestCount}`,
+      budget && `Budget: ${budget}`,
       text,
     ].filter(Boolean);
     const fullPrompt = parts.join('. ');
@@ -93,7 +98,7 @@ export default function VenueMatchmaker() {
   const scoreClass = (score: number) =>
     score >= 75 ? 'vm-badge--high' : score >= 50 ? 'vm-badge--mid' : 'vm-badge--low';
 
-  const canSearch = !loading && (!!prompt.trim() || !!location || !!eventType || !!guestCount);
+  const canSearch = !loading && (!!prompt.trim() || !!location || !!eventType || !!guestCount || !!budget);
 
   return (
     <div className="vm">
@@ -168,6 +173,30 @@ export default function VenueMatchmaker() {
             </select>
           </label>
 
+          <label className="vm-filter-select">
+            <span className="vm-filter-icon" aria-hidden="true">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="13.5" r="1"/></svg>
+            </span>
+            <select className="vm-filter-sel" value={budget} onChange={(e) => setBudget(e.target.value)} disabled={loading}>
+              <option value="">Any Budget</option>
+              <option value="under $75K">Under $75K</option>
+              <option value="$75K–$150K">$75K – $150K</option>
+              <option value="$150K–$200K">$150K – $200K</option>
+              <option value="$200K+">$200K+</option>
+            </select>
+          </label>
+
+          <label className="vm-filter-select">
+            <span className="vm-filter-icon" aria-hidden="true">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+            </span>
+            <select className="vm-filter-sel" value={sortBy} onChange={(e) => setSortBy(e.target.value)} disabled={loading}>
+              <option value="best">Sort: Best Match</option>
+              <option value="capacity">Sort: Capacity</option>
+              <option value="distance">Sort: Distance</option>
+            </select>
+          </label>
+
           <button className="btn primary vm-btn vm-find-btn" type="submit" disabled={!canSearch}>
             {loading ? 'Matching…' : 'Find Matches →'}
           </button>
@@ -193,11 +222,15 @@ export default function VenueMatchmaker() {
         <div className="vm-carousel">
           {results.map((venue, index) => (
             <article key={venue.id} className="vm-card">
-              <div className={`vm-card-cover ${COVERS[index % COVERS.length]}`}>
+              <div className={`vm-card-cover ${venue.photoUrl ? 'vm-card-cover--photo' : COVERS[index % COVERS.length]}`}>
                 <span className={`vm-badge ${scoreClass(venue.matchScore)}`}>{venue.matchScore}% Match</span>
-                <span className="vm-card-initials" aria-hidden="true">
-                  {initials(venue.name)}
-                </span>
+                {venue.photoUrl ? (
+                  <img className="vm-card-photo" src={venue.photoUrl} alt={venue.name} loading="lazy" />
+                ) : (
+                  <span className="vm-card-initials" aria-hidden="true">
+                    {initials(venue.name)}
+                  </span>
+                )}
                 {venue.verified ? <span className="vm-verified">Verified</span> : null}
               </div>
               <div className="vm-card-body">

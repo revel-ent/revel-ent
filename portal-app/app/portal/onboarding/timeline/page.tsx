@@ -78,6 +78,7 @@ export default function OnboardingTimelinePage() {
   const guestCount = params.get('guestCount') ?? '300';
   const weddingDate = params.get('weddingDate') ?? '';
   const tradition = params.get('tradition') ?? '';
+  const coupleName = params.get('coupleName') ?? '';
 
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState(false);
@@ -165,8 +166,8 @@ export default function OnboardingTimelinePage() {
           venueId,
           guestCount,
           weddingDate,
-          eventLabel: 'Onboarding Generated Wedding Weekend',
-          couplePrimaryName: 'REVEL Couple'
+          eventLabel: coupleName ? `${coupleName} Wedding Weekend` : 'Wedding Weekend',
+          couplePrimaryName: coupleName || 'New Couple'
         })
       });
 
@@ -188,13 +189,17 @@ export default function OnboardingTimelinePage() {
   return (
     <section className="page-wrap">
       <div style={{ maxWidth: 920, margin: '0 auto', display: 'grid', gap: '0.9rem' }}>
-        <header className="portal-page-header">
-          <span className="badge">Concierge Onboarding · Screen 2 of 4</span>
-          <h1 className="page-title">Your Baseline Weekend Timeline</h1>
-          <p className="page-subtitle">
-            We prepared a starter timeline using your selected venue constraints. Review and approve to enter the portal.
-          </p>
-        </header>
+        <div className="portal-hero">
+          <header className="portal-page-header">
+            <span className="badge">Concierge Onboarding · Step 2 of 2</span>
+            <h1 className="page-title">
+              {coupleName ? `${coupleName} — Baseline Timeline` : 'Your Baseline Weekend Timeline'}
+            </h1>
+            <p className="page-subtitle">
+              Atlas built this timeline from your venue constraints. Review and approve to enter the portal.
+            </p>
+          </header>
+        </div>
 
         {loading ? (
           <article className="card">

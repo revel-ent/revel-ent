@@ -1,26 +1,33 @@
 import type { Metadata } from 'next';
-import { Inter, Newsreader } from 'next/font/google';
+import { DM_Sans, Cormorant_Garamond } from 'next/font/google';
 
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
-const newsreader = Newsreader({
+const dm_sans = DM_Sans({
   subsets: ['latin'],
-  variable: '--font-newsreader',
+  variable: '--font-dm-sans',
   display: 'swap',
-  style: ['normal', 'italic']
+  weight: ['300', '400', '500', '600', '700'],
+});
+
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  variable: '--font-cormorant',
+  display: 'swap',
+  weight: ['300', '400', '500', '600'],
+  style: ['normal', 'italic'],
 });
 
 export const metadata: Metadata = {
   title: 'Atlas — The Intelligence Layer for Events',
   description:
-    'Atlas analyzes venues, timelines, and logistics so couples, planners, and vendors plan with certainty and protect every moment.'
+    'Atlas analyzes venues, timelines, and logistics so couples, planners, and vendors plan with certainty and protect every moment.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-US">
-      <body className={`${inter.variable} ${newsreader.variable}`}>{children}</body>
+      <body className={`${dm_sans.variable} ${cormorant.variable}`}>{children}</body>
     </html>
   );
 }

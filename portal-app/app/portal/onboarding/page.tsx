@@ -101,6 +101,7 @@ export default function ConciergeOnboardingPage() {
   const [venues, setVenues] = useState<OnboardingVenue[]>([]);
   const [venueSource, setVenueSource] = useState<'database' | 'fallback'>('fallback');
   const [venuesLoading, setVenuesLoading] = useState(true);
+  const [coupleName, setCoupleName] = useState('');
   const [guestCount, setGuestCount] = useState('300');
   const [weddingDate, setWeddingDate] = useState('');
   const [tradition, setTradition] = useState<string>(DEFAULT_TRADITION_KEY);
@@ -188,14 +189,16 @@ export default function ConciergeOnboardingPage() {
   return (
     <section className="page-wrap">
       <div style={{ maxWidth: 860, margin: '0 auto', display: 'grid', gap: '0.95rem' }}>
-        <header className="portal-page-header">
-          <span className="badge">Concierge Onboarding · Screen 1 of 4</span>
-          <h1 className="page-title">Secure Venue Baseline</h1>
-          <p className="page-subtitle">
-            Select your venue and estimated guest count. We will validate capacity assumptions against Atlas constraints
-            and prepare your starting timeline.
-          </p>
-        </header>
+        <div className="portal-hero">
+          <header className="portal-page-header">
+            <span className="badge">Concierge Onboarding · Step 1 of 2</span>
+            <h1 className="page-title">Secure Your Venue Baseline</h1>
+            <p className="page-subtitle">
+              Select your venue and guest count. Atlas validates capacity against real constraints
+              and prepares your starting timeline.
+            </p>
+          </header>
+        </div>
 
         <section className="card stack">
           <div className="card-header">
@@ -225,6 +228,15 @@ export default function ConciergeOnboardingPage() {
         </section>
 
         <form className="card tool-form" onSubmit={onSubmit}>
+          <label htmlFor="couple-name">Couple Names</label>
+          <input
+            id="couple-name"
+            type="text"
+            placeholder="e.g. Priya &amp; Rahul"
+            value={coupleName}
+            onChange={(e) => setCoupleName(e.target.value)}
+          />
+
           <label htmlFor="venue">Venue</label>
           <select
             id="venue"
@@ -359,6 +371,10 @@ export default function ConciergeOnboardingPage() {
                 }
 
                 query.set('tradition', tradition);
+
+                if (coupleName.trim()) {
+                  query.set('coupleName', coupleName.trim());
+                }
 
                 router.push(`/portal/onboarding/timeline?${query.toString()}`);
               }}

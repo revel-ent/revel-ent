@@ -10,9 +10,9 @@ const navLinks = [
 ];
 
 const trustBadges = [
-  { title: 'AI-Verified Venue Data', detail: 'Continuously researched and validated — not brochure numbers.' },
-  { title: 'Risk Detection Before You Book', detail: 'We surface issues others miss — before you sign or pay.' },
-  { title: 'Trusted by Event Professionals', detail: 'Planners, vendors & venues across Georgia.' },
+  { title: 'AI-Verified Venue Data', detail: 'Continuously researched and validated — not brochure numbers.', icon: 'shield' },
+  { title: 'Risk Detection Before You Book', detail: 'We surface issues others miss — before you sign or pay.', icon: 'search' },
+  { title: 'Trusted by Event Professionals', detail: 'Planners, vendors & venues across Georgia.', icon: 'users' },
 ];
 
 const venueRisks = [
@@ -60,7 +60,7 @@ const advantages = [
   { icon: 'building', title: 'Venue Intelligence', detail: 'Verified capacity, policies, diagrams & logistics.' },
   { icon: 'shield', title: 'Risk Detection', detail: 'Flag issues early & avoid costly day-of problems.' },
   { icon: 'clock', title: 'Timeline Confidence', detail: 'AI checks for gaps, conflicts & unrealistic transitions.' },
-  { icon: 'globe', title: 'Global Coverage', detail: 'Starting with 55 Georgia venues. Expanding fast.' },
+  { icon: 'globe', title: 'Georgia Coverage', detail: 'Starting with 55 Georgia venues. Expanding fast.' },
 ];
 
 const flowSteps = [
@@ -74,7 +74,58 @@ const stats = [
   { value: '55', label: 'Verified venues, Georgia' },
   { value: 'Multi-day', label: 'Mehndi through vidaai' },
   { value: '10', label: 'Coordinated roles' },
-  { value: 'Nationwide', label: 'Coverage, expanding' },
+  { value: 'Georgia', label: 'Coverage, expanding' },
+];
+
+// Standing showcase of Atlas-verified Georgia venues (a sample, not live matches).
+// NOTE: capacity ranges are placeholders — swap for each venue's published seated
+// figure before publish. No match % here: a score requires a user query.
+// `photo` is an optional licensed/owned image URL. None are cleared for use yet —
+// every card falls back to the gradient + monogram treatment until real photography
+// (Revel Entertainment's own event photos, or a licensed shoot) is supplied per venue.
+const featuredVenues: {
+  name: string;
+  city: string;
+  setting: string;
+  capacity: string;
+  cover: string;
+  photo?: string;
+}[] = [
+  { name: 'InterContinental Buckhead', city: 'Atlanta, GA', setting: 'Grand Ballroom', capacity: '150–650 guests', cover: 'cover-a' },
+  { name: 'Four Seasons Atlanta', city: 'Midtown, GA', setting: 'Ballroom + Terrace', capacity: '120–480 guests', cover: 'cover-b' },
+  { name: 'The St. Regis Atlanta', city: 'Buckhead, GA', setting: 'Astor Ballroom', capacity: '100–550 guests', cover: 'cover-e' },
+  { name: 'Château Élan', city: 'Braselton, GA', setting: 'Estate + Vineyard', capacity: '200–800 guests', cover: 'cover-c' },
+  { name: 'Grand Hyatt Atlanta', city: 'Buckhead, GA', setting: 'Grand Ballroom', capacity: '180–700 guests', cover: 'cover-f' },
+];
+
+const footerColumns = [
+  {
+    heading: 'Product',
+    links: [
+      { label: 'How It Works', href: '#how' },
+      { label: 'Venue Matchmaker', href: '#venues' },
+      { label: 'The Atlas Advantage', href: '#advantage' },
+      { label: 'Get Early Access', href: '/login' },
+    ],
+  },
+  {
+    heading: 'Company',
+    links: [
+      { label: 'For Planners', href: '#planners' },
+      { label: 'For Couples', href: '#couples' },
+      { label: 'By Revel Entertainment', href: '#how' },
+      { label: 'Log in', href: '/login' },
+    ],
+  },
+  {
+    heading: 'Resources',
+    links: [
+      { label: 'Georgia Coverage', href: '#venues' },
+      { label: 'Venue Intelligence', href: '#advantage' },
+      { label: 'Risk Detection', href: '#how' },
+      { label: 'Contact', href: 'mailto:info@revel-ent.com' },
+    ],
+  },
 ];
 
 const viControls: [string, boolean][] = [
@@ -83,6 +134,18 @@ const viControls: [string, boolean][] = [
   ['Pathways', true],
   ['Utilities', false],
 ];
+
+// Initials for a venue monogram cover; strips accents + punctuation (Château Élan → CE).
+function featInitials(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[^A-Za-z\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('');
+}
 
 function Icon({ name }: { name: string }) {
   const common = {
@@ -128,6 +191,10 @@ function Icon({ name }: { name: string }) {
       return (
         <svg {...common}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18" /></svg>
       );
+    case 'search':
+      return (
+        <svg {...common}><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" /></svg>
+      );
     default:
       return null;
   }
@@ -139,7 +206,10 @@ export default function HomePage() {
       <header className="atlas-nav">
         <div className="atlas-nav-inner container">
           <Link href="/" className="atlas-nav-brand">
-            <span className="atlas-mark" aria-hidden="true">▲</span>
+            <svg className="atlas-mark" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 2L22 21H2L12 2Z" stroke="#C8A46A" strokeWidth="1.5" strokeLinejoin="round"/>
+              <line x1="6.5" y1="15" x2="17.5" y2="15" stroke="#C8A46A" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
             <span className="atlas-wordmark">
               ATLAS<span className="atlas-wordmark-sub">The Intelligence Layer for Events</span>
             </span>
@@ -165,7 +235,7 @@ export default function HomePage() {
       <section className="atlas-hero">
         <div className="atlas-hero-inner container">
           <div className="atlas-hero-copy">
-            <span className="atlas-pill">Global Wedding &amp; Event Intelligence</span>
+            <span className="atlas-pill">AI Venue Intelligence Platform</span>
             <h1>
               Plan with certainty.
               <br />
@@ -175,25 +245,41 @@ export default function HomePage() {
               Atlas analyzes venues, contracts, and logistics to reveal the truth behind the numbers — so you can
               plan with confidence and avoid costly surprises.
             </p>
-            <div className="atlas-hero-actions">
-              <a className="btn primary" href="#venues">
-                Find Your Perfect Venue →
-              </a>
-              <a className="btn secondary atlas-hero-secondary" href="#how">
-                See How It Works
+            <div className="atlas-hero-form">
+              <p className="atlas-hero-form-title">Tell Atlas about your event</p>
+              <p className="atlas-hero-form-sub">
+                Atlas parses your requirements against real venue constraints — capacity math, curfews, room-flip
+                windows, cultural ceremony needs — and returns ranked matches with a full risk brief.
+              </p>
+              <textarea
+                className="atlas-hero-textarea"
+                rows={3}
+                defaultValue="Indian wedding in Georgia, 500–800 guests, Grand ballroom, outdoor ceremony, late night curfew, room blocks for 200, budget $150K–$200K"
+                readOnly
+                aria-label="Sample search query"
+              />
+              <div className="atlas-hero-filter-grid">
+                <label className="atlas-hero-filter-sel">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <select defaultValue="atl"><option value="atl">Atlanta, GA</option><option value="">All Georgia</option></select>
+                </label>
+                <label className="atlas-hero-filter-sel">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><path d="M16 6a3 3 0 0 1 0 6M21 20c0-2.2-1.4-3.9-3.5-4.6"/></svg>
+                  <select defaultValue="500"><option value="500">500 – 800 Guests</option><option value="">Any Size</option></select>
+                </label>
+                <label className="atlas-hero-filter-sel">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  <select defaultValue="indian"><option value="indian">Indian Wedding</option><option value="">Event Type</option></select>
+                </label>
+                <label className="atlas-hero-filter-sel">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="13.5" r="1"/></svg>
+                  <select defaultValue="150"><option value="150">Budget: $150K – $200K</option><option value="">Any Budget</option></select>
+                </label>
+              </div>
+              <a className="btn primary atlas-hero-find-btn" href="#venues">
+                Run Atlas Intelligence →
               </a>
             </div>
-            <ul className="atlas-trust-row">
-              {trustBadges.map((badge) => (
-                <li key={badge.title}>
-                  <span className="atlas-trust-check" aria-hidden="true">✓</span>
-                  <span>
-                    <strong>{badge.title}</strong>
-                    <em>{badge.detail}</em>
-                  </span>
-                </li>
-              ))}
-            </ul>
           </div>
 
           <aside className="atlas-venueintel" aria-label="Atlas Venue Intelligence preview">
@@ -291,16 +377,18 @@ export default function HomePage() {
       </section>
 
       <section className="atlas-strip">
-        <div className="container atlas-strip-inner">
-          <span className="atlas-strip-lead">Now matching venues across Georgia</span>
-          <div className="atlas-strip-places">
-            <span>Atlanta</span>
-            <span>Buckhead</span>
-            <span>Alpharetta</span>
-            <span>Gwinnett</span>
-            <span>Braselton</span>
-            <span className="atlas-strip-soon">Nationwide soon</span>
-          </div>
+        <div className="container atlas-strip-trust">
+          {trustBadges.map((badge) => (
+            <div className="atlas-trust-item" key={badge.title}>
+              <span className="atlas-trust-item-icon" aria-hidden="true">
+                <Icon name={badge.icon} />
+              </span>
+              <div>
+                <strong>{badge.title}</strong>
+                <span>{badge.detail}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -330,13 +418,58 @@ export default function HomePage() {
 
       <section id="venues" className="atlas-matchmaker-section">
         <div className="container">
-          <header className="atlas-section-head">
-            <p className="eyebrow">The Atlas Venue Matchmaker™</p>
-            <h2>Find venues that actually fit your vision.</h2>
-            <p className="atlas-section-sub">
-              Not just by location or price — by real capacity, policies, and what matters most to you. Describe your
-              event and Atlas matches it against verified venue data, starting with 55 venues across Georgia.
+          <div className="atlas-feat">
+            <header className="atlas-section-head">
+              <p className="eyebrow">A Sample Of Atlas-Verified Venues</p>
+              <h2>Premium Georgia venues, already verified.</h2>
+              <p className="atlas-section-sub">
+                A standing look at venues in the Atlas network — verified by city, setting, and
+                capacity. These are sample venues, not personalized matches; describe your event
+                below to see how Atlas ranks them against what you actually need.
+              </p>
+            </header>
+
+            <div className="vm-carousel atlas-feat-rail" aria-label="Featured Atlas-verified venues">
+              {featuredVenues.map((venue) => (
+                <article key={venue.name} className="vm-card atlas-feat-card">
+                  <div className={`vm-card-cover ${venue.photo ? 'vm-card-cover--photo' : venue.cover}`}>
+                    {venue.photo ? (
+                      <img className="vm-card-photo" src={venue.photo} alt={venue.name} loading="lazy" />
+                    ) : (
+                      <span className="vm-card-initials" aria-hidden="true">
+                        {featInitials(venue.name)}
+                      </span>
+                    )}
+                    <span className="vm-verified">Verified</span>
+                  </div>
+                  <div className="vm-card-body">
+                    <h3 className="vm-card-name">{venue.name}</h3>
+                    <p className="vm-card-loc">
+                      {venue.setting} · {venue.city}
+                    </p>
+                    <div className="vm-card-meta">
+                      <span className="vm-card-cap atlas-feat-cap">{venue.capacity}</span>
+                      <a className="atlas-feat-details" href="#venues">
+                        View Details
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M5 12h14M13 6l6 6-6 6" />
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <p className="atlas-feat-foot">
+              <span className="atlas-feat-foot-mark" aria-hidden="true" />
+              55 verified venues across Georgia — coverage expanding.
             </p>
+          </div>
+
+          <header className="atlas-section-head atlas-section-head--center">
+            <p className="eyebrow">Intelligence-First Venue Matching</p>
+            <h2>AI matches. Real insights. Better decisions.</h2>
           </header>
           <VenueMatchmaker />
         </div>
@@ -360,34 +493,56 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="advantage" className="atlas-advantage container">
-        <header className="atlas-section-head atlas-section-head--center">
-          <p className="eyebrow">More Than Software. Real Intelligence.</p>
-          <h2>Atlas gives you the unfair advantage.</h2>
-        </header>
-        <div className="atlas-advantage-grid">
-          {advantages.map((item) => (
-            <article className="atlas-advantage-card" key={item.title}>
-              <span className="atlas-advantage-icon">
-                <Icon name={item.icon} />
-              </span>
-              <h3>{item.title}</h3>
-              <p>{item.detail}</p>
-            </article>
-          ))}
+      <section id="advantage" className="atlas-advantage">
+        <div className="container">
+          <header className="atlas-section-head atlas-section-head--center">
+            <p className="eyebrow">More Than Software. Real Intelligence.</p>
+            <h2>Atlas gives you the unfair advantage.</h2>
+          </header>
+          <div className="atlas-advantage-grid">
+            {advantages.map((item) => (
+              <article className="atlas-advantage-card" key={item.title}>
+                <span className="atlas-advantage-icon">
+                  <Icon name={item.icon} />
+                </span>
+                <h3>{item.title}</h3>
+                <p>{item.detail}</p>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
       <section className="atlas-proof">
-        <div className="container atlas-proof-inner">
-          <blockquote className="atlas-proof-quote">
-            <p>
-              &ldquo;We built Atlas because the costliest wedding mistakes are the ones no checklist catches. The venue
-              data and the plan should tell you the truth — before the day arrives, not after.&rdquo;
-            </p>
-            <cite>The Revel Entertainment team</cite>
-          </blockquote>
-          <div className="atlas-proof-stats">
+        <div className="container atlas-proof-inner atlas-proof-inner--rich">
+          {/* Identity column — champagne-gold Atlas 'A' medallion, never a stock photo */}
+          <figure className="atlas-proof-identity">
+            <div className="atlas-proof-medallion" aria-hidden="true">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L22 21H2L12 2Z" stroke="#C8A46A" strokeWidth="1.5" strokeLinejoin="round" />
+                <line x1="6.5" y1="15" x2="17.5" y2="15" stroke="#C8A46A" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </div>
+            <figcaption className="atlas-proof-identity-cap">
+              <span className="atlas-proof-identity-name">Revel Entertainment</span>
+              <span className="atlas-proof-identity-role">Founding team · Atlanta, GA</span>
+            </figcaption>
+          </figure>
+
+          <div className="atlas-proof-voice">
+            <p className="eyebrow atlas-proof-eyebrow">Why We Built Atlas</p>
+            <blockquote className="atlas-proof-quote">
+              <span className="atlas-proof-quote-mark" aria-hidden="true">&ldquo;</span>
+              <p className="atlas-proof-quote-body">
+                We built Atlas because the costliest wedding mistakes are the ones no checklist
+                catches. The venue data and the plan should tell you the truth — before the day
+                arrives, not after.
+              </p>
+              <cite>The Revel Entertainment team</cite>
+            </blockquote>
+          </div>
+
+          <div className="atlas-proof-stats atlas-proof-stats--rich">
             {stats.map((stat) => (
               <div className="atlas-proof-stat" key={stat.label}>
                 <strong>{stat.value}</strong>
@@ -401,13 +556,13 @@ export default function HomePage() {
       <section className="atlas-cta">
         <div className="container atlas-cta-inner">
           <div>
-            <p className="eyebrow">Ready To Plan Smarter</p>
-            <h2>Find your venue match in minutes.</h2>
-            <p className="atlas-cta-note">Built in Georgia for real weddings. Expanding nationwide.</p>
+            <p className="eyebrow">The Intelligence Advantage</p>
+            <h2>Stop guessing. Start knowing.</h2>
+            <p className="atlas-cta-note">Every match includes real capacity math, detected risks, and timeline feasibility — not just options.</p>
           </div>
           <div className="atlas-cta-actions">
             <a className="btn gold" href="#venues">
-              Find Your Perfect Venue
+              Get Your Intelligence Report
             </a>
             <Link className="btn secondary atlas-hero-secondary" href="/login">
               Get Early Access
@@ -417,15 +572,62 @@ export default function HomePage() {
       </section>
 
       <footer className="atlas-footer">
-        <div className="container atlas-footer-inner">
-          <span className="atlas-footer-brand">ATLAS</span>
-          <span className="atlas-footer-tag">The Intelligence Layer for Events</span>
-          <nav className="atlas-footer-links" aria-label="Footer">
-            <a href="#how">How It Works</a>
-            <a href="#venues">Venue Matchmaker</a>
-            <Link href="/login">Log in</Link>
-          </nav>
-          <span className="atlas-footer-legal">© 2026 Revel Entertainment</span>
+        <div className="container atlas-foot-inner">
+          <div className="atlas-foot-top">
+            <div className="atlas-foot-brand-block">
+              <div className="atlas-foot-brand-row">
+                <svg className="atlas-mark" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 2L22 21H2L12 2Z" stroke="#C8A46A" strokeWidth="1.5" strokeLinejoin="round" />
+                  <line x1="6.5" y1="15" x2="17.5" y2="15" stroke="#C8A46A" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                <span className="atlas-foot-wordmark">ATLAS</span>
+              </div>
+              <p className="atlas-foot-desc">
+                The intelligence layer for premium multi-day weddings — verifying venues, contracts,
+                and logistics so every moment is protected. Built in Georgia, expanding.
+              </p>
+              <div className="atlas-foot-follow" aria-label="Contact Atlas">
+                <span className="atlas-foot-follow-label">Follow</span>
+                <a className="atlas-foot-social" href="mailto:info@revel-ent.com" aria-label="Email Revel Entertainment">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" />
+                  </svg>
+                </a>
+                <a className="atlas-foot-social" href="/login" aria-label="Sign in to Atlas">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /><path d="M10 17l5-5-5-5M15 12H3" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            <nav className="atlas-foot-cols" aria-label="Footer">
+              {footerColumns.map((col) => (
+                <div className="atlas-foot-col" key={col.heading}>
+                  <span className="atlas-foot-col-head">{col.heading}</span>
+                  <ul>
+                    {col.links.map((link) => (
+                      <li key={link.label}>
+                        {link.href.startsWith('/') ? (
+                          <Link href={link.href}>{link.label}</Link>
+                        ) : (
+                          <a href={link.href}>{link.label}</a>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </nav>
+          </div>
+
+          <div className="atlas-foot-legal">
+            <span>© 2026 Revel Entertainment. All rights reserved.</span>
+            <span className="atlas-foot-legal-tag">
+              <span className="atlas-foot-status" aria-hidden="true" />
+              Georgia coverage · expanding
+            </span>
+          </div>
         </div>
       </footer>
     </main>
