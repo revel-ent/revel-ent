@@ -245,6 +245,9 @@ export default function VenueMatchmaker() {
                   </span>
                   <span className="vm-tag">{tagFor(venue)}</span>
                 </div>
+                <a className="btn primary vm-card-cta" href="/portal/onboarding">
+                  Start Planning →
+                </a>
               </div>
             </article>
           ))}

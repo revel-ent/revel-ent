@@ -2983,6 +2983,15 @@ textarea:focus {
   color: var(--ink-soft);
 }
 
+.vm-card-cta {
+  display: block;
+  width: 100%;
+  margin-top: 0.9rem;
+  text-align: center;
+  font-size: 0.82rem;
+  padding: 0.5rem 0.75rem;
+}
+
 .vm-tag {
   font-size: 0.66rem;
   font-weight: 600;
