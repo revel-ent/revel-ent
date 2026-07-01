@@ -16,8 +16,9 @@ const EVENT_STAKEHOLDERS: Record<string, EventStakeholder[]> = {
     },
     {
       role: 'planner',
-      label: 'AM to PM planners',
-      email: 'events@amtopmplanners.com'
+      label: 'AM to PM Planners',
+      email: 'events@amtopmplanners.com',
+      phone: '856-237-9189 / 856-220-1506'
     },
     {
       role: 'decorator',
