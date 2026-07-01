@@ -1,9 +1,10 @@
-export type EventStakeholderRole = 'couple' | 'planner' | 'decorator' | 'vendor' | 'other';
+export type EventStakeholderRole = 'couple' | 'planner' | 'venue_coordinator' | 'decorator' | 'vendor' | 'other';
 
 export interface EventStakeholder {
   role: EventStakeholderRole;
   label: string;
   email: string;
+  phone?: string;
 }
 
 const EVENT_STAKEHOLDERS: Record<string, EventStakeholder[]> = {
@@ -15,13 +16,35 @@ const EVENT_STAKEHOLDERS: Record<string, EventStakeholder[]> = {
     },
     {
       role: 'planner',
-      label: 'AM to PM planners',
-      email: 'events@amtopmplanners.com'
+      label: 'AM to PM Planners',
+      email: 'events@amtopmplanners.com',
+      phone: '856-237-9189 / 856-220-1506'
     },
     {
       role: 'decorator',
       label: 'The Dreamcatchers Events LLC',
       email: 'dcevents.us@gmail.com'
+    },
+    {
+      role: 'venue_coordinator',
+      label: 'Mishaela Freeman — Crowne Plaza Peachtree City',
+      email: 'mishaela.freeman@crowneplazaptc.com',
+      phone: '770-487-3056'
+    },
+    {
+      role: 'vendor',
+      label: 'DJ Heckno',
+      email: 'hecknobeats@gmail.com'
+    },
+    {
+      role: 'vendor',
+      label: 'DJ Aladdinn',
+      email: 'djaladdinnbookings@gmail.com'
+    },
+    {
+      role: 'vendor',
+      label: 'Jigar Mody (MC)',
+      email: 'jigarmody24@gmail.com'
     }
   ]
 };

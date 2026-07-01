@@ -1,4 +1,5 @@
 import { getSupabaseAdminClient } from '@/lib/supabase-server';
+import { getEventStakeholders } from '@/lib/event-stakeholders';
 
 interface Props {
   eventId: string;
@@ -54,17 +55,34 @@ async function loadContacts(eventId: string) {
   return real;
 }
 
+const STAKEHOLDER_ROLE_LABEL: Record<string, string> = {
+  planner: 'Planner',
+  decorator: 'Decorator',
+  vendor: 'Vendor',
+  couple: 'Couple',
+  other: 'Team Member',
+};
+
 export default async function ClientContactsPanel({ eventId }: Props) {
   const members = await loadContacts(eventId);
-  const contacts = CONTACT_PRIORITY.flatMap((role) =>
-    members
-      .filter((member) => member.role === role)
-      .map((member) => ({
-        label: member.label,
-        name: member.name,
-        email: member.email,
-      }))
-  );
+
+  // Fall back to the stakeholder list when no accepted invites exist yet.
+  let contacts: { label: string; name: string; email: string; phone?: string }[];
+  if (members.length > 0) {
+    contacts = CONTACT_PRIORITY.flatMap((role) =>
+      members
+        .filter((member) => member.role === role)
+        .map((member) => ({ label: member.label, name: member.name, email: member.email }))
+    );
+  } else {
+    const stakeholders = getEventStakeholders(eventId).filter((s) => s.role !== 'couple');
+    contacts = stakeholders.map((s) => ({
+      label: STAKEHOLDER_ROLE_LABEL[s.role] ?? s.role,
+      name: s.label,
+      email: s.email,
+      phone: s.phone,
+    }));
+  }
 
   return (
     <section className="client-panel" aria-label="Contacts">
@@ -84,6 +102,7 @@ export default async function ClientContactsPanel({ eventId }: Props) {
                 <span className="item-meta">{contact.name}</span>
               </div>
               <p className="item-note">{contact.email}</p>
+              {contact.phone ? <p className="item-note">{contact.phone}</p> : null}
             </li>
           ))}
         </ul>
