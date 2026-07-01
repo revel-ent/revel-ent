@@ -168,12 +168,18 @@ function buildSystemInstruction(role: string, grounding: string): string {
   ].join('\n');
 }
 
-function buildFallbackReply(grounding: string, hasQuestion: boolean): string {
+function buildFallbackReply(grounding: string, hasQuestion: boolean, reason: 'no_key' | 'api_error' = 'no_key'): string {
   const intro = hasQuestion
-    ? 'The AI assistant is in preview mode (no AI key configured), so here is a direct readout of your event data instead of a written answer:'
+    ? reason === 'api_error'
+      ? 'AI response temporarily unavailable — here is a direct readout of your event data instead:'
+      : 'The AI assistant is in preview mode (no AI key configured), so here is a direct readout of your event data instead of a written answer:'
     : 'Here is a snapshot of your event:';
 
-  return `${intro}\n\n${grounding}\n\nEnable the AI assistant (set GEMINI_API_KEY) for conversational answers.`;
+  const footer = reason === 'api_error'
+    ? 'The AI assistant will retry on your next question.'
+    : 'Enable the AI assistant (set GEMINI_API_KEY) for conversational answers.';
+
+  return `${intro}\n\n${grounding}\n\n${footer}`;
 }
 
 /**
@@ -191,7 +197,7 @@ export async function answerWeddingQuestion(params: {
   const hasUserQuestion = messages.some((message) => message.role === 'user' && message.content.trim());
 
   if (!isGeminiConfigured()) {
-    return { reply: buildFallbackReply(grounding, hasUserQuestion), source: 'fallback', grounded: true };
+    return { reply: buildFallbackReply(grounding, hasUserQuestion, 'no_key'), source: 'fallback', grounded: true };
   }
 
   const system = buildSystemInstruction(role, grounding);
@@ -205,9 +211,9 @@ export async function answerWeddingQuestion(params: {
     if (reply && reply.trim()) {
       return { reply: reply.trim(), source: 'gemini', grounded: true };
     }
-  } catch {
-    // Fall through to the deterministic fallback below.
+  } catch (err) {
+    console.error('[ai-assistant] geminiChat error:', err instanceof Error ? err.message : String(err));
   }
 
-  return { reply: buildFallbackReply(grounding, hasUserQuestion), source: 'fallback', grounded: true };
+  return { reply: buildFallbackReply(grounding, hasUserQuestion, 'api_error'), source: 'fallback', grounded: true };
 }
