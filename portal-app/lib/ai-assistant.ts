@@ -94,13 +94,12 @@ export async function buildAssistantGrounding(input: AssistantGroundingInput): P
     const projected = getTimelineProjectionForRole(buildBaseCanonicalTimeline(eventId), role).slice(0, TIMELINE_LIMIT);
 
     if (projected.length > 0) {
+      // Omit wall-clock times — they are generated relative to "now", not anchored to the actual
+      // event date, so showing them would give couples misleading timestamps months before their event.
       const lines = projected.map(
-        (item) =>
-          `- [${item.phase}] ${item.title} — ${formatDateTime(item.startsAtIso)} to ${formatDateTime(
-            item.endsAtIso
-          )} (${item.status}, owner: ${item.ownerLabel})`
+        (item) => `- [${item.phase}] ${item.title} (${item.status}, owner: ${item.ownerLabel})`
       );
-      sections.push(`TIMELINE (${projected.length} steps visible to this role)\n${lines.join('\n')}`);
+      sections.push(`TIMELINE SEQUENCE (${projected.length} steps visible to this role — exact times confirmed closer to the date)\n${lines.join('\n')}`);
     }
   }
 
