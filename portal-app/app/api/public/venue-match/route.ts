@@ -40,26 +40,41 @@ function scoreVenue(venue: VenueRow, criteria: MatchCriteria): number {
   let score = 0;
 
   if (criteria.guestCount) {
-    const min = venue.comfortable_range_min ?? Math.round(venue.marketed_capacity * 0.6);
-    const max = venue.comfortable_range_max ?? venue.marketed_capacity;
-    if (criteria.guestCount >= min && criteria.guestCount <= max) {
+    const cap = venue.marketed_capacity || 0;
+    const min = venue.comfortable_range_min ?? (cap > 0 ? Math.round(cap * 0.6) : null);
+    const max = venue.comfortable_range_max ?? (cap > 0 ? cap : null);
+    if (min !== null && max !== null && criteria.guestCount >= min && criteria.guestCount <= max) {
       score += 40;
-    } else if (criteria.guestCount < min) {
+    } else if (min !== null && min > 0 && criteria.guestCount < min) {
       score += Math.round(40 * (criteria.guestCount / min));
+    } else if (max !== null && max > 0 && criteria.guestCount > max) {
+      if (criteria.guestCount / max <= 1.15) score += 20;
     } else {
-      const overRatio = criteria.guestCount / max;
-      if (overRatio <= 1.15) score += 20;
+      score += 15;
     }
   } else {
     score += 20;
   }
 
-  const conf = venue.source_confidence ?? 0.5;
-  score += Math.round(conf * 40);
+  // City relevance bonus: penalise venues outside the queried city.
+  if (criteria.city && venue.city) {
+    const vc = venue.city.toLowerCase();
+    const qc = criteria.city.toLowerCase();
+    if (vc.includes(qc) || qc.includes(vc)) {
+      score += 20;
+    } else {
+      score -= 15;
+    }
+  }
 
-  if (venue.verification_status === 'verified') score += 20;
+  // Guard against non-numeric source_confidence (empty string, etc.)
+  const rawConf = venue.source_confidence;
+  const conf = (typeof rawConf === 'number' && Number.isFinite(rawConf)) ? rawConf : 0.5;
+  score += Math.round(conf * 30);
 
-  return Math.min(100, score);
+  if (venue.verification_status === 'verified') score += 10;
+
+  return Math.min(100, Math.max(0, score));
 }
 
 export async function POST(request: Request) {

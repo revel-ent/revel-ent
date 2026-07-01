@@ -3,7 +3,7 @@
 
 create table if not exists coordination_feed (
   id          uuid        primary key default gen_random_uuid(),
-  event_id    uuid        not null references events(id) on delete cascade,
+  event_id    uuid        not null references events(event_id) on delete cascade,
   author_name text        not null,
   author_role text        not null check (author_role in ('planner', 'ops', 'vendor', 'admin', 'couple')),
   message     text        not null,
