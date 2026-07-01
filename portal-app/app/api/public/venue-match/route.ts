@@ -25,16 +25,40 @@ interface VenueRow {
 }
 
 const EXTRACT_SYSTEM = `You extract venue search criteria from natural language.
-Return valid JSON only:
+Return valid JSON only — no markdown, no explanation, just the JSON object:
 {
   "guestCount": number | null,
   "city": string | null,
   "style": string[]
 }
 Rules:
-- guestCount: integer if mentioned ("300 guests" → 300). Null otherwise.
-- city: city name if explicitly mentioned. Default "Atlanta" when region is Georgia/Southeast. Null if truly unclear.
-- style: keywords like "outdoor", "modern", "traditional", "ballroom", "garden", "rooftop". Empty array if none.`;
+- guestCount: extract the lowest integer from any number/range mentioned. "500+ guests" → 500. "300-400 guests" → 300. Null only if no number at all.
+- city: the most specific Georgia location mentioned (neighborhood, city, or suburb). "Buckhead" → "Buckhead". "near Atlanta" → "Atlanta". Default "Atlanta" for generic Georgia/Southeast references. Null only if no location clue exists.
+- style: relevant style keywords from ["outdoor","ballroom","garden","rooftop","modern","traditional","intimate","grand"]. Empty array if none apply.`;
+
+const GEORGIA_CITIES = ['atlanta','buckhead','alpharetta','marietta','decatur','sandy springs','dunwoody','smyrna','roswell','peachtree','gwinnett','duluth','johns creek','cumming','braselton','gainesville','savannah','augusta','macon'];
+
+function preParsePrompt(prompt: string): Partial<MatchCriteria> {
+  const lower = prompt.toLowerCase();
+  const result: Partial<MatchCriteria> = {};
+
+  // Extract guest count: grab the first number followed by optional + or range indicator
+  const guestMatch = lower.match(/(\d{2,4})\+?\s*(?:guests?|people|attendees?|pax)/);
+  if (guestMatch) {
+    result.guestCount = parseInt(guestMatch[1], 10);
+  }
+
+  // Extract city: scan for known Georgia cities/neighborhoods
+  for (const city of GEORGIA_CITIES) {
+    if (lower.includes(city)) {
+      // Title-case the city name
+      result.city = city.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      break;
+    }
+  }
+
+  return result;
+}
 
 function scoreVenue(venue: VenueRow, criteria: MatchCriteria): number {
   let score = 0;
@@ -85,10 +109,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'prompt required (max 500 chars)' }, { status: 400 });
   }
 
-  let criteria: MatchCriteria = {};
+  // Regex pre-parse — always runs, provides a reliable baseline.
+  const preParsed = preParsePrompt(rawPrompt);
+
+  // Gemini fills in style keywords and may refine city/guestCount.
+  let criteria: MatchCriteria = { ...preParsed };
   if (isGeminiConfigured()) {
     const extracted = await geminiGenerateJson<MatchCriteria>(rawPrompt, EXTRACT_SYSTEM).catch(() => null);
-    if (extracted) criteria = extracted;
+    if (extracted) {
+      criteria = {
+        guestCount: extracted.guestCount ?? preParsed.guestCount ?? null,
+        city: extracted.city ?? preParsed.city ?? null,
+        style: extracted.style ?? [],
+      };
+    }
   }
 
   const supabase = getSupabaseAdminClient();
