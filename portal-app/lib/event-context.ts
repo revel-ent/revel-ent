@@ -12,6 +12,7 @@ export interface EventRecord {
   venueName: string;
   guestCountEstimate: number;
   moodBoardUrl: string | null;
+  couplePhotoUrl: string | null;
 }
 
 export async function getEventRecord(eventId: string): Promise<EventRecord | null> {
@@ -41,6 +42,7 @@ export async function getEventRecord(eventId: string): Promise<EventRecord | nul
 
   const snapshot = (event.atlas_entitlement_snapshot as Record<string, unknown> | null) ?? {};
   const moodBoardUrl = typeof snapshot.mood_board_url === 'string' ? snapshot.mood_board_url : null;
+  const couplePhotoUrl = typeof snapshot.couple_photo_url === 'string' ? snapshot.couple_photo_url : null;
 
   return {
     id: event.event_id as string,
@@ -49,6 +51,7 @@ export async function getEventRecord(eventId: string): Promise<EventRecord | nul
     venueName,
     guestCountEstimate: (event.guest_count_estimate as number) ?? 0,
     moodBoardUrl,
+    couplePhotoUrl,
   };
 }
 
