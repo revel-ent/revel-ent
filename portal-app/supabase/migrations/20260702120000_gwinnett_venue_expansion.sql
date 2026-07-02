@@ -3,6 +3,13 @@
 -- Gwinnett County Corridor" (Duluth/Johns Creek/Norcross/Suwanee/Lawrenceville/Buford/Braselton),
 -- cross-checked against an independent Claude deep-research pass on the same corridor.
 --
+-- ALREADY APPLIED to production (egtnaiizblbzlmmxfplt) on 2026-07-02 via the Supabase REST API
+-- (service role key), not by running this file in the SQL editor -- no Supabase CLI / direct DB
+-- connection was available in that session. This file is kept as the authoritative record of what
+-- was inserted and why. Do NOT re-run it as-is: atlas_record_id has a unique constraint, so it will
+-- fail on every row. If you need to replay this against a different environment, strip the
+-- `values` list down to whatever's actually missing there first.
+--
 -- Excluded from this batch:
 --   - Chateau Elan Winery & Resort: already exists in venues as 'Chateau Elan' (Braselton)
 --
