@@ -2,6 +2,11 @@
 
 import { useState } from 'react';
 
+interface PolicyFact {
+  label: string;
+  confirmed: boolean;
+}
+
 interface VenueResult {
   id: string;
   name: string;
@@ -14,6 +19,8 @@ interface VenueResult {
   matchScore: number;
   /** Licensed/owned photo URL, when available. Falls back to the gradient + monogram cover. */
   photoUrl?: string;
+  /** Curfew, catering, and fire/effects policy — drawn from logged venue facts, not guessed. */
+  policyFacts?: PolicyFact[];
 }
 
 const QUICK_PROMPTS = [
@@ -245,6 +252,16 @@ export default function VenueMatchmaker() {
                   </span>
                   <span className="vm-tag">{tagFor(venue)}</span>
                 </div>
+                {venue.policyFacts && venue.policyFacts.length > 0 ? (
+                  <ul className="vm-card-facts">
+                    {venue.policyFacts.map((fact) => (
+                      <li key={fact.label} className="vm-card-fact">
+                        {fact.label}
+                        {!fact.confirmed ? <span className="vm-card-fact__unconfirmed"> (unconfirmed)</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
                 <a className="btn primary vm-card-cta" href="/portal/onboarding">
                   Start Planning →
                 </a>
