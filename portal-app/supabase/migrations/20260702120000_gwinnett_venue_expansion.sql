@@ -5,10 +5,6 @@
 --
 -- Excluded from this batch:
 --   - Chateau Elan Winery & Resort: already exists in venues as 'Chateau Elan' (Braselton)
---   - KTN Ballroom (4675 River Green Pkwy, Duluth): same address independently found under the
---     name 'Jade Banquets' by a separate verified research pass. Two different business names at
---     the identical address -- likely a promoter/booking-name variance, or one source is stale.
---     NOT inserted. Needs a phone call to the venue to resolve which name is current before adding.
 --
 -- Flagged, inserted with source_confidence='estimated' rather than 'sales_claim':
 --   - Hashemite's Banquet Hall: capacity claims (1500/450) were explicitly REFUTED 0-3 twice in an
@@ -18,12 +14,16 @@
 --   - Signature Ballroom (Suwanee): source report listed 'N/A' for its citation URL -- no
 --     verifiable source at all.
 --
--- Data-quality flag, NOT auto-resolved, needs manual confirmation:
---   - Ashiana Banquet Hall (Norcross, 700 seated) and Baradari Banquet Hall (Lawrenceville, 300
---     seated) share the identical street address (5675 Jimmy Carter Blvd) in Gemini's own report,
---     but are listed under two different cities. Both inserted as reported since they read as
---     genuinely distinct businesses (very different capacity/character), but this needs a direct
---     check -- could be two tenants in the same plaza, or a geocoding/city-tag error in the source.
+-- Two conflicts flagged during initial synthesis, since resolved via a follow-up research turn:
+--   - '4675 River Green/Rivergreen Pkwy, Duluth' was reported by Gemini as 'KTN Ballroom' and,
+--     separately, by an independent Claude deep-research pass as 'Jade Banquets'. Confirmed via
+--     follow-up: same venue, different operating names across branding phases. Inserted as
+--     'jade_banquets_duluth', the name carrying the richer, independently-verified data.
+--   - Baradari Banquet Hall's originally-reported address (5675 Jimmy Carter Blvd) was confirmed
+--     via follow-up to actually belong to Ashiana Banquet Hall (Norcross) -- a copy-paste error in
+--     the source report, not a shared building. Baradari is real and distinct (Lawrenceville), but
+--     its correct address is unknown; left null rather than guessed, and confidence downgraded to
+--     'estimated' since part of its original sourcing was demonstrably wrong.
 
 insert into venues (
   atlas_record_id,
@@ -726,18 +726,39 @@ values
   'Main Banquet Hall',
   'Lawrenceville',
   'GA',
-  '5675 Jimmy Carter Blvd, Lawrenceville, GA',
+  null,
   null,
   null,
   null,
   350,
   null,
   300,
+  'estimated'::confidence_level,
+  'unverified'::verification_status,
+  '2026-07-02',
+  '{"source": "gemini_deep_research", "fieldSources": {}, "floorPlanType": null, "floorPlanNotes": null, "floorPlanLastVerified": null, "capacityNotes": "RESOLVED: the street address originally reported (5675 Jimmy Carter Blvd) was confirmed to actually belong to Ashiana Banquet Hall (Norcross), not this venue -- likely copy-paste error in the source report. Baradari is a real, distinct venue in Lawrenceville, but its correct street address is unknown; left null rather than guessed. Confidence downgraded to estimated since part of the original sourcing was demonstrably wrong."}'::jsonb,
+  '["https://baradaribanquet.com"]'::jsonb,
+  '[]'::jsonb
+),
+(
+  'jade_banquets_duluth',
+  'jade_banquets_duluth',
+  'Jade Banquets',
+  'Main Ball Room',
+  'Duluth',
+  'GA',
+  '4675 Rivergreen Pkwy, Duluth, GA',
+  null,
+  null,
+  null,
+  500,
+  null,
+  450,
   'sales_claim'::confidence_level,
   'unverified'::verification_status,
   '2026-07-02',
-  '{"source": "gemini_deep_research", "fieldSources": {}, "floorPlanType": null, "floorPlanNotes": null, "floorPlanLastVerified": null, "capacityNotes": "FLAG: ADDRESS CONFLICT: same street address (5675 Jimmy Carter Blvd) as Ashiana Banquet Hall (listed under Norcross) in this same report \u2014 likely a shared building/plaza with multiple tenants, not necessarily an error, but worth confirming they''re distinct spaces."}'::jsonb,
-  '["https://baradaribanquet.com"]'::jsonb,
+  '{"source": "claude_deep_research", "fieldSources": {}, "floorPlanType": null, "floorPlanNotes": null, "floorPlanLastVerified": null, "capacityNotes": "RESOLVED: this address (4675 River Green / Rivergreen Pkwy, Duluth) was independently found under two names -- Gemini reported it as ''KTN Ballroom'' (no distinguished capacity), an independent Claude deep-research pass found it as ''Jade Banquets'' with adversarially-verified capacity (500 max / 450 Main Ball Room) and an explicit outside-catering-allowed disclosure. Gemini confirmed via follow-up these are the same venue across different branding/operating-name phases. Jade Banquets used as the primary name since it carries the richer, independently-verified data; may also be listed as KTN Ballroom."}'::jsonb,
+  '["https://www.eventective.com/duluth-ga/jade-banquets-758179.html"]'::jsonb,
   '[]'::jsonb
 ),
 (
@@ -1041,8 +1062,11 @@ union all
 select v.venue_id, 'policy', 'outside_catering_allowed', null, null, true, null, 'yes', 'sales_claim'::confidence_level, 'https://opaleventhall.com', '2026-07-02'
 from venues v where v.atlas_record_id = 'the_opal_event_hall'
 union all
-select v.venue_id, 'policy', 'outside_catering_allowed', null, null, true, null, 'yes_byo', 'sales_claim'::confidence_level, 'https://baradaribanquet.com', '2026-07-02'
+select v.venue_id, 'policy', 'outside_catering_allowed', null, null, true, null, 'yes_byo', 'estimated'::confidence_level, 'https://baradaribanquet.com', '2026-07-02'
 from venues v where v.atlas_record_id = 'baradari_banquet_hall'
+union all
+select v.venue_id, 'policy', 'outside_catering_allowed', null, null, true, null, 'Outside Catering Allowed -- explicit disclosure on aggregator listing', 'sales_claim'::confidence_level, 'https://www.eventective.com/duluth-ga/jade-banquets-758179.html', '2026-07-02'
+from venues v where v.atlas_record_id = 'jade_banquets_duluth'
 union all
 select v.venue_id, 'policy', 'outside_catering_allowed', null, null, true, null, 'yes', 'sales_claim'::confidence_level, 'https://gwinnettcounty.com', '2026-07-02'
 from venues v where v.atlas_record_id = 'gwinnett_historic_courthouse'
