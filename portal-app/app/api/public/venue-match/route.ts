@@ -208,19 +208,26 @@ export async function POST(request: Request) {
   }
 
   const scored = (venues as VenueRow[])
-    .map((v) => ({
-      id: v.venue_id,
-      name: v.name,
-      roomName: v.room_name,
-      city: v.city,
-      state: v.state,
-      capacityMin: v.comfortable_range_min ?? Math.round(v.marketed_capacity * 0.6),
-      capacityMax: v.comfortable_range_max ?? v.marketed_capacity,
-      marketedCapacity: v.marketed_capacity,
-      verified: v.verification_status === 'verified',
-      matchScore: scoreVenue(v as VenueRow, criteria),
-      policyFacts: [] as PolicyFact[],
-    }))
+    .map((v) => {
+      const capacityMax = v.comfortable_range_max ?? v.marketed_capacity;
+      // Derive the floor from whichever ceiling we're actually using — a real seated/banquet
+      // figure (comfortable_range_max) is often well below marketed_capacity (theater/standing),
+      // so basing the 60% floor on the inflated marketed number can push it above the real max.
+      const capacityMin = v.comfortable_range_min ?? Math.round(capacityMax * 0.6);
+      return {
+        id: v.venue_id,
+        name: v.name,
+        roomName: v.room_name,
+        city: v.city,
+        state: v.state,
+        capacityMin,
+        capacityMax,
+        marketedCapacity: v.marketed_capacity,
+        verified: v.verification_status === 'verified',
+        matchScore: scoreVenue(v as VenueRow, criteria),
+        policyFacts: [] as PolicyFact[],
+      };
+    })
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 6);
 
