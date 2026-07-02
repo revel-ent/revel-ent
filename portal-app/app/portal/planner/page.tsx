@@ -2,6 +2,7 @@ import AtlasVenueIntelligencePanel from '@/app/portal/planner/components/AtlasVe
 import PlannerMusicStatusPanel from '@/app/portal/planner/components/PlannerMusicStatusPanel';
 import VenueAnalyzerTool from '@/app/portal/planner/components/VenueAnalyzerTool';
 import OperationsDispatchTool from '@/app/portal/planner/components/OperationsDispatchTool';
+import GenerateTimelineTool from '@/app/portal/planner/components/GenerateTimelineTool';
 import PlannerTaskBoard from '@/app/portal/planner/components/PlannerTaskBoard';
 import VendorAssignmentRoster from '@/app/portal/planner/components/VendorAssignmentRoster';
 import EventTimelineCard from '@/app/portal/components/EventTimelineCard';
@@ -30,6 +31,7 @@ export default async function PlannerPortalPage() {
         <VendorAssignmentRoster />
         <VenueAnalyzerTool />
         <OperationsDispatchTool />
+        <GenerateTimelineTool />
         <EventTimelineCard />
         <LiveModeCard />
       </div>

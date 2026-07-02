@@ -75,8 +75,13 @@ function parseWeddingDate(dateInput?: string): Date {
     return fallback;
   }
 
-  candidate.setHours(17, 0, 0, 0);
-  return candidate;
+  // Date-only strings (e.g. "2026-11-27") parse as UTC midnight. In timezones behind UTC
+  // (e.g. America/New_York), that instant already falls on the previous local calendar day,
+  // so a local setHours() below would anchor the ceremony to the wrong day. Rebuild the date
+  // from its UTC calendar components using the local constructor so the day stays fixed.
+  const anchor = new Date(candidate.getUTCFullYear(), candidate.getUTCMonth(), candidate.getUTCDate());
+  anchor.setHours(17, 0, 0, 0);
+  return anchor;
 }
 
 function minutesFromDate(base: Date, minutes: number): Date {
