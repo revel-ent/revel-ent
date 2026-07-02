@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { canUseLiveMode } from '@/lib/auth';
+import { canUpdateLiveTimeline, canUseLiveMode } from '@/lib/auth';
 import { buildBaseCanonicalTimeline, buildLiveSnapshotFromCanonicalTimeline, mapPersistedTimelineRows } from '@/lib/canonical-timeline';
 import { getSession } from '@/lib/session';
 import { getSupabaseAdminClient } from '@/lib/supabase-server';
@@ -42,6 +42,7 @@ export async function GET() {
           role: session.role,
           timeline
         }),
+        canManage: canUpdateLiveTimeline(session.role),
         source: 'supabase'
       });
     }
@@ -53,6 +54,7 @@ export async function GET() {
       role: session.role,
       timeline: buildBaseCanonicalTimeline(session.eventId)
     }),
+    canManage: canUpdateLiveTimeline(session.role),
     source: 'mock'
   });
 }

@@ -24,6 +24,65 @@ interface VenueRow {
   verification_status: string | null;
 }
 
+interface VenueConstraintRow {
+  venue_id: string;
+  key: string;
+  value_text: string | null;
+  value_number: number | null;
+  value_boolean: boolean | null;
+  source_confidence: string | null;
+}
+
+interface PolicyFact {
+  label: string;
+  confirmed: boolean;
+}
+
+// Order reflects what most affects a South Asian wedding's venue decision:
+// curfew (late-night sangeet/reception), catering (halal/veg vendors), then
+// fire/effects policy (agni pheras, sparks, haze during the reception show).
+const POLICY_KEY_PRIORITY = [
+  'curfew_time',
+  'outside_catering_allowed',
+  'open_flame_allowed',
+  'cold_sparks_allowed',
+  'haze_allowed',
+] as const;
+
+const MAX_POLICY_FACTS_PER_VENUE = 4;
+
+function formatTime12h(raw: string): string {
+  const match = raw.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return raw;
+  const hour24 = parseInt(match[1], 10);
+  const minute = match[2];
+  const period = hour24 >= 12 ? 'PM' : 'AM';
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${hour12}:${minute} ${period}`;
+}
+
+function formatPolicyFact(row: VenueConstraintRow): PolicyFact | null {
+  const confirmed = row.source_confidence === 'measured' || row.source_confidence === 'venue_doc';
+
+  if (row.key === 'curfew_time' && row.value_text) {
+    return { label: `${formatTime12h(row.value_text)} curfew`, confirmed };
+  }
+
+  if (row.value_boolean === null) return null;
+
+  const labels: Record<string, [string, string]> = {
+    outside_catering_allowed: ['Outside catering allowed', 'No outside catering'],
+    open_flame_allowed: ['Open flame allowed', 'No open flame'],
+    cold_sparks_allowed: ['Cold sparks allowed', 'No cold sparks'],
+    haze_allowed: ['Haze effects allowed', 'No haze effects'],
+  };
+
+  const pair = labels[row.key];
+  if (!pair) return null;
+
+  return { label: row.value_boolean ? pair[0] : pair[1], confirmed };
+}
+
 const EXTRACT_SYSTEM = `You extract venue search criteria from natural language.
 Return valid JSON only — no markdown, no explanation, just the JSON object:
 {
@@ -149,20 +208,54 @@ export async function POST(request: Request) {
   }
 
   const scored = (venues as VenueRow[])
-    .map((v) => ({
-      id: v.venue_id,
-      name: v.name,
-      roomName: v.room_name,
-      city: v.city,
-      state: v.state,
-      capacityMin: v.comfortable_range_min ?? Math.round(v.marketed_capacity * 0.6),
-      capacityMax: v.comfortable_range_max ?? v.marketed_capacity,
-      marketedCapacity: v.marketed_capacity,
-      verified: v.verification_status === 'verified',
-      matchScore: scoreVenue(v as VenueRow, criteria),
-    }))
+    .map((v) => {
+      const capacityMax = v.comfortable_range_max ?? v.marketed_capacity;
+      // Derive the floor from whichever ceiling we're actually using — a real seated/banquet
+      // figure (comfortable_range_max) is often well below marketed_capacity (theater/standing),
+      // so basing the 60% floor on the inflated marketed number can push it above the real max.
+      const capacityMin = v.comfortable_range_min ?? Math.round(capacityMax * 0.6);
+      return {
+        id: v.venue_id,
+        name: v.name,
+        roomName: v.room_name,
+        city: v.city,
+        state: v.state,
+        capacityMin,
+        capacityMax,
+        marketedCapacity: v.marketed_capacity,
+        verified: v.verification_status === 'verified',
+        matchScore: scoreVenue(v as VenueRow, criteria),
+        policyFacts: [] as PolicyFact[],
+      };
+    })
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 6);
+
+  const { data: constraints } = await supabase
+    .from('venue_constraints')
+    .select('venue_id, key, value_text, value_number, value_boolean, source_confidence')
+    .eq('category', 'policy')
+    .in('venue_id', scored.map((v) => v.id));
+
+  if (constraints) {
+    const byVenue = new Map<string, VenueConstraintRow[]>();
+    for (const row of constraints as VenueConstraintRow[]) {
+      const list = byVenue.get(row.venue_id) ?? [];
+      list.push(row);
+      byVenue.set(row.venue_id, list);
+    }
+
+    for (const venue of scored) {
+      const rows = byVenue.get(venue.id) ?? [];
+      const facts = POLICY_KEY_PRIORITY
+        .map((key) => rows.find((r) => r.key === key))
+        .filter((row): row is VenueConstraintRow => Boolean(row))
+        .map(formatPolicyFact)
+        .filter((fact): fact is PolicyFact => fact !== null)
+        .slice(0, MAX_POLICY_FACTS_PER_VENUE);
+      venue.policyFacts = facts;
+    }
+  }
 
   return NextResponse.json({ results: scored, criteria });
 }
