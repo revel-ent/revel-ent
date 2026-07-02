@@ -12,23 +12,11 @@ interface LiveStep {
   instructions: string;
 }
 
-interface LiveAlert {
-  id: string;
-  severity: 'info' | 'attention';
-  title: string;
-  detail: string;
-}
-
 interface LiveResponse {
   eventId: string;
+  source: 'mock' | 'supabase';
   current: LiveStep | null;
   next: LiveStep | null;
-  alerts: LiveAlert[];
-  contacts: {
-    planner: string;
-    venue: string;
-    production: string;
-  };
   canManage: boolean;
 }
 
@@ -118,7 +106,7 @@ export default function LiveModeCard() {
         <h3>Live Mode</h3>
         <span className="chip">Execution</span>
       </div>
-      <p>Now, next, urgent, and contact actions for real-time execution.</p>
+      <p>What&apos;s happening now and what&apos;s next, for real-time day-of execution.</p>
 
       {loading ? (
         <div className="stack" style={{ marginTop: '0.9rem' }}>
@@ -129,7 +117,16 @@ export default function LiveModeCard() {
       ) : null}
       {error ? <p className="alert error">{error}</p> : null}
 
-      {result ? (
+      {result && result.source === 'mock' ? (
+        <div className="tool-result">
+          <p className="item-note">
+            Live mode activates once your day-of timeline is published — usually a few days before the event.
+            Nothing to track yet.
+          </p>
+        </div>
+      ) : null}
+
+      {result && result.source !== 'mock' ? (
         <div className="tool-result">
           <div className="data-row">
             <div className="item-title-row">
@@ -150,26 +147,6 @@ export default function LiveModeCard() {
                 ? `${result.next.title} at ${fmt(result.next.startsAtIso)}`
                 : 'No upcoming step is scheduled yet. Your timeline feed will update automatically as operations are confirmed.'}
             </p>
-          </div>
-
-          <p><strong>Urgent Alerts:</strong></p>
-          <ul className="feed-list">
-            {result.alerts.map((alert) => (
-              <li key={alert.id} className="feed-item">
-                <div className="item-title-row">
-                  <strong className="item-title">{alert.title}</strong>
-                  <span className={`status-chip ${alert.severity}`}>{alert.severity}</span>
-                </div>
-                <p className="item-note">{alert.detail}</p>
-              </li>
-            ))}
-          </ul>
-
-          <div className="data-row">
-            <strong className="item-title">Contacts</strong>
-            <p className="item-meta">Planner: {result.contacts.planner}</p>
-            <p className="item-meta">Venue: {result.contacts.venue}</p>
-            <p className="item-meta">Production: {result.contacts.production}</p>
           </div>
 
           {result.canManage ? (

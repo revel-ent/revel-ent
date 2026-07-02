@@ -17,6 +17,7 @@ interface TimelineStep {
 interface TimelineResponse {
   eventId: string;
   role: string;
+  source: 'mock' | 'supabase' | 'simulation';
   conflicts: Array<{ id: string; message: string; severity: string }>;
   timeline: TimelineStep[];
 }
@@ -51,8 +52,12 @@ export default function EventTimelineCard() {
         }
 
         const data = (await response.json()) as TimelineResponse;
-        setTimeline(data.timeline || []);
-        setConflicts(data.conflicts || []);
+        // "mock" means no real timeline has been published yet — canonical-timeline.ts
+        // generates placeholder steps anchored to right-now, which would show a real
+        // wedding's team fabricated times for an event that's actually months out.
+        const generated = data.source === 'mock';
+        setTimeline(generated ? [] : data.timeline || []);
+        setConflicts(generated ? [] : data.conflicts || []);
       } catch (timelineError) {
         setError(timelineError instanceof Error ? timelineError.message : 'Request failed');
       } finally {
